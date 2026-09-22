@@ -1,541 +1,229 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>体育祭 運営本部ダッシュボード</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Noto+Sans+JP:wght@500;700;900&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --font-main: 'Plus Jakarta Sans', 'Noto Sans JP', -apple-system, sans-serif;
-    --bg-page: #F8FAFC;
-    --card-bg: #FFFFFF;
-    --text-primary: #0F172A;
-    --text-secondary: #475569;
-    --text-muted: #94A3B8;
-    --border-color: #E2E8F0;
-    
-    --brand-primary: #2563EB;
-    --brand-primary-light: #EFF6FF;
-    
-    --status-success: #059669;
-    --status-success-bg: #ECFDF5;
-    
-    --status-warning: #D97706;
-    --status-warning-bg: #FFFBEB;
-    
-    --status-danger: #E11D48;
-    --status-danger-bg: #FFF1F2;
-
-    --radius-xl: 20px;
-    --radius-lg: 14px;
-    --radius-md: 10px;
-    
-    --shadow-card: 0 4px 20px -2px rgba(15, 23, 42, 0.05), 0 2px 6px -1px rgba(15, 23, 42, 0.03);
-    --shadow-active: 0 10px 25px -5px rgba(37, 99, 235, 0.2);
-  }
-
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --bg-page: #0F172A;
-      --card-bg: #1E293B;
-      --text-primary: #F8FAFC;
-      --text-secondary: #CBD5E1;
-      --text-muted: #64748B;
-      --border-color: #334155;
-      
-      --brand-primary: #3B82F6;
-      --brand-primary-light: #1E3A8A;
-      
-      --status-success: #10B981;
-      --status-success-bg: #064E3B;
-      
-      --status-warning: #F59E0B;
-      --status-warning-bg: #78350F;
-      
-      --status-danger: #F43F5E;
-      --status-danger-bg: #881337;
-    }
-  }
-
-  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  
-  body {
-    margin: 0; background: var(--bg-page); color: var(--text-primary);
-    font-family: var(--font-main);
-    padding-bottom: calc(30px + env(safe-area-inset-bottom));
-  }
-
-  /* App Header */
-  .app-header {
-    position: sticky; top: 0; z-index: 40;
-    background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-    border-bottom: 1px solid var(--border-color);
-  }
-  @media (prefers-color-scheme: dark) {
-    .app-header { background: rgba(30, 41, 59, 0.85); }
-  }
-  .header-content {
-    max-width: 640px; margin: 0 auto; padding: 16px 20px;
-    display: flex; align-items: center; justify-content: space-between;
-  }
-  .app-title { font-size: 20px; font-weight: 900; letter-spacing: -0.03em; margin: 0; display: flex; align-items: center; gap: 8px; }
-  .sync-badge {
-    font-size: 12px; font-weight: 700; padding: 6px 12px; border-radius: 30px;
-    background: var(--bg-page); color: var(--text-secondary); border: 1px solid var(--border-color);
-  }
-
-  /* Nav Tabs */
-  .tab-group {
-    max-width: 640px; margin: 12px auto 0; padding: 0 20px;
-    display: flex; gap: 8px;
-  }
-  .tab-btn {
-    flex: 1; padding: 14px 0; border: none; background: transparent; color: var(--text-muted);
-    font-family: inherit; font-size: 15px; font-weight: 800; border-bottom: 3px solid transparent; cursor: pointer;
-    transition: all 0.2s ease;
-  }
-  .tab-btn.active { color: var(--brand-primary); border-bottom-color: var(--brand-primary); }
-
-  /* Layout Container */
-  .container { max-width: 640px; margin: 0 auto; padding: 20px 20px 60px; }
-  .view-panel { display: none; }
-  .view-panel.active { display: block; }
-
-  .section-header {
-    display: flex; justify-content: space-between; align-items: center;
-    margin: 24px 0 14px;
-  }
-  .section-header:first-child { margin-top: 0; }
-  .section-title { font-size: 16px; font-weight: 900; color: var(--text-secondary); letter-spacing: -0.01em; margin: 0; }
-
-  /* Modern Cards */
-  .card {
-    background: var(--card-bg); border: 1px solid var(--border-color); border-radius: var(--radius-xl);
-    padding: 20px; margin-bottom: 16px; box-shadow: var(--shadow-card);
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
-  }
-  .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
-  .card-title { font-size: 18px; font-weight: 900; line-height: 1.3; }
-  .card-sub { font-size: 13px; color: var(--text-muted); font-weight: 600; margin-top: 4px; }
-
-  /* Status Badges */
-  .status-badge {
-    display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 800;
-    padding: 6px 14px; border-radius: 30px; white-space: nowrap;
-  }
-  .status-badge.success { background: var(--status-success-bg); color: var(--status-success); }
-  .status-badge.warning { background: var(--status-warning-bg); color: var(--status-warning); }
-  .status-badge.danger { background: var(--status-danger-bg); color: var(--status-danger); }
-
-  /* High Impact Buttons */
-  .btn {
-    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-    font-family: inherit; font-size: 15px; font-weight: 800; border-radius: var(--radius-lg);
-    border: none; cursor: pointer; min-height: 52px; padding: 0 20px; width: 100%;
-    transition: all 0.15s ease; box-shadow: var(--shadow-card);
-  }
-  .btn:active { transform: scale(0.98); }
-  .btn-primary { background: var(--brand-primary); color: #FFF; box-shadow: var(--shadow-active); }
-  .btn-success { background: var(--status-success); color: #FFF; }
-  .btn-danger { background: var(--status-danger); color: #FFF; }
-  .btn-subtle { background: var(--bg-page); color: var(--text-primary); border: 1px solid var(--border-color); box-shadow: none; }
-  
-  .btn-inline { width: auto; min-height: 42px; padding: 0 16px; font-size: 14px; }
-  .btn-icon-only { width: 42px; min-height: 42px; padding: 0; border-radius: var(--radius-md); }
-
-  /* Loan Sub-items */
-  .loan-group {
-    display: flex; flex-direction: column; gap: 10px; margin-top: 16px; padding-top: 16px;
-    border-top: 1px dashed var(--border-color);
-  }
-  .loan-card {
-    display: flex; align-items: center; justify-content: space-between; gap: 12px;
-    background: var(--bg-page); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 12px 16px;
-  }
-  .loan-meta strong { font-size: 15px; font-weight: 800; }
-  .loan-meta span { font-size: 12px; color: var(--text-muted); display: block; margin-top: 2px; }
-
-  /* Modal Bottom Sheet */
-  .modal-backdrop {
-    position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(6px);
-    z-index: 100; display: none; align-items: flex-end; justify-content: center;
-  }
-  .modal-backdrop.active { display: flex; }
-  .modal-sheet {
-    background: var(--card-bg); width: 100%; max-width: 540px; border-radius: 28px 28px 0 0;
-    padding: 28px 24px calc(30px + env(safe-area-inset-bottom)); box-shadow: 0 -10px 40px rgba(0,0,0,0.15);
-    animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-
-  .modal-header { font-size: 20px; font-weight: 900; margin-bottom: 20px; }
-  .input-field { margin-bottom: 18px; }
-  .input-field label { display: block; font-size: 13px; font-weight: 800; color: var(--text-secondary); margin-bottom: 8px; }
-  .form-control {
-    width: 100%; height: 52px; padding: 0 16px; font-family: inherit; font-size: 16px; font-weight: 700;
-    border: 1.5px solid var(--border-color); border-radius: var(--radius-lg); background: var(--bg-page); color: var(--text-primary);
-  }
-  .form-control:focus { outline: none; border-color: var(--brand-primary); }
-  
-  .modal-actions { display: flex; gap: 12px; margin-top: 28px; }
-
-  /* Toast Notification */
-  .toast {
-    position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(30px);
-    background: var(--text-primary); color: var(--card-bg); font-weight: 800; font-size: 14px;
-    padding: 14px 28px; border-radius: 40px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); opacity: 0;
-    pointer-events: none; transition: all 0.25s ease; z-index: 200;
-  }
-  .toast.active { opacity: 1; transform: translateX(-50%) translateY(0); }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>体育祭トランシーバー貸出</title>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
+<body class="bg-gray-50 text-gray-800 max-w-4xl mx-auto p-4 md:p-6">
+  <header class="mb-8">
+    <h1 class="text-2xl font-bold text-center mb-4">📻 トランシーバー貸出管理</h1>
+    <nav class="flex justify-center gap-2 mb-6">
+      <button data-tab="lend" class="tab-btn px-4 py-2 rounded-lg bg-blue-500 text-white">貸出</button>
+      <button data-tab="return" class="tab-btn px-4 py-2 rounded-lg bg-gray-200">返却</button>
+      <button data-tab="list" class="tab-btn px-4 py-2 rounded-lg bg-gray-200">一覧</button>
+      <button data-tab="settings" class="tab-btn px-4 py-2 rounded-lg bg-gray-200">設定</button>
+    </nav>
+  </header>
 
-<header class="app-header">
-  <div class="header-content">
-    <h1 class="app-title">🏆 体育祭本部</h1>
-    <div class="sync-badge" id="syncStatus">⚡️ 接続中...</div>
-  </div>
-  <div class="tab-group">
-    <button class="tab-btn active" data-tab="lending">📦 備品管理</button>
-    <button class="tab-btn" data-tab="timetable">⏱ 進行表</button>
-  </div>
-</header>
+  <!-- 貸出画面 -->
+  <section id="lend" class="tab-content">
+    <h2 class="text-xl font-semibold mb-4">貸出登録</h2>
+    <form id="lendForm" class="space-y-3 bg-white p-6 rounded-lg shadow">
+      <div>
+        <label class="block mb-1">機器番号</label>
+        <select id="lendId" class="w-full border rounded px-3 py-2" required></select>
+      </div>
+      <div>
+        <label class="block mb-1">利用者名</label>
+        <input type="text" id="lendUser" class="w-full border rounded px-3 py-2" required>
+      </div>
+      <div>
+        <label class="block mb-1">配置/行き先</label>
+        <input type="text" id="lendPlace" class="w-full border rounded px-3 py-2" required>
+      </div>
+      <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">貸出実行</button>
+    </form>
+  </section>
 
-<main class="container">
-  <!-- LENDING TAB -->
-  <div class="view-panel active" id="view-lending">
-    <div class="section-header">
-      <h2 class="section-title">備品在庫一覧</h2>
-      <button class="btn btn-primary btn-inline" id="addItemBtn">＋ 備品登録</button>
+  <!-- 返却画面 -->
+  <section id="return" class="tab-content hidden">
+    <h2 class="text-xl font-semibold mb-4">返却登録</h2>
+    <form id="returnForm" class="space-y-3 bg-white p-6 rounded-lg shadow">
+      <div>
+        <label class="block mb-1">機器番号</label>
+        <select id="returnId" class="w-full border rounded px-3 py-2" required></select>
+      </div>
+      <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded">返却実行</button>
+    </form>
+  </section>
+
+  <!-- 一覧画面 -->
+  <section id="list" class="tab-content hidden">
+    <h2 class="text-xl font-semibold mb-4">一覧</h2>
+    <div class="overflow-x-auto">
+      <table class="w-full bg-white rounded-lg shadow">
+        <thead>
+          <tr class="bg-gray-100">
+            <th class="p-2 text-left">番号</th>
+            <th class="p-2 text-left">状態</th>
+            <th class="p-2 text-left">利用者</th>
+            <th class="p-2 text-left">場所</th>
+            <th class="p-2 text-left">日時</th>
+          </tr>
+        </thead>
+        <tbody id="listBody"></tbody>
+      </table>
     </div>
-    <div id="itemsList"></div>
+  </section>
 
-    <div class="section-header" style="margin-top:36px;">
-      <h2 class="section-title">アクティブな貸出</h2>
+  <!-- 設定画面 -->
+  <section id="settings" class="tab-content hidden">
+    <h2 class="text-xl font-semibold mb-4">設定</h2>
+    <div id="passwordArea">
+      <input type="password" id="passwordInput" placeholder="パスワードを入力" class="border rounded px-3 py-2 mb-3">
+      <button id="authBtn" class="bg-gray-700 text-white px-4 py-2 rounded">認証</button>
     </div>
-    <div id="allLoansList"></div>
-  </div>
-
-  <!-- TIMETABLE TAB -->
-  <div class="view-panel" id="view-timetable">
-    <div class="section-header">
-      <h2 class="section-title">タイムスケジュール</h2>
-      <button class="btn btn-primary btn-inline" id="addEventBtn">＋ 種目追加</button>
+    <div id="settingsContent" class="hidden">
+      <div class="mb-6 p-4 bg-white rounded-lg shadow">
+        <h3 class="font-medium mb-2">機器追加</h3>
+        <input type="text" id="newId" placeholder="例: TR-001" class="border rounded px-3 py-2 mb-2 w-full">
+        <button id="addItem" class="bg-blue-500 text-white px-4 py-2 rounded">追加</button>
+      </div>
+      <div class="p-4 bg-white rounded-lg shadow">
+        <h3 class="font-medium mb-2">登録済み機器</h3>
+        <ul id="itemList" class="space-y-2"></ul>
+      </div>
     </div>
-    <div id="eventsList"></div>
-  </div>
-</main>
+  </section>
 
-<!-- Modal Overlay -->
-<div class="modal-backdrop" id="modalOverlay">
-  <div class="modal-sheet" id="modalBody"></div>
-</div>
+  <script>
+    const PASSWORD = 'admin123'; // 任意のパスワードに変更可
 
-<!-- Toast Container -->
-<div class="toast" id="toast"></div>
+    // データ操作
+    function getItems() {
+      return JSON.parse(localStorage.getItem('transceivers') || '[]');
+    }
+    function saveItems(arr) {
+      localStorage.setItem('transceivers', JSON.stringify(arr));
+      renderAll();
+    }
 
-<!-- Firebase Integration -->
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
-  import { getFirestore, collection, onSnapshot, doc, updateDoc, deleteDoc, addDoc } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
-
-  // ★ご自身のFirebase設定キーを入力してください★
-  const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT_ID.appspot.com",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-
-  let state = { items: [], loans: [], events: [] };
-
-  // リアルタイムリスナー
-  onSnapshot(collection(db, "items"), snap => {
-    state.items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    render();
-    document.getElementById('syncStatus').textContent = '🟢 リアルタイム同期';
-  });
-
-  onSnapshot(collection(db, "loans"), snap => {
-    state.loans = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    render();
-  });
-
-  onSnapshot(collection(db, "events"), snap => {
-    state.events = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    render();
-  });
-
-  // UI Helpers
-  function showToast(msg) {
-    const t = document.getElementById('toast');
-    t.textContent = msg; t.classList.add('active');
-    clearTimeout(t._timer);
-    t._timer = setTimeout(() => t.classList.remove('active'), 2000);
-  }
-
-  function openModal(html) {
-    document.getElementById('modalBody').innerHTML = html;
-    document.getElementById('modalOverlay').classList.add('active');
-  }
-
-  function closeModal() {
-    document.getElementById('modalOverlay').classList.remove('active');
-  }
-
-  document.getElementById('modalOverlay').addEventListener('click', (e) => {
-    if (e.target.id === 'modalOverlay') closeModal();
-  });
-
-  // Tab Handler
-  document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.view-panel').forEach(v => v.classList.remove('active'));
-      btn.classList.add('active');
-      document.getElementById('view-' + btn.dataset.tab).classList.add('active');
+    // タブ切り替え
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+        document.querySelectorAll('.tab-btn').forEach(b => {
+          b.classList.remove('bg-blue-500', 'text-white');
+          b.classList.add('bg-gray-200');
+        });
+        document.getElementById(btn.dataset.tab).classList.remove('hidden');
+        btn.classList.remove('bg-gray-200');
+        btn.classList.add('bg-blue-500', 'text-white');
+      });
     });
-  });
 
-  const getActiveLoans = (itemId) => state.loans.filter(l => l.itemId === itemId && !l.returnedAt);
-  const getBorrowedQty = (itemId) => getActiveLoans(itemId).reduce((sum, l) => sum + (l.qty || 1), 0);
-
-  // Render Engine
-  function render() {
-    // 備品一覧
-    const itemsEl = document.getElementById('itemsList');
-    if (!state.items.length) {
-      itemsEl.innerHTML = '<div class="card" style="text-align:center;color:var(--text-muted);">登録されている備品はありません</div>';
-    } else {
-      itemsEl.innerHTML = state.items.map(item => {
-        const borrowed = getBorrowedQty(item.id);
-        const avail = item.total - borrowed;
-        const statusClass = avail <= 0 ? 'danger' : (avail <= 2 ? 'warning' : 'success');
-        const statusText = avail <= 0 ? '在庫切れ' : `残り ${avail} 台`;
-        const activeLoans = getActiveLoans(item.id);
-
-        return `
-          <div class="card">
-            <div class="card-top">
-              <div>
-                <div class="card-title">${item.name}</div>
-                <div class="card-sub">全体: ${item.total} 台 ／ 貸出中: ${borrowed} 台</div>
-              </div>
-              <span class="status-badge ${statusClass}">${statusText}</span>
-            </div>
-            
-            <div style="display:flex; gap:8px; margin-top:16px;">
-              <button class="btn btn-primary lend-btn" ${avail <= 0 ? 'disabled' : ''} data-id="${item.id}">📦 貸出の登録</button>
-              <button class="btn btn-subtle btn-icon-only edit-item-btn" data-id="${item.id}">⚙️</button>
-              <button class="btn btn-subtle btn-icon-only del-item-btn" data-id="${item.id}">🗑</button>
-            </div>
-
-            ${activeLoans.length ? `
-              <div class="loan-group">
-                ${activeLoans.map(l => `
-                  <div class="loan-card">
-                    <div class="loan-meta">
-                      <strong>${l.borrower}</strong>
-                      <span>返却予定: ${l.dueTime || '未設定'}</span>
-                    </div>
-                    <button class="btn btn-success btn-inline return-btn" data-id="${l.id}">返却完了</button>
-                  </div>
-                `).join('')}
-              </div>
-            ` : ''}
-          </div>
-        `;
-      }).join('');
+    // 貸出プルダウン更新
+    function renderLendSelect() {
+      const items = getItems().filter(i => i.status !== 'lend');
+      const sel = document.getElementById('lendId');
+      sel.innerHTML = items.map(i => `<option value="${i.id}">${i.id}</option>`).join('');
     }
-
-    // アクティブ貸出一覧
-    const allLoansEl = document.getElementById('allLoansList');
-    const activeLoans = state.loans.filter(l => !l.returnedAt);
-    if (!activeLoans.length) {
-      allLoansEl.innerHTML = '<div class="card" style="text-align:center;color:var(--text-muted);">現在貸出中の備品はありません</div>';
-    } else {
-      allLoansEl.innerHTML = activeLoans.map(l => `
-        <div class="card" style="display:flex; align-items:center; justify-content:space-between; padding:16px 20px;">
-          <div>
-            <div class="card-title" style="font-size:16px;">${l.itemName}</div>
-            <div class="card-sub">借用: ${l.borrower}（${l.dueTime || '未設定'}）</div>
-          </div>
-          <button class="btn btn-success btn-inline return-btn" data-id="${l.id}">返却処理</button>
-        </div>
+    // 返却プルダウン更新
+    function renderReturnSelect() {
+      const items = getItems().filter(i => i.status === 'lend');
+      const sel = document.getElementById('returnId');
+      sel.innerHTML = items.map(i => `<option value="${i.id}">${i.id} — ${i.user || ''}</option>`).join('');
+    }
+    // 一覧描画
+    function renderList() {
+      const body = document.getElementById('listBody');
+      body.innerHTML = getItems().map(i => `
+        <tr class="border-t">
+          <td class="p-2">${i.id}</td>
+          <td class="p-2">
+            <span class="px-2 py-0.5 rounded text-sm ${
+              i.status === 'ok' ? 'bg-green-100 text-green-700' :
+              i.status === 'lend' ? 'bg-red-100 text-red-700' : 'bg-gray-100'
+            }">${i.status === 'ok' ? '貸出可' : i.status === 'lend' ? '貸出中' : '返却済'}</span>
+          </td>
+          <td class="p-2">${i.user || '-'}</td>
+          <td class="p-2">${i.place || '-'}</td>
+          <td class="p-2 text-sm">${i.time || '-'}</td>
+        </tr>
       `).join('');
     }
-
-    // タイムテーブル
-    const eventsEl = document.getElementById('eventsList');
-    if (!state.events.length) {
-      eventsEl.innerHTML = '<div class="card" style="text-align:center;color:var(--text-muted);">登録されている種目がありません</div>';
-    } else {
-      eventsEl.innerHTML = state.events.map((ev, i) => `
-        <div class="card" style="display:flex; justify-content:space-between; align-items:center; padding:16px 20px;">
-          <div>
-            <div class="card-sub" style="color:var(--brand-primary); font-weight:800;">#${i+1} • ${ev.startTime} 〜 ${ev.endTime}</div>
-            <div class="card-title" style="font-size:17px; margin-top:2px;">${ev.name}</div>
-          </div>
-          <div style="display:flex; gap:6px;">
-            <button class="btn btn-subtle btn-icon-only edit-ev-btn" data-id="${ev.id}">⚙️</button>
-            <button class="btn btn-subtle btn-icon-only del-ev-btn" data-id="${ev.id}">🗑</button>
-          </div>
-        </div>
+    // 設定一覧
+    function renderSettingsList() {
+      const ul = document.getElementById('itemList');
+      ul.innerHTML = getItems().map(i => `
+        <li class="flex justify-between items-center border-b pb-2">
+          <span>${i.id}</span>
+          <button data-delete="${i.id}" class="text-red-500 text-sm">削除</button>
+        </li>
       `).join('');
     }
-
-    // イベントバインド
-    document.querySelectorAll('.lend-btn').forEach(b => b.onclick = () => openLendModal(b.dataset.id));
-    document.querySelectorAll('.return-btn').forEach(b => b.onclick = () => returnLoan(b.dataset.id));
-    document.querySelectorAll('.edit-item-btn').forEach(b => b.onclick = () => editItem(b.dataset.id));
-    document.querySelectorAll('.del-item-btn').forEach(b => b.onclick = () => deleteItem(b.dataset.id));
-    document.querySelectorAll('.edit-ev-btn').forEach(b => b.onclick = () => editEvent(b.dataset.id));
-    document.querySelectorAll('.del-ev-btn').forEach(b => b.onclick = () => deleteEvent(b.dataset.id));
-  }
-
-  /* モーダルアクション */
-  document.getElementById('addItemBtn').onclick = () => {
-    openModal(`
-      <div class="modal-header">新しい備品を登録</div>
-      <div class="input-field"><label>備品名</label><input type="text" class="form-control" id="m-name" placeholder="例: トランシーバー"></div>
-      <div class="input-field"><label>保有総数</label><input type="number" class="form-control" id="m-total" value="5" min="1"></div>
-      <div class="modal-actions">
-        <button class="btn btn-subtle" id="m-cancel">キャンセル</button>
-        <button class="btn btn-primary" id="m-save">登録する</button>
-      </div>
-    `);
-    document.getElementById('m-cancel').onclick = closeModal;
-    document.getElementById('m-save').onclick = async () => {
-      const name = document.getElementById('m-name').value.trim();
-      const total = parseInt(document.getElementById('m-total').value, 10) || 1;
-      if (!name) return showToast('備品名を入力してください');
-      await addDoc(collection(db, "items"), { name, total });
-      closeModal(); showToast('備品を登録しました');
-    };
-  };
-
-  function openLendModal(itemId) {
-    const item = state.items.find(i => i.id === itemId);
-    const d = new Date(); d.setHours(d.getHours() + 1);
-    const defaultTime = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-
-    openModal(`
-      <div class="modal-header">📦 ${item.name} の貸出</div>
-      <div class="input-field"><label>貸出先（部署・名前）</label><input type="text" class="form-control" id="m-borrower" placeholder="例: 審判係 田中"></div>
-      <div class="input-field"><label>返却予定時刻</label><input type="time" class="form-control" id="m-due" value="${defaultTime}"></div>
-      <div class="modal-actions">
-        <button class="btn btn-subtle" id="m-cancel">キャンセル</button>
-        <button class="btn btn-primary" id="m-save">貸出を確定</button>
-      </div>
-    `);
-    document.getElementById('m-cancel').onclick = closeModal;
-    document.getElementById('m-save').onclick = async () => {
-      const borrower = document.getElementById('m-borrower').value.trim();
-      if (!borrower) return showToast('貸出先を入力してください');
-      await addDoc(collection(db, "loans"), {
-        itemId: item.id, itemName: item.name, qty: 1,
-        borrower, dueTime: document.getElementById('m-due').value,
-        borrowedAt: Date.now(), returnedAt: null
-      });
-      closeModal(); showToast('貸出処理を完了しました');
-    };
-  }
-
-  async function returnLoan(loanId) {
-    await updateDoc(doc(db, "loans", loanId), { returnedAt: Date.now() });
-    showToast('返却処理を行いました');
-  }
-
-  async function editItem(id) {
-    const item = state.items.find(i => i.id === id);
-    openModal(`
-      <div class="modal-header">備品情報を編集</div>
-      <div class="input-field"><label>備品名</label><input type="text" class="form-control" id="m-name" value="${item.name}"></div>
-      <div class="input-field"><label>保有総数</label><input type="number" class="form-control" id="m-total" value="${item.total}"></div>
-      <div class="modal-actions">
-        <button class="btn btn-subtle" id="m-cancel">キャンセル</button>
-        <button class="btn btn-primary" id="m-save">保存</button>
-      </div>
-    `);
-    document.getElementById('m-cancel').onclick = closeModal;
-    document.getElementById('m-save').onclick = async () => {
-      await updateDoc(doc(db, "items", id), {
-        name: document.getElementById('m-name').value.trim(),
-        total: parseInt(document.getElementById('m-total').value, 10) || 1
-      });
-      closeModal(); showToast('情報を更新しました');
-    };
-  }
-
-  async function deleteItem(id) {
-    if (getBorrowedQty(id) > 0) return alert('貸出中の備品があるため削除できません。');
-    if (confirm('この備品を削除しますか？')) {
-      await deleteDoc(doc(db, "items", id));
-      showToast('削除しました');
+    function renderAll() {
+      renderLendSelect();
+      renderReturnSelect();
+      renderList();
+      renderSettingsList();
     }
-  }
 
-  document.getElementById('addEventBtn').onclick = () => {
-    openModal(`
-      <div class="modal-header">種目を追加</div>
-      <div class="input-field"><label>種目名</label><input type="text" class="form-control" id="m-ename" placeholder="例: 100m走 予選"></div>
-      <div class="input-field"><label>開始時間</label><input type="time" class="form-control" id="m-estart" value="09:30"></div>
-      <div class="input-field"><label>終了時間</label><input type="time" class="form-control" id="m-eend" value="10:00"></div>
-      <div class="modal-actions">
-        <button class="btn btn-subtle" id="m-cancel">キャンセル</button>
-        <button class="btn btn-primary" id="m-save">追加</button>
-      </div>
-    `);
-    document.getElementById('m-cancel').onclick = closeModal;
-    document.getElementById('m-save').onclick = async () => {
-      const name = document.getElementById('m-ename').value.trim();
-      if (!name) return showToast('種目名を入力してください');
-      await addDoc(collection(db, "events"), {
-        name, startTime: document.getElementById('m-estart').value,
-        endTime: document.getElementById('m-eend').value
+    // 貸出処理
+    document.getElementById('lendForm').addEventListener('submit', e => {
+      e.preventDefault();
+      const id = document.getElementById('lendId').value;
+      const user = document.getElementById('lendUser').value;
+      const place = document.getElementById('lendPlace').value;
+      const items = getItems().map(i => {
+        if (i.id === id) {
+          return { ...i, status: 'lend', user, place, time: new Date().toLocaleString('ja-JP') };
+        }
+        return i;
       });
-      closeModal(); showToast('種目を追加しました');
-    };
-  };
+      saveItems(items);
+      e.target.reset();
+      alert('貸出しました');
+    });
 
-  async function editEvent(id) {
-    const ev = state.events.find(e => e.id === id);
-    openModal(`
-      <div class="modal-header">種目を編集</div>
-      <div class="input-field"><label>種目名</label><input type="text" class="form-control" id="m-ename" value="${ev.name}"></div>
-      <div class="input-field"><label>開始時間</label><input type="time" class="form-control" id="m-estart" value="${ev.startTime}"></div>
-      <div class="input-field"><label>終了時間</label><input type="time" class="form-control" id="m-eend" value="${ev.endTime}"></div>
-      <div class="modal-actions">
-        <button class="btn btn-subtle" id="m-cancel">キャンセル</button>
-        <button class="btn btn-primary" id="m-save">保存</button>
-      </div>
-    `);
-    document.getElementById('m-cancel').onclick = closeModal;
-    document.getElementById('m-save').onclick = async () => {
-      await updateDoc(doc(db, "events", id), {
-        name: document.getElementById('m-ename').value.trim(),
-        startTime: document.getElementById('m-estart').value,
-        endTime: document.getElementById('m-eend').value
+    // 返却処理
+    document.getElementById('returnForm').addEventListener('submit', e => {
+      e.preventDefault();
+      const id = document.getElementById('returnId').value;
+      const items = getItems().map(i => {
+        if (i.id === id) {
+          return { ...i, status: 'return', user: '', place: '', time: new Date().toLocaleString('ja-JP') };
+        }
+        return i;
       });
-      closeModal(); showToast('更新しました');
-    };
-  }
+      saveItems(items);
+      e.target.reset();
+      alert('返却されました');
+    });
 
-  async function deleteEvent(id) {
-    if (confirm('この種目を削除しますか？')) {
-      await deleteDoc(doc(db, "events", id));
-      showToast('削除しました');
-    }
-  }
-</script>
+    // パスワード認証
+    document.getElementById('authBtn').addEventListener('click', () => {
+      if (document.getElementById('passwordInput').value === PASSWORD) {
+        document.getElementById('passwordArea').classList.add('hidden');
+        document.getElementById('settingsContent').classList.remove('hidden');
+      } else {
+        alert('パスワードが違います');
+      }
+    });
+
+    // 機器追加
+    document.getElementById('addItem').addEventListener('click', () => {
+      const id = document.getElementById('newId').value.trim();
+      if (!id) return;
+      const items = getItems();
+      if (items.some(i => i.id === id)) return alert('既に存在します');
+      items.push({ id, status: 'ok', user: '', place: '', time: '' });
+      saveItems(items);
+      document.getElementById('newId').value = '';
+    });
+
+    // 削除
+    document.getElementById('itemList').addEventListener('click', e => {
+      if (e.target.dataset.delete) {
+        if (confirm(`削除しますか？ ${e.target.dataset.delete}`)) {
+          saveItems(getItems().filter(i => i.id !== e.target.dataset.delete));
+        }
+      }
+    });
+
+    renderAll();
+  </script>
 </body>
 </html>
