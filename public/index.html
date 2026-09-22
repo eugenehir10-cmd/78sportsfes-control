@@ -501,12 +501,14 @@
     function renderSettings() {
       // 品目種別一覧
       document.getElementById('categoryList').innerHTML = categories.map(c => {
-        const usingCount = items.filter(i => i.category === c).length;
+        const totalCount = items.filter(i => i.category === c).length;
+        const lendCount = items.filter(i => i.category === c && i.status === 'lend').length;
+        const canDelete = totalCount === 0 || lendCount === 0; // 在庫が0台 または 貸出中が0台
         return `
           <li class="flex items-center justify-between border-b py-2">
             <span>${c}</span>
-            <button data-del-cat="${c}" class="text-red-500 hover:text-red-700 text-sm px-2 py-1 rounded hover:bg-red-50 ${usingCount > 0 ? 'opacity-50 cursor-not-allowed' : ''}" ${usingCount > 0 ? 'disabled' : ''}>
-              ${usingCount > 0 ? `使用中(${usingCount}台)` : '🗑️ 削除'}
+            <button data-del-cat="${c}" class="text-red-500 hover:text-red-700 text-sm px-2 py-1 rounded hover:bg-red-50 ${!canDelete ? 'opacity-50 cursor-not-allowed' : ''}" ${!canDelete ? 'disabled' : ''}>
+              ${lendCount > 0 ? `貸出中(${lendCount}台)` : totalCount > 0 ? `在庫有(${totalCount}台)` : '🗑️ 削除'}
             </button>
           </li>`;
       }).join('');
