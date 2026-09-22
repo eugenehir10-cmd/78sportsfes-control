@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>体育祭トランシーバー貸出</title>
+  <title>備品貸出管理</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-50 text-gray-800 max-w-4xl mx-auto p-4 md:p-6">
+<body class="bg-gray-50 text-gray-800 max-w-5xl mx-auto p-4 md:p-6">
   <header class="mb-8">
-    <h1 class="text-2xl font-bold text-center mb-4">📻 トランシーバー貸出管理</h1>
-    <nav class="flex justify-center gap-2 mb-6">
+    <h1 class="text-2xl font-bold text-center mb-4">📻 備品貸出管理システム</h1>
+    <nav class="flex flex-wrap justify-center gap-2 mb-6">
       <button data-tab="lend" class="tab-btn px-4 py-2 rounded-lg bg-blue-500 text-white">貸出</button>
       <button data-tab="return" class="tab-btn px-4 py-2 rounded-lg bg-gray-200">返却</button>
       <button data-tab="list" class="tab-btn px-4 py-2 rounded-lg bg-gray-200">一覧</button>
@@ -19,21 +19,31 @@
 
   <!-- 貸出画面 -->
   <section id="lend" class="tab-content">
-    <h2 class="text-xl font-semibold mb-4">貸出登録</h2>
+    <h2 class="text-xl font-semibold mb-4">貸出登録（台数指定）</h2>
     <form id="lendForm" class="space-y-3 bg-white p-6 rounded-lg shadow">
       <div>
-        <label class="block mb-1">機器番号</label>
-        <select id="lendId" class="w-full border rounded px-3 py-2" required></select>
+        <label class="block mb-1">品目種別</label>
+        <select id="lendCategory" class="w-full border rounded px-3 py-2" required></select>
       </div>
       <div>
         <label class="block mb-1">利用者名</label>
-        <input type="text" id="lendUser" class="w-full border rounded px-3 py-2" required>
+        <select id="lendUser" class="w-full border rounded px-3 py-2" required>
+          <option value="">選択してください</option>
+        </select>
+      </div>
+      <div>
+        <label class="block mb-1">必要台数</label>
+        <input type="number" id="lendCount" min="1" class="w-full border rounded px-3 py-2" required>
       </div>
       <div>
         <label class="block mb-1">配置/行き先</label>
         <input type="text" id="lendPlace" class="w-full border rounded px-3 py-2" required>
       </div>
       <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">貸出実行</button>
+      <div id="lendResult" class="mt-4 p-3 bg-green-50 rounded hidden">
+        <p class="font-medium">以下の番号を貸し出しました：</p>
+        <p id="assignedIds" class="mt-1 text-sm"></p>
+      </div>
     </form>
   </section>
 
@@ -45,6 +55,14 @@
         <label class="block mb-1">機器番号</label>
         <select id="returnId" class="w-full border rounded px-3 py-2" required></select>
       </div>
+      <div>
+        <label class="block mb-1">電池残量</label>
+        <select id="returnBattery" class="w-full border rounded px-3 py-2" required>
+          <option value="full">🔋 十分</option>
+          <option value="medium">🔌 中</option>
+          <option value="low">⚠️ 少ない</option>
+        </select>
+      </div>
       <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded">返却実行</button>
     </form>
   </section>
@@ -53,13 +71,15 @@
   <section id="list" class="tab-content hidden">
     <h2 class="text-xl font-semibold mb-4">一覧</h2>
     <div class="overflow-x-auto">
-      <table class="w-full bg-white rounded-lg shadow">
+      <table class="w-full bg-white rounded-lg shadow text-sm">
         <thead>
           <tr class="bg-gray-100">
             <th class="p-2 text-left">番号</th>
+            <th class="p-2 text-left">種別</th>
             <th class="p-2 text-left">状態</th>
             <th class="p-2 text-left">利用者</th>
             <th class="p-2 text-left">場所</th>
+            <th class="p-2 text-left">電池</th>
             <th class="p-2 text-left">日時</th>
           </tr>
         </thead>
@@ -75,32 +95,63 @@
       <input type="password" id="passwordInput" placeholder="パスワードを入力" class="border rounded px-3 py-2 mb-3">
       <button id="authBtn" class="bg-gray-700 text-white px-4 py-2 rounded">認証</button>
     </div>
-    <div id="settingsContent" class="hidden">
-      <div class="mb-6 p-4 bg-white rounded-lg shadow">
-        <h3 class="font-medium mb-2">機器追加</h3>
-        <input type="text" id="newId" placeholder="例: TR-001" class="border rounded px-3 py-2 mb-2 w-full">
-        <button id="addItem" class="bg-blue-500 text-white px-4 py-2 rounded">追加</button>
-      </div>
+    <div id="settingsContent" class="hidden space-y-6">
+      <!-- 品目種別管理 -->
       <div class="p-4 bg-white rounded-lg shadow">
-        <h3 class="font-medium mb-2">登録済み機器</h3>
-        <ul id="itemList" class="space-y-2"></ul>
+        <h3 class="font-medium mb-2">📦 品目種別管理</h3>
+        <div class="flex gap-2 mb-3">
+          <input type="text" id="newCategory" placeholder="例: トランシーバー" class="border rounded px-3 py-2 flex-1">
+          <button id="addCategory" class="bg-blue-500 text-white px-3 py-2 rounded">追加</button>
+        </div>
+        <ul id="categoryList" class="space-y-1 text-sm"></ul>
+      </div>
+
+      <!-- 利用者管理 -->
+      <div class="p-4 bg-white rounded-lg shadow">
+        <h3 class="font-medium mb-2">👤 利用者名管理</h3>
+        <div class="flex gap-2 mb-3">
+          <input type="text" id="newUser" placeholder="例: 1年A組 田中" class="border rounded px-3 py-2 flex-1">
+          <button id="addUser" class="bg-blue-500 text-white px-3 py-2 rounded">追加</button>
+        </div>
+        <ul id="userList" class="space-y-1 text-sm"></ul>
+      </div>
+
+      <!-- 一括登録 -->
+      <div class="p-4 bg-white rounded-lg shadow">
+        <h3 class="font-medium mb-2">📋 機器一括登録</h3>
+        <div class="space-y-2">
+          <select id="bulkCategory" class="w-full border rounded px-3 py-2">
+            <option value="">種別を選択</option>
+          </select>
+          <input type="text" id="bulkPrefix" placeholder="例: TR-" class="border rounded px-3 py-2 w-full">
+          <div class="flex gap-2">
+            <input type="number" id="bulkStart" placeholder="開始番号" min="1" class="border rounded px-3 py-2 flex-1">
+            <input type="number" id="bulkEnd" placeholder="終了番号" min="1" class="border rounded px-3 py-2 flex-1">
+          </div>
+          <button id="bulkAdd" class="bg-green-600 text-white px-4 py-2 rounded">一括追加</button>
+        </div>
+      </div>
+
+      <!-- 個別追加・削除 -->
+      <div class="p-4 bg-white rounded-lg shadow">
+        <h3 class="font-medium mb-2">📝 登録済み機器</h3>
+        <ul id="itemList" class="space-y-2 text-sm max-h-64 overflow-y-auto"></ul>
       </div>
     </div>
   </section>
 
   <script>
-    const PASSWORD = 'admin123'; // 任意のパスワードに変更可
+    const PASSWORD = 'admin123'; // 必要に応じて変更
 
-    // データ操作
-    function getItems() {
-      return JSON.parse(localStorage.getItem('transceivers') || '[]');
-    }
-    function saveItems(arr) {
-      localStorage.setItem('transceivers', JSON.stringify(arr));
-      renderAll();
-    }
+    // === データ保存 ===
+    function getItems() { return JSON.parse(localStorage.getItem('transceivers') || '[]'); }
+    function saveItems(arr) { localStorage.setItem('transceivers', JSON.stringify(arr)); renderAll(); }
+    function getCategories() { return JSON.parse(localStorage.getItem('categories') || '["トランシーバー"]'); }
+    function saveCategories(arr) { localStorage.setItem('categories', JSON.stringify(arr)); renderAll(); }
+    function getUsers() { return JSON.parse(localStorage.getItem('users') || '[]'); }
+    function saveUsers(arr) { localStorage.setItem('users', JSON.stringify(arr)); renderAll(); }
 
-    // タブ切り替え
+    // === タブ切り替え ===
     document.querySelectorAll('.tab-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
@@ -114,112 +165,187 @@
       });
     });
 
-    // 貸出プルダウン更新
-    function renderLendSelect() {
-      const items = getItems().filter(i => i.status !== 'lend');
-      const sel = document.getElementById('lendId');
-      sel.innerHTML = items.map(i => `<option value="${i.id}">${i.id}</option>`).join('');
+    // === 描画 ===
+    function renderAll() {
+      renderLendSelects();
+      renderReturnSelect();
+      renderList();
+      renderSettings();
     }
-    // 返却プルダウン更新
+
+    function renderLendSelects() {
+      const cats = getCategories();
+      const catSel = document.getElementById('lendCategory');
+      catSel.innerHTML = '<option value="">選択してください</option>' + cats.map(c => `<option value="${c}">${c}</option>`).join('');
+      document.getElementById('bulkCategory').innerHTML = '<option value="">選択してください</option>' + cats.map(c => `<option value="${c}">${c}</option>`).join('');
+
+      const users = getUsers();
+      const userSel = document.getElementById('lendUser');
+      userSel.innerHTML = '<option value="">選択してください</option>' + users.map(u => `<option value="${u}">${u}</option>`).join('');
+    }
+
     function renderReturnSelect() {
       const items = getItems().filter(i => i.status === 'lend');
       const sel = document.getElementById('returnId');
-      sel.innerHTML = items.map(i => `<option value="${i.id}">${i.id} — ${i.user || ''}</option>`).join('');
+      sel.innerHTML = items.map(i => `<option value="${i.id}">${i.id} [${i.category}] — ${i.user || ''}</option>`).join('');
     }
-    // 一覧描画
+
     function renderList() {
       const body = document.getElementById('listBody');
+      const batteryLabel = { full: '🔋十分', medium: '🔌中', low: '⚠️少' };
       body.innerHTML = getItems().map(i => `
         <tr class="border-t">
           <td class="p-2">${i.id}</td>
+          <td class="p-2">${i.category}</td>
           <td class="p-2">
-            <span class="px-2 py-0.5 rounded text-sm ${
+            <span class="px-2 py-0.5 rounded text-xs ${
               i.status === 'ok' ? 'bg-green-100 text-green-700' :
               i.status === 'lend' ? 'bg-red-100 text-red-700' : 'bg-gray-100'
             }">${i.status === 'ok' ? '貸出可' : i.status === 'lend' ? '貸出中' : '返却済'}</span>
           </td>
           <td class="p-2">${i.user || '-'}</td>
           <td class="p-2">${i.place || '-'}</td>
-          <td class="p-2 text-sm">${i.time || '-'}</td>
+          <td class="p-2">${i.battery ? batteryLabel[i.battery] : '-'}</td>
+          <td class="p-2 text-xs">${i.time || '-'}</td>
         </tr>
       `).join('');
     }
-    // 設定一覧
-    function renderSettingsList() {
-      const ul = document.getElementById('itemList');
-      ul.innerHTML = getItems().map(i => `
-        <li class="flex justify-between items-center border-b pb-2">
-          <span>${i.id}</span>
-          <button data-delete="${i.id}" class="text-red-500 text-sm">削除</button>
-        </li>
-      `).join('');
-    }
-    function renderAll() {
-      renderLendSelect();
-      renderReturnSelect();
-      renderList();
-      renderSettingsList();
+
+    function renderSettings() {
+      // 品目一覧
+      document.getElementById('categoryList').innerHTML = getCategories().map(cat => `
+        <li class="flex justify-between items-center border-b pb-1">
+          <span>${cat}</span>
+          <button data-del-cat="${cat}" class="text-red-500 text-xs">削除</button>
+        </li>`).join('');
+      // 利用者一覧
+      document.getElementById('userList').innerHTML = getUsers().map(u => `
+        <li class="flex justify-between items-center border-b pb-1">
+          <span>${u}</span>
+          <button data-del-user="${u}" class="text-red-500 text-xs">削除</button>
+        </li>`).join('');
+      // 機器一覧
+      document.getElementById('itemList').innerHTML = getItems().map(i => `
+        <li class="flex justify-between items-center border-b pb-1">
+          <span>${i.id} [${i.category}]</span>
+          <button data-del-item="${i.id}" class="text-red-500 text-xs">削除</button>
+        </li>`).join('');
     }
 
-    // 貸出処理
+    // === 貸出処理：台数指定 → 空きを自動割当 ===
     document.getElementById('lendForm').addEventListener('submit', e => {
       e.preventDefault();
-      const id = document.getElementById('lendId').value;
+      const category = document.getElementById('lendCategory').value;
       const user = document.getElementById('lendUser').value;
+      const count = parseInt(document.getElementById('lendCount').value);
       const place = document.getElementById('lendPlace').value;
-      const items = getItems().map(i => {
-        if (i.id === id) {
-          return { ...i, status: 'lend', user, place, time: new Date().toLocaleString('ja-JP') };
+
+      if (!category || !user || !count || !place) return;
+
+      const items = getItems();
+      const available = items.filter(i => i.status === 'ok' && i.category === category);
+      if (available.length < count) {
+        alert(`在庫不足：利用可能な「${category}」は ${available.length} 台です`);
+        return;
+      }
+
+      const assignIds = available.slice(0, count).map(i => i.id);
+      const now = new Date().toLocaleString('ja-JP');
+      const updated = items.map(i => {
+        if (assignIds.includes(i.id)) {
+          return { ...i, status: 'lend', user, place, time: now };
         }
         return i;
       });
-      saveItems(items);
+
+      saveItems(updated);
+      document.getElementById('lendResult').classList.remove('hidden');
+      document.getElementById('assignedIds').textContent = assignIds.join(', ');
       e.target.reset();
-      alert('貸出しました');
     });
 
-    // 返却処理
+    // === 返却処理：電池残量記録 ===
     document.getElementById('returnForm').addEventListener('submit', e => {
       e.preventDefault();
       const id = document.getElementById('returnId').value;
+      const battery = document.getElementById('returnBattery').value;
+
       const items = getItems().map(i => {
         if (i.id === id) {
-          return { ...i, status: 'return', user: '', place: '', time: new Date().toLocaleString('ja-JP') };
+          return { ...i, status: 'return', battery, time: new Date().toLocaleString('ja-JP') };
         }
         return i;
       });
+
       saveItems(items);
       e.target.reset();
       alert('返却されました');
     });
 
-    // パスワード認証
+    // === 認証 ===
     document.getElementById('authBtn').addEventListener('click', () => {
       if (document.getElementById('passwordInput').value === PASSWORD) {
         document.getElementById('passwordArea').classList.add('hidden');
         document.getElementById('settingsContent').classList.remove('hidden');
-      } else {
-        alert('パスワードが違います');
+      } else { alert('パスワードが違います'); }
+    });
+
+    // === 品目追加 ===
+    document.getElementById('addCategory').addEventListener('click', () => {
+      const val = document.getElementById('newCategory').value.trim();
+      if (!val) return;
+      const cats = getCategories();
+      if (!cats.includes(val)) { saveCategories([...cats, val]); }
+      document.getElementById('newCategory').value = '';
+    });
+
+    // === 利用者追加 ===
+    document.getElementById('addUser').addEventListener('click', () => {
+      const val = document.getElementById('newUser').value.trim();
+      if (!val) return;
+      const users = getUsers();
+      if (!users.includes(val)) { saveUsers([...users, val]); }
+      document.getElementById('newUser').value = '';
+    });
+
+    // === 一括登録 ===
+    document.getElementById('bulkAdd').addEventListener('click', () => {
+      const category = document.getElementById('bulkCategory').value;
+      const prefix = document.getElementById('bulkPrefix').value.trim();
+      const start = parseInt(document.getElementById('bulkStart').value);
+      const end = parseInt(document.getElementById('bulkEnd').value);
+
+      if (!category || !prefix || !start || !end || start > end) {
+        alert('入力内容に不備があります'); return;
+      }
+
+      const items = getItems();
+      const newItems = [];
+      for (let n = start; n <= end; n++) {
+        const id = prefix + String(n).padStart(3, '0');
+        if (!items.some(i => i.id === id)) {
+          newItems.push({ id, category, status: 'ok', user: '', place: '', battery: '', time: '' });
+        }
+      }
+      saveItems([...items, ...newItems]);
+      alert(`${newItems.length} 台を追加しました`);
+      ['bulkPrefix','bulkStart','bulkEnd'].forEach(id => document.getElementById(id).value = '');
+    });
+
+    // === 削除系 ===
+    document.getElementById('categoryList').addEventListener('click', e => {
+      if (e.target.dataset.delCat && confirm(`削除しますか：${e.target.dataset.delCat}`)) {
+        saveCategories(getCategories().filter(c => c !== e.target.dataset.delCat));
       }
     });
-
-    // 機器追加
-    document.getElementById('addItem').addEventListener('click', () => {
-      const id = document.getElementById('newId').value.trim();
-      if (!id) return;
-      const items = getItems();
-      if (items.some(i => i.id === id)) return alert('既に存在します');
-      items.push({ id, status: 'ok', user: '', place: '', time: '' });
-      saveItems(items);
-      document.getElementById('newId').value = '';
+    document.getElementById('userList').addEventListener('click', e => {
+      if (e.target.dataset.delUser && confirm(`削除しますか：${e.target.dataset.delUser}`)) {
+        saveUsers(getUsers().filter(u => u !== e.target.dataset.delUser));
+      }
     });
-
-    // 削除
     document.getElementById('itemList').addEventListener('click', e => {
-      if (e.target.dataset.delete) {
-        if (confirm(`削除しますか？ ${e.target.dataset.delete}`)) {
-          saveItems(getItems().filter(i => i.id !== e.target.dataset.delete));
-        }
+      if (e.target.dataset.delItem && confirm(`削除しますか：${e.target.dataset.delItem}`)) {
+        saveItems(getItems().filter(i => i.id !== e.target.dataset.delItem));
       }
     });
 
