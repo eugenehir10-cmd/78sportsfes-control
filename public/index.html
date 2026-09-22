@@ -668,12 +668,12 @@
     });
 
     document.addEventListener('click', async e => {
-      const delUser = e.target.getAttribute('data-del-user');
-      if (delUser && !e.target.disabled) {
-        if (!confirm(`「${delUser}」を削除します。よろしいですか？`)) return;
-        users = users.filter(u => u !== delUser);
+      const delCat = e.target.getAttribute('data-del-cat');
+      if (delCat && !e.target.disabled) {
+        if (!confirm(`「${delCat}」を削除してもよろしいですか？`)) return;
+        categories = categories.filter(c => c !== delCat);
         await saveSettings();
-        showPopup(`✅ ${delUser} を削除しました`);
+        showPopup(`✅ ${delCat} を削除しました`);
       }
     });
 
