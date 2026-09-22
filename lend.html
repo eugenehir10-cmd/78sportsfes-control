@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ja">
+    <head>
+        <meta charSet="utf-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1"/>
+        <title>体育祭トランシーバー貸出 - 貸出</title>
+        <link rel="icon" href="/favicon.ico"/>
+        <link rel="manifest" href="/manifest.webmanifest"/>
+        <meta name="theme-color" content="#228be6"/>
+        <link rel="apple-touch-icon" href="/favicon.ico"/>
+        <meta name="apple-mobile-web-app-capable" content="yes"/>
+        <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+        <link rel="stylesheet" href="/_next/static/chunks/5af32d58fc8f441e.css"/>
+        <link rel="stylesheet" href="/_next/static/chunks/46680c00c60c31b7.css"/>
+        <link rel="stylesheet" href="/_next/static/chunks/da44bdd0400cd77b.css"/>
+        <style>
+            .form-input {
+                width: 100%;
+                padding: 12px 16px;
+                font-size: 1.125rem;
+                border: 1px solid #ced4da;
+                border-radius: 8px;
+                box-sizing: border-box;
+                margin-top: 6px;
+                margin-bottom: 16px;
+            }
+            .form-label {
+                font-weight: 600;
+                font-size: 0.95rem;
+                color: #212529;
+            }
+            .alert {
+                padding: 12px 16px;
+                border-radius: 8px;
+                margin-bottom: 16px;
+                display: none;
+                font-weight: bold;
+            }
+            .alert-success { background-color: #d3f9d8; color: #2b8a3e; }
+            .alert-error { background-color: #ffe3e3; color: #c92a2a; }
+        </style>
+    </head>
+    <body>
+        <div id="__next">
+            <div style="max-width:960px;margin:0 auto;padding:32px 16px;">
+                <div style="margin-bottom:16px;">
+                    <a style="color:#495057;text-decoration:none;font-weight:bold;font-size:1.1rem;" href="./index.html">← トップへ戻る</a>
+                </div>
+                <div style="display:flex;justify-content:center;margin-bottom:24px;">
+                    <h1 style="color:#228be6;font-size:2rem;margin:0;">トランシーバー貸出</h1>
+                </div>
+
+                <div id="alert-box" class="alert"></div>
+
+                <form id="lend-form">
+                    <div style="display:flex;flex-direction:column;">
+                        <div>
+                            <label class="form-label" for="transceiverId">トランシーバー番号</label>
+                            <input class="form-input" type="text" id="transceiverId" name="transceiverId" placeholder="例: 01" required autofocus />
+                        </div>
+                        <div>
+                            <label class="form-label" for="borrowerName">借りる人の名前・クラス</label>
+                            <input class="form-input" type="text" id="borrowerName" name="borrowerName" placeholder="例: 3年A組 山田太郎" required />
+                        </div>
+                        <div>
+                            <label class="form-label" for="role">担当・役割</label>
+                            <select class="form-input" id="role" name="role">
+                                <option value="未指定">選択してください</option>
+                                <option value="審判係">審判係</option>
+                                <option value="進行係">進行係</option>
+                                <option value="救護係">救護係</option>
+                                <option value="出発係">出発係</option>
+                                <option value="本部">本部</option>
+                                <option value="その他">その他</option>
+                            </select>
+                        </div>
+                        <button id="submit-btn" style="height:80px;background-color:#228be6;color:#fff;border:none;border-radius:8px;font-size:1.25rem;font-weight:bold;cursor:pointer;margin-top:16px;" type="submit">
+                            貸出を登録する
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <script>
+            // ★ここに作成した Google Apps Script の Web アプリ URL を貼ります
+            const GAS_URL = "YOUR_GAS_WEB_APP_URL_HERE";
+
+            const form = document.getElementById('lend-form');
+            const alertBox = document.getElementById('alert-box');
+            const submitBtn = document.getElementById('submit-btn');
+
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                submitBtn.disabled = true;
+                submitBtn.innerText = "送信中...";
+
+                const data = {
+                    action: 'lend',
+                    transceiverId: document.getElementById('transceiverId').value,
+                    borrowerName: document.getElementById('borrowerName').value,
+                    role: document.getElementById('role').value
+                };
+
+                try {
+                    await fetch(GAS_URL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+
+                    alertBox.className = "alert alert-success";
+                    alertBox.innerText = `No.${data.transceiverId} の貸出を記録しました！`;
+                    alertBox.style.display = "block";
+                    form.reset();
+                } catch (err) {
+                    alertBox.className = "alert alert-error";
+                    alertBox.innerText = "送信に失敗しました。";
+                    alertBox.style.display = "block";
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.innerText = "貸出を登録する";
+                }
+            });
+        </script>
+    </body>
+</html>
