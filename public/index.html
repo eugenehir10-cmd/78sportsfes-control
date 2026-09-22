@@ -24,6 +24,12 @@
     input, select, textarea, button { font-size: 16px !important; }
     .func-card { transition: transform 0.2s, box-shadow 0.2s; }
     .func-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
+    .card { background: #fff; border-radius: 10px; padding: 1rem; margin-bottom: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,.12); }
+    .btn { border: none; border-radius: 8px; padding: .6rem 1rem; font-weight: bold; cursor: pointer; transition: .2s; }
+    .btn:hover { transform: translateY(-1px); }
+    .btn.primary { background: #2563eb; color: #fff; }
+    .btn.small { padding: .3rem .6rem; font-size: .85rem; }
+    .flex { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; justify-content: space-between; }
     @media (max-width: 640px) {
       h1 { font-size: 1.25rem !important; }
       h2 { font-size: 1.1rem !important; }
@@ -31,7 +37,6 @@
   </style>
 </head>
 <body class="bg-gray-50 text-gray-800 max-w-5xl mx-auto p-3 md:p-6 pb-8">
-
   <!-- 共通ヘッダー -->
   <header class="mb-4 mt-2">
     <div class="flex justify-between items-center mb-3 gap-2">
@@ -47,46 +52,45 @@
 
   <!-- ホーム画面 -->
   <div id="pageHome" class="page active">
-  <h2 class="text-2xl font-bold text-center mb-8">📂 機能メニュー</h2>
-  <div class="grid gap-4 sm:grid-cols-2">
-    <!-- 既存：備品貸出管理 -->
-    <button data-page="pageLend" class="func-card bg-white p-6 rounded-xl shadow text-left border-2 border-transparent hover:border-blue-400">
-      <div class="text-3xl mb-2">📻</div>
-      <h3 class="font-bold text-lg mb-1">備品貸出管理</h3>
-      <p class="text-sm text-gray-500">機器の貸出・返却・在庫管理</p>
-    </button>
+    <h2 class="text-2xl font-bold text-center mb-8">📂 機能メニュー</h2>
+    <div class="grid gap-4 sm:grid-cols-2">
+      <!-- 備品貸出管理 -->
+      <button data-page="pageLend" class="func-card bg-white p-6 rounded-xl shadow text-left border-2 border-transparent hover:border-blue-400">
+        <div class="text-3xl mb-2">📻</div>
+        <h3 class="font-bold text-lg mb-1">備品貸出管理</h3>
+        <p class="text-sm text-gray-500">機器の貸出・返却・在庫管理</p>
+      </button>
+      <!-- 進行管理 -->
+      <button data-page="pageTimetable" class="func-card bg-white p-6 rounded-xl shadow text-left border-2 border-transparent hover:border-blue-400">
+        <div class="text-3xl mb-2">🏆</div>
+        <h3 class="font-bold text-lg mb-1">進行管理</h3>
+        <p class="text-sm text-gray-500">種目スケジュール・状況管理・結果集計</p>
+      </button>
+    </div>
+  </div>
+  <!-- ↑ ホーム画面はここで閉じる -->
 
-    <!--進行管理 -->
-    <button data-page="pageTimetable" class="func-card bg-white p-6 rounded-xl shadow text-left border-2 border-transparent hover:border-blue-400">
-      <div class="text-3xl mb-2">🏆</div>
-      <h3 class="font-bold text-lg mb-1">進行管理</h3>
-      <p class="text-sm text-gray-500">種目スケジュール・状況管理・結果集計</p>
-    </button>
-  </div>
-<!-- ========== 進行管理ページ ========== -->
-<section id="pageTimetable" class="page">
-  <div class="flex" style="margin-bottom:.75rem;">
-    <h2 class="text-xl font-bold">📋 進行管理</h2>
-    <button class="btn primary small" id="addEventBtn">＋種目追加</button>
-  </div>
-  <div class="card mb-4">
-    <h3 class="font-bold mb-2">現在の状況</h3>
-    <p id="nowRunning">進行中の種目：なし</p>
-    <p id="nextUp" style="margin-top:.3rem;">次の種目：-</p>
-  </div>
-  <div id="eventList"></div>
-</section>
-  
-</div>
+  <!-- ========== 進行管理ページ ========== -->
+  <section id="pageTimetable" class="page">
+    <div class="flex" style="margin-bottom:.75rem;">
+      <h2 class="text-xl font-bold">📋 進行管理</h2>
+      <button class="btn primary small" id="addEventBtn">＋種目追加</button>
+    </div>
+    <div class="card mb-4">
+      <h3 class="font-bold mb-2">現在の状況</h3>
+      <p id="nowRunning">進行中の種目：なし</p>
+      <p id="nextUp" style="margin-top:.3rem;">次の種目：-</p>
+    </div>
+    <div id="eventList"></div>
+  </section>
 
-  <!-- 備品貸出管理ページ -->
+  <!-- ========== 備品貸出管理ページ ========== -->
   <div id="pageLend" class="page">
     <div class="mb-4">
       <button id="backToHome" class="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1">
         ← ホームに戻る
       </button>
     </div>
-
     <nav class="tab-scroll mb-4">
       <div class="flex gap-2 pb-1 min-w-max">
         <button data-tab="lend" class="tab-btn px-3 py-2.5 rounded-lg bg-blue-500 text-white text-sm font-medium whitespace-nowrap">台数指定貸出</button>
@@ -232,7 +236,7 @@
           </div>
           <button id="bulkAdd" class="w-full bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 font-medium">一括追加</button>
         </div>
-        <!-- ✅ 機器個別編集・削除（追加） -->
+        <!-- 機器個別編集・削除 -->
         <div class="p-3 bg-white rounded-lg shadow">
           <h3 class="font-medium mb-2 text-sm">🔧 機器編集・削除</h3>
           <select id="editFilterCategory" class="w-full border rounded-lg px-3 py-2.5 mb-2">
@@ -259,12 +263,96 @@
       appId: "1:96596815858:web:5f85526bf785ccc5d8056b"
     };
     const PASSWORD = 'admin123';
-
     let db = null;
     let items = [];
     let history = [];
     let categories = [];
     let users = [];
+
+    // ===== 進行管理データ =====
+    let scheduleData = {
+      events: [
+        {id:1, name:'開会式', time:'09:00', place:'グラウンド', status:'done', delay:0, category:'general'},
+        {id:2, name:'100m走 予選', time:'09:20', place:'トラック', status:'running', delay:0, category:'male'},
+        {id:3, name:'玉入れ', time:'10:00', place:'グラウンド', status:'wait', delay:0, category:'general'},
+        {id:4, name:'綱引き 決勝', time:'10:30', place:'グラウンド', status:'wait', delay:0, category:'general'},
+      ]
+    };
+
+    function saveSchedule(){
+      localStorage.setItem('schedule_data', JSON.stringify(scheduleData));
+    }
+    function loadSchedule(){
+      const s = localStorage.getItem('schedule_data');
+      if(s) scheduleData = JSON.parse(s);
+    }
+
+    function calcActualTime(event){
+      const sorted = [...scheduleData.events].sort((a,b)=>a.time.localeCompare(b.time));
+      let totalDelay = 0;
+      for(const e of sorted){
+        if(e.id === event.id) break;
+        totalDelay += e.delay || 0;
+      }
+      const [h,m] = event.time.split(':').map(Number);
+      const add = (event.delay||0) + totalDelay;
+      const totalMin = h*60 + m + add;
+      const nh = Math.floor(totalMin / 60);
+      const nm = totalMin % 60;
+      return `${String(nh).padStart(2,'0')}:${String(nm).padStart(2,'0')}`;
+    }
+
+    function renderTimetable(){
+      const list = document.getElementById('eventList');
+      if(!list) return;
+      list.innerHTML = '';
+
+      const running = scheduleData.events.find(e=>e.status==='running'||e.status==='delay');
+      const next = scheduleData.events.find(e=>['wait','ready'].includes(e.status));
+      const nowEl = document.getElementById('nowRunning');
+      const nextEl = document.getElementById('nextUp');
+      if(nowEl) nowEl.textContent = '進行中：' + (running ? running.name : 'なし');
+      if(nextEl) nextEl.textContent = '次：' + (next ? `${next.name} ${calcActualTime(next)}` : '予定なし');
+
+      scheduleData.events.sort((a,b)=>a.time.localeCompare(b.time)).forEach(ev=>{
+        const actual = calcActualTime(ev);
+        const delayInfo = ev.delay>0 ? `<span style="color:#ef4444; font-size:.85rem;">+${ev.delay}分</span>` : '';
+        const statusColor = {wait:'bg-gray-200', ready:'bg-blue-500 text-white', running:'bg-green-500 text-white', delay:'bg-amber-500 text-white', done:'bg-gray-400 text-white'}[ev.status] || 'bg-gray-200';
+        const statusText = {wait:'未開始', ready:'準備中', running:'進行中', delay:'遅延', done:'終了'}[ev.status];
+
+        list.innerHTML += `
+        <div class="card">
+          <div class="flex mb-2">
+            <strong class="text-lg">${ev.name}</strong>
+            <span class="px-3 py-1 rounded-full text-sm font-bold ${statusColor}">${statusText}</span>
+          </div>
+          <p class="text-sm text-gray-600 mb-3">
+            予定: ${ev.time} → 実際: ${actual} ${delayInfo}<br>📍 ${ev.place}
+          </p>
+          <div class="flex gap-2 flex-wrap">
+            <select class="eventStatus border rounded px-2 py-1" data-id="${ev.id}">
+              ${['wait','ready','running','delay','done'].map(s=>
+                `<option value="${s}" ${ev.status===s?'selected':''}>${{wait:'未開始',ready:'準備中',running:'進行中',delay:'遅延',done:'終了'}[s]}</option>`
+              ).join('')}
+            </select>
+            <input type="number" class="delayInput border rounded px-2 py-1 w-20" data-id="${ev.id}" value="${ev.delay||0}" placeholder="遅延分">
+          </div>
+        </div>`;
+      });
+
+      document.querySelectorAll('.eventStatus').forEach(sel=>{
+        sel.addEventListener('change', e=>{
+          const ev = scheduleData.events.find(x=>x.id===Number(e.target.dataset.id));
+          if(ev){ ev.status = e.target.value; saveSchedule(); renderTimetable(); }
+        });
+      });
+      document.querySelectorAll('.delayInput').forEach(inp=>{
+        inp.addEventListener('change', e=>{
+          const ev = scheduleData.events.find(x=>x.id===Number(e.target.dataset.id));
+          if(ev){ ev.delay = Number(e.target.value)||0; saveSchedule(); renderTimetable(); }
+        });
+      });
+    }
 
     // ==========================================
     // ページ切り替え
@@ -272,7 +360,9 @@
     function switchPage(pageId) {
       document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
       document.getElementById(pageId).classList.add('active');
+      if(pageId === 'pageTimetable') renderTimetable();
     }
+
     document.getElementById('goHome').addEventListener('click', () => switchPage('pageHome'));
     document.getElementById('backToHome').addEventListener('click', () => switchPage('pageHome'));
     document.querySelectorAll('[data-page]').forEach(btn => {
@@ -312,7 +402,6 @@
       try {
         const app = firebase.initializeApp(FIREBASE_CONFIG);
         db = firebase.firestore(app);
-
         db.collection('equipment').onSnapshot(snap => {
           items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
           renderAll();
@@ -321,12 +410,10 @@
           showPopup('データ取得失敗: ' + err.message, 'error');
           setSync(false, '権限エラー');
         });
-
         db.collection('history').orderBy('timestamp', 'desc').limit(100).onSnapshot(snap => {
           history = snap.docs.map(d => ({ id: d.id, ...d.data() }));
           renderHistory();
         }, err => console.error('履歴取得エラー:', err));
-
         db.collection('settings').doc('master').onSnapshot(snap => {
           if (snap.exists) {
             const d = snap.data();
@@ -335,7 +422,6 @@
           }
           renderAll();
         }, err => console.error('設定取得エラー:', err));
-
       } catch (e) {
         showPopup('Firebase接続失敗: ' + e.message, 'error');
       }
@@ -521,43 +607,36 @@
         </div>`).join('');
     }
     function renderSettings() {
-      // 品目種別一覧
       document.getElementById('categoryList').innerHTML = categories.map(c => {
         const totalCount = items.filter(i => i.category === c).length;
         const lendCount = items.filter(i => i.category === c && i.status === 'lend').length;
-        const canDelete = totalCount === 0 || lendCount === 0; // 在庫が0台 または 貸出中が0台
+        const canDelete = totalCount === 0 || lendCount === 0;
         return `
           <li class="flex items-center justify-between border-b py-2">
             <span>${c}</span>
-            <button data-del-cat="${c}" class="text-red-500 hover:text-red-700 text-sm px-2 py-1 rounded hover:bg-red-50 ${!canDelete ? 'opacity-50 cursor-not-allowed' : ''}" ${!canDelete ? 'disabled' : ''}>
+            <button data-del-cat="${c}" class="text-red-500 hover:text-red-700 text-sm px-2 py-1 rounded ${!canDelete ? 'opacity-50 cursor-not-allowed' : ''}" ${!canDelete ? 'disabled' : ''}>
               ${lendCount > 0 ? `貸出中(${lendCount}台)` : totalCount > 0 ? `在庫有(${totalCount}台)` : '🗑️ 削除'}
             </button>
           </li>`;
       }).join('');
-
-      // 利用者一覧
       document.getElementById('userList').innerHTML = users.map(u => {
         const usingCount = items.filter(i => i.user === u && i.status === 'lend').length;
         return `
           <li class="flex items-center justify-between border-b py-2">
             <span>${u}</span>
-            <button data-del-user="${u}" class="text-red-500 hover:text-red-700 text-sm px-2 py-1 rounded hover:bg-red-50 ${usingCount > 0 ? 'opacity-50 cursor-not-allowed' : ''}" ${usingCount > 0 ? 'disabled' : ''}>
+            <button data-del-user="${u}" class="text-red-500 hover:text-red-700 text-sm px-2 py-1 rounded ${usingCount > 0 ? 'opacity-50 cursor-not-allowed' : ''}" ${usingCount > 0 ? 'disabled' : ''}>
               ${usingCount > 0 ? `貸出中(${usingCount}台)` : '🗑️ 削除'}
             </button>
           </li>`;
       }).join('');
-
-      // ✅ 機器編集・削除一覧
       const catOpt = '<option value="">全て表示</option>' +
         categories.map(c => `<option value="${c}">${c}</option>`).join('');
       const filterSelect = document.getElementById('editFilterCategory');
       if (filterSelect) filterSelect.innerHTML = catOpt;
-
       const filterCat = filterSelect?.value || '';
       const list = filterCat ? items.filter(i => i.category === filterCat) : [...items];
       const devListEl = document.getElementById('editDeviceList');
       if (!devListEl) return;
-
       if (!list.length) {
         devListEl.innerHTML = '<p class="text-gray-400 p-2">機器が登録されていません</p>';
         return;
@@ -568,7 +647,7 @@
             <div class="font-mono font-medium">${i.id}</div>
             <div class="text-xs text-gray-500">${i.category} / ${i.status==='lend'?'貸出中':'在庫'}</div>
           </div>
-          <button data-del-device="${i.id}" class="text-red-500 hover:text-red-700 text-sm px-2 py-1 rounded hover:bg-red-50 ${i.status==='lend'?'opacity-50 cursor-not-allowed':''}" ${i.status==='lend'?'disabled':''}>
+          <button data-del-device="${i.id}" class="text-red-500 hover:text-red-700 text-sm px-2 py-1 rounded ${i.status==='lend'?'opacity-50 cursor-not-allowed':''}" ${i.status==='lend'?'disabled':''}>
             ${i.status==='lend'?'貸出中':'🗑️ 削除'}
           </button>
         </div>`).join('');
@@ -577,7 +656,6 @@
     // ==========================================
     // イベント処理
     // ==========================================
-    // タブ切り替え
     document.querySelectorAll('.tab-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
@@ -592,7 +670,6 @@
       });
     });
 
-    // 貸出フォーム
     document.getElementById('lendCategory').addEventListener('change', updateAssignPreview);
     document.getElementById('lendCount').addEventListener('input', updateAssignPreview);
     document.getElementById('lendForm').addEventListener('submit', async e => {
@@ -613,7 +690,6 @@
       document.getElementById('availableInfo').textContent = '貸出可能台数: -';
     });
 
-    // 返却
     document.getElementById('returnUserFilter').addEventListener('change', renderReturnCheckList);
     document.getElementById('returnSelectAll').addEventListener('change', e => {
       document.querySelectorAll('input[name="returnId"]').forEach(cb => cb.checked = e.target.checked);
@@ -634,7 +710,6 @@
       renderReturnCheckList();
     });
 
-    // 設定認証
     document.getElementById('authBtn').addEventListener('click', () => {
       if (document.getElementById('passwordInput').value === PASSWORD) {
         document.getElementById('passwordArea').classList.add('hidden');
@@ -645,7 +720,6 @@
       }
     });
 
-    // 品目種別追加
     document.getElementById('addCategory').addEventListener('click', async () => {
       const v = document.getElementById('newCategory').value.trim();
       if (!v || categories.includes(v)) return showPopup('無効または既存です', 'warning');
@@ -654,7 +728,6 @@
       document.getElementById('newCategory').value = '';
     });
 
-    // 利用者追加
     document.getElementById('addUser').addEventListener('click', async () => {
       const v = document.getElementById('newUser').value.trim();
       if (!v || users.includes(v)) return showPopup('無効または既存です', 'warning');
@@ -663,7 +736,6 @@
       document.getElementById('newUser').value = '';
     });
 
-    // 機器一括追加
     document.getElementById('bulkAdd').addEventListener('click', async () => {
       const cat = document.getElementById('bulkCategory').value;
       const pre = document.getElementById('bulkPrefix').value.trim();
@@ -681,7 +753,6 @@
       showPopup(`✅ ${added}台 登録完了`);
     });
 
-    // 履歴クリア
     document.getElementById('clearHistory').addEventListener('click', async () => {
       if (!confirm('履歴を全て削除します。よろしいですか？')) return;
       const snap = await db.collection('history').get();
@@ -691,14 +762,11 @@
       showPopup('✅ 履歴を削除しました');
     });
 
-    // ✅ 機器一覧フィルター → 再描画
     document.addEventListener('change', e => {
       if (e.target.id === 'editFilterCategory') renderSettings();
     });
 
-    // ✅ 削除系 共通処理
     document.addEventListener('click', async e => {
-      // 品目種別削除
       const delCat = e.target.getAttribute('data-del-cat');
       if (delCat && !e.target.disabled) {
         if (!confirm(`「${delCat}」を削除してもよろしいですか？`)) return;
@@ -707,7 +775,6 @@
         showPopup(`✅ ${delCat} を削除しました`);
         return;
       }
-      // 利用者削除
       const delUser = e.target.getAttribute('data-del-user');
       if (delUser && !e.target.disabled) {
         if (!confirm(`「${delUser}」を削除してもよろしいですか？`)) return;
@@ -716,7 +783,6 @@
         showPopup(`✅ ${delUser} を削除しました`);
         return;
       }
-      // 機器個別削除
       const delId = e.target.getAttribute('data-del-device');
       if (delId && !e.target.disabled) {
         if (!confirm(`機器「${delId}」を削除してもよろしいですか？`)) return;
@@ -724,9 +790,20 @@
         showPopup(`✅ ${delId} を削除しました`);
         return;
       }
+      if (e.target.id === 'addEventBtn') {
+        const name = prompt('種目名を入力');
+        if (!name) return;
+        const time = prompt('開始予定時刻（例：10:30）');
+        const place = prompt('場所');
+        scheduleData.events.push({
+          id: Date.now(),
+          name, time, place,
+          status: 'wait', delay: 0, category: 'general'
+        });
+        saveSchedule();
+        renderTimetable();
+        showPopup('✅ 種目を追加しました');
+      }
     });
 
-    initFirebase();
-  </script>
-</body>
-</html>
+    window.addEventListener('DOMContentLoaded', () =>
