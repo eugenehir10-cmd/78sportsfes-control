@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>スポーツフェスタ・リンク｜体育祭進行管理＆集計アプリ</title>
+<style>
+:root{
+  --main: #2563eb; --ok: #10b981; --warn: #f59e0b; --danger: #ef4444; --dark: #1f2937; --light: #f3f4f6;
+  --shadow: 0 2px 8px rgba(0,0,0,.12);
+}
+*{box-sizing:border-box; margin:0; padding:0; font-family:system-ui, sans-serif;}
+body{background:#f8fafc; color:var(--dark); padding-bottom:80px;}
+
+/* 共通レイアウト */
+header{background:linear-gradient(135deg, var(--main), #3b82f6); color:#fff; padding:1rem; box-shadow:var(--shadow);}
+nav{position:fixed; bottom:0; left:0; right:0; background:#fff; display:flex; box-shadow:0 -2px 8px rgba(0,0,0,.1); z-index:99;}
+nav button{flex:1; border:none; background:none; padding:.75rem .5rem; color:#666; font-size:.85rem; cursor:pointer;}
+nav button.active{color:var(--main); border-top:3px solid var(--main); font-weight:bold;}
+main{max-width:960px; margin:0 auto; padding:1rem;}
+section{display:none;}
+section.active{display:block; animation:fadeIn .25s;}
+@keyframes fadeIn{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:none;}}
+
+/* カード・ボタン */
+.card{background:#fff; border-radius:10px; padding:1rem; margin-bottom:1rem; box-shadow:var(--shadow);}
+h2{font-size:1.1rem; margin-bottom:.75rem; border-left:4px solid var(--main); padding-left:.5rem;}
+.btn{border:none; border-radius:8px; padding:.6rem 1rem; font-weight:bold; cursor:pointer; transition:.2s;}
+.btn:hover{transform:translateY(-1px);}
+.btn.primary{background:var(--main); color:#fff;}
+.btn.success{background:var(--ok); color:#fff;}
+.btn.warning{background:var(--warn); color:#fff;}
+.btn.danger{background:var(--danger); color:#fff;}
+.btn.small{padding:.3rem .6rem; font-size:.85rem;}
+input,select,textarea{width:100%; padding:.6rem; margin:.3rem 0 .8rem; border:1px solid #ddd; border-radius:6px; font-size:1rem;}
+.grid{display:grid; gap:.75rem;}
+.flex{display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; justify-content:space-between;}
+
+/* 状態ラベル */
+.status{display:inline-block; padding:.25rem .6rem; border-radius:20px; font-size:.8rem; font-weight:bold; color:#fff;}
+.status.wait{background:#94a3b8;}
+.status.ready{background:var(--main);}
+.status.running{background:var(--ok);}
+.status.delay{background:var(--warn);}
+.status.done{background:#6b7280;}
+
+/* ランキング */
+.rank-1{background:linear-gradient(90deg, #fef3c7, #fffbeb); border-left:4px solid #f59e0b;}
+.rank-2{background:linear-gradient(90deg, #e5e7eb, #f9fafb); border-left:4px solid #9ca3af;}
+.rank-3{background:linear-gradient(90deg, #fed7c3, #fff7f0); border-left:4px solid #ea580c;}
+
+/* 通知 */
+.toast{position:fixed; top:1rem; right:1rem; background:var(--dark); color:#fff; padding:.8rem 1.2rem; border-radius:8px; box-shadow:var(--shadow); opacity:0; transform:translateY(-10px); transition:.3s; z-index:200;}
+.toast.show{opacity:1; transform:none;}
+
+.hidden{display:none !important;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🏆 スポーツフェスタ・リンク</h1>
+  <p id="roleDisplay" style="opacity:.9; font-size:.9rem;">役割：管理者</p>
+</header>
+
+<main>
+<!-- ========== ホーム ========== -->
+<section id="page-home" class="active">
+  <div class="card">
+    <h2>📢 現在の状況</h2>
+    <p id="nowRunning">進行中の種目：なし</p>
+    <p id="nextUp" style="margin-top:.3rem;">次の種目：-</p>
+  </div>
+  <div class="card">
+    <h2>🏅 暫定上位</h2>
+    <div id="topRanking"></div>
+  </div>
+  <div class="card">
+    <h2>🔐 役切替（デモ用）</h2>
+    <select id="roleSelect">
+      <option value="admin">管理者（全操作可）</option>
+      <option value="recorder">記録係（結果入力のみ）</option>
+      <option value="progress">進行係（スケジュール管理のみ）</option>
+      <option value="viewer">閲覧のみ</option>
+    </select>
+  </div>
+</section>
+
+<!-- ========== タイムテーブル ========== -->
+<section id="page-timetable">
+  <div class="flex" style="margin-bottom:.75rem;">
+    <h2>📅 タイムテーブル</h2>
+    <button class="btn primary small" id="addEventBtn">＋種目追加</button>
+  </div>
+  <div id="eventList"></div>
+</section>
+
+<!-- ========== 結果入力 ========== -->
+<section id="page-results">
+  <h2>✍️ 結果入力</h2>
+  <div class="card">
+    <label>種目を選択</label>
+    <select id="eventSelect"></select>
+    
+    <div id="resultInputArea" class="hidden">
+      <label>順位 / チーム</label>
+      <div id="rankInputs"></div>
+      <button class="btn success" id="submitResult">結果を確定</button>
+    </div>
+  </div>
+  <div class="card" style="margin-top:1rem;">
+    <h3>📋 入力済み結果</h3>
+    <div id="enteredResults"></div>
+  </div>
+</section>
+
+<!-- ========== ランキング ========== -->
+<section id="page-ranking">
+  <h2>🏆 総合ランキング</h2>
+  <div style="margin-bottom:.75rem;">
+    <button class="btn small" data-view="all">全部門</button>
+    <button class="btn small" data-view="male">男子</button>
+    <button class="btn small" data-view="female">女子</button>
+  </div>
+  <div id="rankingBody"></div>
+</section>
+
+<!-- ========== 設定 ========== -->
+<section id="page-settings">
+  <h2>⚙️ 各種設定</h2>
+  <div class="card">
+    <h3>クラス/チーム編集</h3>
+    <textarea id="teamListArea" rows="6" placeholder="1年1組&#10;1年2組&#10;1年3組..."></textarea>
+    <button class="btn primary small" id="saveTeams">チーム保存</button>
+  </div>
+  <div class="card">
+    <h3>配点ルール</h3>
+    <p style="font-size:.85rem; color:#666; margin-bottom:.5rem;">1位から順にカンマ区切りで記入</p>
+    <input type="text" id="pointRule" value="10,8,7,6,5,4,3,2,1">
+    <button class="btn primary small" id="saveRule">ルール保存</button>
+  </div>
+  <div class="card">
+    <h3>データ管理</h3>
+    <button class="btn warning small" id="exportData">📤 エクスポート</button>
+    <button class="btn danger small" id="clearAll">🗑️ 全データ消去</button>
+  </div>
+</section>
+</main>
+
+<nav>
+  <button data-page="home" class="active">ホーム</button>
+  <button data-page="timetable">進行表</button>
+  <button data-page="results">結果</button>
+  <button data-page="ranking">順位</button>
+  <button data-page="settings">設定</button>
+</nav>
+
+<div id="toast" class="toast"></div>
+
+<script>
+// ===== データストレージ =====
+const STORAGE_KEY = 'sports_festa_data';
+let data = {
+  teams: ['赤組','白組','青組','黄組'],
+  pointRule: [10,8,7,6,5,4,3,2,1],
+  events: [
+    {id:1, name:'開会式', time:'09:00', place:'グラウンド', status:'done', delay:0, category:'general'},
+    {id:2, name:'100m走 予選', time:'09:20', place:'トラック', status:'running', delay:0, category:'male'},
+    {id:3, name:'玉入れ', time:'10:00', place:'グラウンド', status:'wait', delay:0, category:'general'},
+    {id:4, name:'綱引き 決勝', time:'10:30', place:'グラウンド', status:'wait', delay:0, category:'general'},
+  ],
+  results: {}, // eventId: {rank:team, ...}
+  role: 'admin'
+};
+
+// 保存・読込
+function saveData(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+function loadData(){
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if(saved) data = {...data, ...JSON.parse(saved)};
+}
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2500);
+}
+
+// ===== 役割権限制御 =====
+function applyRole(){
+  const r = data.role;
+  document.getElementById('roleDisplay').textContent = 
+    '役割：'+{admin:'管理者', recorder:'記録係', progress:'進行係', viewer:'閲覧のみ'}[r];
+  
+  const canEditAll = r === 'admin';
+  const canInputResult = r === 'admin' || r === 'recorder';
+  const canManageTime = r === 'admin' || r === 'progress';
+
+  document.getElementById('addEventBtn').classList.toggle('hidden', !canManageTime);
+  document.getElementById('page-results').classList.toggle('hidden', !canInputResult && r!=='admin');
+  document.getElementById('page-settings').classList.toggle('hidden', !canEditAll);
+}
+
+// ===== ナビゲーション =====
+document.querySelectorAll('nav button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    const pid = btn.dataset.page;
+    document.querySelectorAll('main section').forEach(s=>s.classList.remove('active'));
+    document.getElementById(`page-${pid}`).classList.add('active');
+    if(pid==='timetable') renderTimetable();
+    if(pid==='results') renderResultPage();
+    if(pid==='ranking') renderRanking();
+    if(pid==='home') updateHome();
+  });
+});
+
+// ===== タイムテーブル処理 =====
+function calcActualTime(event){
+  let base = event.time;
+  let totalDelay = 0;
+  // 前のイベントの遅延を累積
+  const sorted = [...data.events].sort((a,b)=>a.time.localeCompare(b.time));
+  for(let e of sorted){
+    if(e.id === event.id) break;
+    totalDelay += e.delay || 0;
+  }
+  const [h,m] = base.split(':').map(Number);
+  const add = (event.delay||0) + totalDelay;
+  const totalMin = h*60 + m + add;
+  const nh = Math.floor(totalMin/60);
+  const nm = totalMin % 60;
+  return `${String(nh).padStart(2,'0')}:${String(nm).padStart(2,'0')}`;
+}
+
+function renderTimetable(){
+  const list = document.getElementById('eventList');
+  list.innerHTML = '';
+  data.events.sort((a,b)=>a.time.localeCompare(b.time)).forEach(ev=>{
+    const actual = calcActualTime(ev);
+    const delayInfo = ev.delay>0 ? `<span style="color:var(--danger); font-size:.85rem;">+${ev.delay}分</span>` : '';
+    const statusClass = {wait:'wait', ready:'ready', running:'running', delay:'delay', done:'done'}[ev.status] || 'wait';
+    const statusText = {wait:'未開始', ready:'準備中', running:'進行中', delay:'遅延', done:'終了'}[ev.status];
+    
+    list.innerHTML += `
+    <div class="card">
+      <div class="flex">
+        <strong>${ev.name}</strong>
+        <span class="status ${statusClass}">${statusText}</span>
+      </div>
+      <p style="margin:.4rem 0;">予定: ${ev.time} → 実際: ${actual} ${delayInfo}<br>
+      📍 ${ev.place} | 部門: ${({general:'共通',male:'男子',female:'女子'})[ev.category]}</p>
+      ${data.role!=='viewer'?`
+      <div class="flex" style="margin-top:.5rem;">
+        <select class="eventStatus" data-id="${ev.id}">
+          ${['wait','ready','running','delay','done'].map(s=>`<option value="${s}" ${ev.status===s?'selected':''}>${{wait:'未開始',ready:'準備中',running:'進行中',delay:'遅延',done:'終了'}[s]}</option>`).join('')}
+        </select>
+        <input type="number" class="delayInput" data-id="${ev.id}" value="${ev.delay||0}" style="width:70px;" placeholder="遅延分">
+        <button class="btn small primary jump-result" data-id="${ev.id}">結果入力</button>
+      </div>`:''}
+    </div>`;
+  });
+
+  // 状態変更イベント
+  document.querySelectorAll('.eventStatus').forEach(s=>{
+    s.addEventListener('change', e=>{
+      const ev = data.events.find(x=>x.id===Number(e.target.dataset.id));
+      if(ev){ ev.status = e.target.value; saveData(); renderTimetable(); updateHome(); }
+    });
+  });
+  document.querySelectorAll('.delayInput').forEach(i=>{
+    i.addEventListener('change', e=>{
+      const ev = data.events.find(x=>x.id===Number(e.target.dataset.id));
+      if(ev){ ev.delay = Number(e.target.value)||0; saveData(); renderTimetable(); }
+    });
+  });
+  document.querySelectorAll('.jump-result').forEach(b=>{
+    b.addEventListener('click', e=>{
+      const id = e.target.dataset.id;
+      document.querySelector('[data-page="results"]').click();
+      setTimeout(()=>document.getElementById('eventSelect').value=id, 50);
+    });
+  });
+}
+
+// ===== 結果入力処理 =====
+function renderResultPage(){
+  const sel = document.getElementById('eventSelect');
+  sel.innerHTML = '<option value="">種目を選択してください</option>';
+  data.events.forEach(ev=>{
+    sel.innerHTML += `<option value="${ev.id}">${ev.name} (${ev.time})</option>`;
+  });
+  updateResultInputForm();
+  renderEnteredResults();
+}
+
+document.getElementById('eventSelect').addEventListener('change', updateResultInputForm);
+
+function updateResultInputForm(){
+  const aid = Number(document.getElementById('eventSelect').value);
+  const area = document.getElementById('resultInputArea');
+  if(!aid){ area.classList.add('hidden'); return; }
+  area.classList.remove('hidden');
+  
+  const form = document.getElementById('rankInputs');
+  form.innerHTML = '';
+  data.teams.forEach((team, idx)=>{
+    form.innerHTML += `
+    <div style="margin:.4rem 0; display:flex; align-items:center; gap:.5rem;">
+      <span style="width:80px;">${idx+1}位</span>
+      <select class="rank-team" data-rank="${idx+1}" style="flex:1;">
+        <option value="">-- 選択 --</option>
+        ${data.teams.map(t=>`<option value="${t}">${t}</option>`).join('')}
+      </select>
+    </div>`;
+  });
+
+  // 既存入力があれば復元
+  if(data.results[aid]){
+    Object.entries(data.results[aid]).forEach(([rank, team])=>{
+      const sel = form.querySelector(`[data-rank="${rank}"]`);
+      if(sel) sel.value = team;
+    });
+  }
+}
+
+document.getElementById('submitResult').addEventListener('click', ()=>{
+  const aid = Number(document.getElementById('eventSelect').value);
+  if(!aid) return showToast('種目を選択してください');
+  
+  const res = {};
+  document.querySelectorAll('.rank-team').forEach(s=>{
+    if(s.value) res[s.dataset.rank] = s.value;
+  });
+  data.results[aid] = res;
+
+  // 自動でステータスを終了に
+  const ev = data.events.find(x=>x.id===aid);
+  if(ev) ev.status = 'done';
+
+  saveData();
+  showToast('✅ 結果を反映しました！');
+  renderResultPage();
+  updateHome();
+});
+
+function renderEnteredResults(){
+  const cont = document.getElementById('enteredResults');
+  cont.innerHTML = '';
+  Object.entries(data.results).forEach(([eid, res])=>{
+    const ev = data.events.find(x=>x.id===Number(eid));
+    if(!ev) return;
+    cont.innerHTML += `<p style="margin:.4rem 0;"><strong>${ev.name}</strong>: ${
+      Object.entries(res).sort((a,b)=>Number(a[0])-Number(b[0]))
+        .map(([r,t])=>`${r}位 ${t}`).join(' / ')
+    }</p>`;
+  });
+  if(!cont.innerHTML) cont.innerHTML = '<p style="color:#999;">まだ結果は入力されていません</p>';
+}
+
+// ===== ランキング計算 =====
+function calcPoints(filterCategory=null){
+  const scores = {};
+  data.teams.forEach(t=>scores[t]=0);
+  
+  data.events.forEach(ev=>{
+    if(filterCategory && ev.category!==filterCategory) return;
+    const res = data.results[ev.id];
+    if(!res) return;
+    Object.entries(res).forEach(([rank, team])=>{
+      const r = Number(rank)-1;
+      if(r < data.pointRule.length) scores[team] += data.pointRule[r];
+    });
+  });
+  return Object.entries(scores).sort((a,b)=>b[1]-a[1]);
+}
+
+function renderRanking(view='all'){
+  const cat = view==='all' ? null : view;
+  const ranking = calcPoints(cat);
+  const cont = document.getElementById('rankingBody');
+  cont.innerHTML = '';
+  ranking.forEach(([team, pts], idx)=>{
+    const cls = idx===0?'rank-1':idx===1?'rank-2':idx===2?'rank-3':'';
+    cont.innerHTML += `
+    <div class="card ${cls}">
+      <div class="flex">
+        <strong style="font-size:1.2rem;">${idx+1}位 ${team}</strong>
+        <span style="font-size:1.3rem; font-weight:bold;">${pts} 点</span>
+      </div>
+    </div>`;
+  });
+}
+
+document.querySelectorAll('[data-view]').forEach(btn=>{
+  btn.addEventListener('click', ()=>renderRanking(btn.dataset.view));
+});
+
+// ===== ホーム画面 =====
+function updateHome(){
+  const running = data.events.find(e=>e.status==='running'||e.status==='delay');
+  document.getElementById('nowRunning').textContent = 
+    '進行中：'+(running ? running.name : 'なし');
+  
+  const next = data.events.find(e=>['wait','ready'].includes(e.status));
+  document.getElementById('nextUp').textContent = 
+    '次：'+(next ? `${next.name} ${calcActualTime(next)}` : '予定なし');
+
+  // トップ3
+  const top3 = calcPoints().slice(0,3);
+  document.getElementById('topRanking').innerHTML = top3.map(([t,p],i)=>
+    `<p style="padding:.3rem 0; border-bottom:1px solid #eee;">${i+1}位 ${t}：${p}点</p>`
+  ).join('') || '<p>集計中...</p>';
+}
+
+// ===== 設定画面 =====
+document.getElementById('roleSelect').addEventListener('change', e=>{
+  data.role = e.target.value;
+  saveData(); applyRole();
+});
+document.getElementById('saveTeams').addEventListener('click', ()=>{
+  const list = document.getElementById('teamListArea').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  if(list.length<2) return alert('2チーム以上必要です');
+  data.teams = list; saveData(); showToast('チーム一覧を更新しました');
+});
+document.getElementById('saveRule').addEventListener('click', ()=>{
+  const rule = document.getElementById('pointRule').value.split(',').map(Number);
+  data.pointRule = rule; saveData(); showToast('配点ルールを保存しました');
+});
+document.getElementById('exportData').addEventListener('click', ()=>{
+  const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href=URL.createObjectURL(blob); a.download='sports-festa-data.json'; a.click();
+});
+document.getElementById('clearAll').addEventListener('click', ()=>{
+  if(confirm('全データを消去します。よろしいですか？')){
+    localStorage.removeItem(STORAGE_KEY); location.reload();
+  }
+});
+document.getElementById('addEventBtn').addEventListener('click', ()=>{
+  const name = prompt('種目名を入力');
+  if(!name) return;
+  const time = prompt('開始予定時刻（例：10:30）');
+  const place = prompt('場所');
+  data.events.push({
+    id: Date.now(),
+    name, time, place,
+    status: 'wait', delay:0, category:'general'
+  });
+  saveData(); renderTimetable(); showToast('種目を追加しました');
+});
+
+// ===== 初期化 =====
+window.addEventListener('DOMContentLoaded', ()=>{
+  loadData();
+  document.getElementById('roleSelect').value = data.role;
+  document.getElementById('teamListArea').value = data.teams.join('\n');
+  document.getElementById('pointRule').value = data.pointRule.join(',');
+  applyRole();
+  updateHome();
+});
+</script>
+</body>
+</html>
