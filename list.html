@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>体育祭トランシーバー貸出 - 状況一覧</title>
+    <link rel="stylesheet" href="/_next/static/chunks/5af32d58fc8f441e.css"/>
+    <link rel="stylesheet" href="/_next/static/chunks/46680c00c60c31b7.css"/>
+    <link rel="stylesheet" href="/_next/static/chunks/da44bdd0400cd77b.css"/>
+    <style>
+        table { width:100%; border-collapse:collapse; margin-top:16px; }
+        th, td { border:1px solid #dee2e6; padding:12px; text-align:left; }
+        th { background:#f8f9fa; font-weight:600; }
+        .badge { padding:4px 8px; border-radius:4px; font-size:0.85rem; font-weight:bold; }
+        .badge-lending { background:#ffe3e3; color:#c92a2a; }
+        .badge-returned { background:#d3f9d8; color:#2b8a3e; }
+    </style>
+</head>
+<body>
+    <div style="max-width:960px;margin:0 auto;padding:32px 16px;">
+        <div style="margin-bottom:16px;">
+            <a style="color:#495057;text-decoration:none;font-weight:bold;" href="./index.html">← トップへ戻る</a>
+        </div>
+        <h1 style="color:#12b886;text-align:center;margin-bottom:24px;">貸出状況一覧</h1>
+        
+        <button onclick="fetchStatus()" style="padding:8px 16px;background:#f1f3f5;border:1px solid #ced4da;border-radius:4px;cursor:pointer;margin-bottom:16px;">🔄 最新状態に更新</button>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>端末No.</th>
+                    <th>ステータス</th>
+                    <th>借用者 / クラス</th>
+                    <th>担当</th>
+                    <th>最終更新時刻</th>
+                </tr>
+            </thead>
+            <tbody id="list-tbody">
+                <tr><td colspan="5" style="text-align:center;">データを読み込み中...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        const GAS_URL = localStorage.getItem('gas_url') || '';
+
+        async function fetchStatus() {
+            const tbody = document.getElementById('list-tbody');
+            if (!GAS_URL) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#e03131;">設定画面で Google Apps Script の URL を設定してください。</td></tr>';
+                return;
+            }
+
+            try {
+                const res = await fetch(GAS_URL);
+                const data = await res.json();
+                
+                if (!data || data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">データがありません</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = data.map(item => `
+                    <tr>
+                        <td><strong>No.${item.id}</strong></td>
+                        <td><span class="badge ${item.status === '貸出中' ? 'badge-lending' : 'badge-returned'}">${item.status}</span></td>
+                        <td>${item.borrower || '-'}</td>
+                        <td>${item.role || '-'}</td>
+                        <td>${item.time || '-'}</td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#e03131;">取得に失敗しました</td></tr>';
+            }
+        }
+
+        window.onload = fetchStatus;
+    </script>
+</body>
+</html>
