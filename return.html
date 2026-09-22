@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ja">
+    <head>
+        <meta charSet="utf-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1"/>
+        <title>体育祭トランシーバー貸出 - 返却</title>
+        <link rel="icon" href="/favicon.ico"/>
+        <link rel="manifest" href="/manifest.webmanifest"/>
+        <meta name="theme-color" content="#be4bdb"/>
+        <link rel="apple-touch-icon" href="/favicon.ico"/>
+        <meta name="apple-mobile-web-app-capable" content="yes"/>
+        <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+        <link rel="stylesheet" href="/_next/static/chunks/5af32d58fc8f441e.css"/>
+        <link rel="stylesheet" href="/_next/static/chunks/46680c00c60c31b7.css"/>
+        <link rel="stylesheet" href="/_next/static/chunks/da44bdd0400cd77b.css"/>
+        <style>
+            .form-input {
+                width: 100%;
+                padding: 16px;
+                font-size: 1.25rem;
+                border: 1px solid #ced4da;
+                border-radius: 8px;
+                box-sizing: border-box;
+                margin-top: 6px;
+                margin-bottom: 12px;
+            }
+            .form-label {
+                font-weight: 600;
+                font-size: 1rem;
+                color: #212529;
+            }
+            .help-text {
+                font-size: 0.875rem;
+                color: #868e96;
+                margin-bottom: 24px;
+            }
+            .alert {
+                padding: 12px 16px;
+                border-radius: 8px;
+                margin-bottom: 16px;
+                display: none;
+                font-weight: bold;
+            }
+            .alert-success { background-color: #d3f9d8; color: #2b8a3e; }
+            .alert-error { background-color: #ffe3e3; color: #c92a2a; }
+        </style>
+    </head>
+    <body>
+        <div id="__next">
+            <div style="max-width:960px;margin:0 auto;padding:32px 16px;">
+                <div style="margin-bottom:16px;">
+                    <a style="color:#495057;text-decoration:none;font-weight:bold;font-size:1.1rem;" href="./index.html">← トップへ戻る</a>
+                </div>
+                <div style="display:flex;justify-content:center;margin-bottom:24px;">
+                    <h1 style="color:#be4bdb;font-size:2rem;margin:0;">トランシーバー返却</h1>
+                </div>
+
+                <div id="alert-box" class="alert"></div>
+
+                <form id="return-form">
+                    <div style="display:flex;flex-direction:column;">
+                        <div>
+                            <label class="form-label" for="transceiverId">返却するトランシーバー番号</label>
+                            <input class="form-input" type="text" id="transceiverId" name="transceiverId" placeholder="例: 01" required autofocus />
+                            <div class="help-text">※番号を入力後、そのまま「返却完了」ボタンを押してください。</div>
+                        </div>
+                        <button id="submit-btn" style="height:80px;background-color:#be4bdb;color:#fff;border:none;border-radius:8px;font-size:1.25rem;font-weight:bold;cursor:pointer;" type="submit">
+                            返却完了
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <script>
+            // ★ここに作成した Google Apps Script の Web アプリ URL を貼ります
+            const GAS_URL = "YOUR_GAS_WEB_APP_URL_HERE";
+
+            const form = document.getElementById('return-form');
+            const alertBox = document.getElementById('alert-box');
+            const submitBtn = document.getElementById('submit-btn');
+
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                submitBtn.disabled = true;
+                submitBtn.innerText = "処理中...";
+
+                const data = {
+                    action: 'return',
+                    transceiverId: document.getElementById('transceiverId').value
+                };
+
+                try {
+                    await fetch(GAS_URL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+
+                    alertBox.className = "alert alert-success";
+                    alertBox.innerText = `No.${data.transceiverId} の返却を受け付けました！`;
+                    alertBox.style.display = "block";
+                    form.reset();
+                } catch (err) {
+                    alertBox.className = "alert alert-error";
+                    alertBox.innerText = "処理に失敗しました。";
+                    alertBox.style.display = "block";
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.innerText = "返却完了";
+                }
+            });
+        </script>
+    </body>
+</html>
