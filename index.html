@@ -5,9 +5,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>備品貸出管理</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .popup {
+      animation: fadeInOut 3s forwards;
+    }
+    @keyframes fadeInOut {
+      0% { opacity: 0; transform: translateY(10px); }
+      15% { opacity: 1; transform: translateY(0); }
+      85% { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(-10px); pointer-events: none; }
+    }
+  </style>
 </head>
 <body class="bg-gray-50 text-gray-800 max-w-5xl mx-auto p-4 md:p-6">
-  <header class="mb-8">
+  <!-- ポップアップ通知エリア -->
+  <div id="popupContainer" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-md px-4 pointer-events-none"></div>
+
+  <header class="mb-8 mt-4">
     <h1 class="text-2xl font-bold text-center mb-4">📻 備品貸出管理システム</h1>
     <nav class="flex flex-wrap justify-center gap-2 mb-6">
       <button data-tab="lend" class="tab-btn px-4 py-2 rounded-lg bg-blue-500 text-white">貸出</button>
@@ -23,7 +37,9 @@
     <form id="lendForm" class="space-y-3 bg-white p-6 rounded-lg shadow">
       <div>
         <label class="block mb-1">品目種別</label>
-        <select id="lendCategory" class="w-full border rounded px-3 py-2" required></select>
+        <select id="lendCategory" class="w-full border rounded px-3 py-2" required>
+          <option value="">選択してください</option>
+        </select>
       </div>
       <div>
         <label class="block mb-1">利用者名</label>
@@ -39,11 +55,7 @@
         <label class="block mb-1">配置/行き先</label>
         <input type="text" id="lendPlace" class="w-full border rounded px-3 py-2" required>
       </div>
-      <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">貸出実行</button>
-      <div id="lendResult" class="mt-4 p-3 bg-green-50 rounded hidden">
-        <p class="font-medium">以下の番号を貸し出しました：</p>
-        <p id="assignedIds" class="mt-1 text-sm"></p>
-      </div>
+      <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">貸出実行</button>
     </form>
   </section>
 
@@ -63,7 +75,7 @@
           <option value="low">⚠️ 少ない</option>
         </select>
       </div>
-      <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded">返却実行</button>
+      <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition">返却実行</button>
     </form>
   </section>
 
@@ -93,7 +105,7 @@
     <h2 class="text-xl font-semibold mb-4">設定</h2>
     <div id="passwordArea">
       <input type="password" id="passwordInput" placeholder="パスワードを入力" class="border rounded px-3 py-2 mb-3">
-      <button id="authBtn" class="bg-gray-700 text-white px-4 py-2 rounded">認証</button>
+      <button id="authBtn" class="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800 transition">認証</button>
     </div>
     <div id="settingsContent" class="hidden space-y-6">
       <!-- 品目種別管理 -->
@@ -101,7 +113,7 @@
         <h3 class="font-medium mb-2">📦 品目種別管理</h3>
         <div class="flex gap-2 mb-3">
           <input type="text" id="newCategory" placeholder="例: トランシーバー" class="border rounded px-3 py-2 flex-1">
-          <button id="addCategory" class="bg-blue-500 text-white px-3 py-2 rounded">追加</button>
+          <button id="addCategory" class="bg-blue-500 text-white px-3 py-2 rounded hover:bg-blue-600 transition">追加</button>
         </div>
         <ul id="categoryList" class="space-y-1 text-sm"></ul>
       </div>
@@ -111,7 +123,7 @@
         <h3 class="font-medium mb-2">👤 利用者名管理</h3>
         <div class="flex gap-2 mb-3">
           <input type="text" id="newUser" placeholder="例: 1年A組 田中" class="border rounded px-3 py-2 flex-1">
-          <button id="addUser" class="bg-blue-500 text-white px-3 py-2 rounded">追加</button>
+          <button id="addUser" class="bg-blue-500 text-white px-3 py-2 rounded hover:bg-blue-600 transition">追加</button>
         </div>
         <ul id="userList" class="space-y-1 text-sm"></ul>
       </div>
@@ -128,7 +140,7 @@
             <input type="number" id="bulkStart" placeholder="開始番号" min="1" class="border rounded px-3 py-2 flex-1">
             <input type="number" id="bulkEnd" placeholder="終了番号" min="1" class="border rounded px-3 py-2 flex-1">
           </div>
-          <button id="bulkAdd" class="bg-green-600 text-white px-4 py-2 rounded">一括追加</button>
+          <button id="bulkAdd" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition">一括追加</button>
         </div>
       </div>
 
@@ -142,6 +154,21 @@
 
   <script>
     const PASSWORD = 'admin123'; // 必要に応じて変更
+
+    // === ポップアップ通知 ===
+    function showPopup(message, type = 'success') {
+      const container = document.getElementById('popupContainer');
+      const colors = {
+        success: 'bg-green-500',
+        info: 'bg-blue-500',
+        warning: 'bg-amber-500'
+      };
+      const popup = document.createElement('div');
+      popup.className = `popup ${colors[type]} text-white px-6 py-3 rounded-lg shadow-lg text-center font-medium mb-2`;
+      popup.textContent = message;
+      container.appendChild(popup);
+      setTimeout(() => popup.remove(), 3000);
+    }
 
     // === データ保存 ===
     function getItems() { return JSON.parse(localStorage.getItem('transceivers') || '[]'); }
@@ -199,9 +226,12 @@
           <td class="p-2">${i.category}</td>
           <td class="p-2">
             <span class="px-2 py-0.5 rounded text-xs ${
-              i.status === 'ok' ? 'bg-green-100 text-green-700' :
+              i.status === 'ok' || i.status === 'return' ? 'bg-green-100 text-green-700' :
               i.status === 'lend' ? 'bg-red-100 text-red-700' : 'bg-gray-100'
-            }">${i.status === 'ok' ? '貸出可' : i.status === 'lend' ? '貸出中' : '返却済'}</span>
+            }">${
+              i.status === 'ok' ? '貸出可' :
+              i.status === 'lend' ? '貸出中' : '貸出可'
+            }</span>
           </td>
           <td class="p-2">${i.user || '-'}</td>
           <td class="p-2">${i.place || '-'}</td>
@@ -212,19 +242,16 @@
     }
 
     function renderSettings() {
-      // 品目一覧
       document.getElementById('categoryList').innerHTML = getCategories().map(cat => `
         <li class="flex justify-between items-center border-b pb-1">
           <span>${cat}</span>
           <button data-del-cat="${cat}" class="text-red-500 text-xs">削除</button>
         </li>`).join('');
-      // 利用者一覧
       document.getElementById('userList').innerHTML = getUsers().map(u => `
         <li class="flex justify-between items-center border-b pb-1">
           <span>${u}</span>
           <button data-del-user="${u}" class="text-red-500 text-xs">削除</button>
         </li>`).join('');
-      // 機器一覧
       document.getElementById('itemList').innerHTML = getItems().map(i => `
         <li class="flex justify-between items-center border-b pb-1">
           <span>${i.id} [${i.category}]</span>
@@ -232,7 +259,7 @@
         </li>`).join('');
     }
 
-    // === 貸出処理：台数指定 → 空きを自動割当 ===
+    // === 貸出処理：返却済みも再貸出OK ===
     document.getElementById('lendForm').addEventListener('submit', e => {
       e.preventDefault();
       const category = document.getElementById('lendCategory').value;
@@ -242,10 +269,14 @@
 
       if (!category || !user || !count || !place) return;
 
+      // 貸出可能：status === 'ok' または 'return' の両方
       const items = getItems();
-      const available = items.filter(i => i.status === 'ok' && i.category === category);
+      const available = items.filter(i => 
+        (i.status === 'ok' || i.status === 'return') && i.category === category
+      );
+
       if (available.length < count) {
-        alert(`在庫不足：利用可能な「${category}」は ${available.length} 台です`);
+        showPopup(`在庫不足：利用可能な「${category}」は ${available.length} 台です`, 'warning');
         return;
       }
 
@@ -259,12 +290,11 @@
       });
 
       saveItems(updated);
-      document.getElementById('lendResult').classList.remove('hidden');
-      document.getElementById('assignedIds').textContent = assignIds.join(', ');
+      showPopup(`${assignIds.join(', ')} を貸し出しました`);
       e.target.reset();
     });
 
-    // === 返却処理：電池残量記録 ===
+    // === 返却処理 ===
     document.getElementById('returnForm').addEventListener('submit', e => {
       e.preventDefault();
       const id = document.getElementById('returnId').value;
@@ -279,7 +309,7 @@
 
       saveItems(items);
       e.target.reset();
-      alert('返却されました');
+      showPopup(`${id} を返却しました`);
     });
 
     // === 認証 ===
@@ -287,7 +317,9 @@
       if (document.getElementById('passwordInput').value === PASSWORD) {
         document.getElementById('passwordArea').classList.add('hidden');
         document.getElementById('settingsContent').classList.remove('hidden');
-      } else { alert('パスワードが違います'); }
+      } else {
+        showPopup('パスワードが違います', 'warning');
+      }
     });
 
     // === 品目追加 ===
@@ -295,7 +327,8 @@
       const val = document.getElementById('newCategory').value.trim();
       if (!val) return;
       const cats = getCategories();
-      if (!cats.includes(val)) { saveCategories([...cats, val]); }
+      if (!cats.includes(val)) { saveCategories([...cats, val]); showPopup(`「${val}」を追加しました`); }
+      else { showPopup('既に存在します', 'warning'); }
       document.getElementById('newCategory').value = '';
     });
 
@@ -304,7 +337,8 @@
       const val = document.getElementById('newUser').value.trim();
       if (!val) return;
       const users = getUsers();
-      if (!users.includes(val)) { saveUsers([...users, val]); }
+      if (!users.includes(val)) { saveUsers([...users, val]); showPopup(`「${val}」を追加しました`); }
+      else { showPopup('既に存在します', 'warning'); }
       document.getElementById('newUser').value = '';
     });
 
@@ -316,7 +350,7 @@
       const end = parseInt(document.getElementById('bulkEnd').value);
 
       if (!category || !prefix || !start || !end || start > end) {
-        alert('入力内容に不備があります'); return;
+        showPopup('入力内容に不備があります', 'warning'); return;
       }
 
       const items = getItems();
@@ -327,8 +361,12 @@
           newItems.push({ id, category, status: 'ok', user: '', place: '', battery: '', time: '' });
         }
       }
-      saveItems([...items, ...newItems]);
-      alert(`${newItems.length} 台を追加しました`);
+      if (newItems.length > 0) {
+        saveItems([...items, ...newItems]);
+        showPopup(`${newItems.length} 台を追加しました`);
+      } else {
+        showPopup('新規追加はありません', 'info');
+      }
       ['bulkPrefix','bulkStart','bulkEnd'].forEach(id => document.getElementById(id).value = '');
     });
 
@@ -336,16 +374,19 @@
     document.getElementById('categoryList').addEventListener('click', e => {
       if (e.target.dataset.delCat && confirm(`削除しますか：${e.target.dataset.delCat}`)) {
         saveCategories(getCategories().filter(c => c !== e.target.dataset.delCat));
+        showPopup('削除しました');
       }
     });
     document.getElementById('userList').addEventListener('click', e => {
       if (e.target.dataset.delUser && confirm(`削除しますか：${e.target.dataset.delUser}`)) {
         saveUsers(getUsers().filter(u => u !== e.target.dataset.delUser));
+        showPopup('削除しました');
       }
     });
     document.getElementById('itemList').addEventListener('click', e => {
       if (e.target.dataset.delItem && confirm(`削除しますか：${e.target.dataset.delItem}`)) {
         saveItems(getItems().filter(i => i.id !== e.target.dataset.delItem));
+        showPopup('削除しました');
       }
     });
 
