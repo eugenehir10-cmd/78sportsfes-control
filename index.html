@@ -3,10 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>備品貸出管理 クラウド版</title>
+  <title>備品貸出管理 - ローカル版</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
   <style>
     .popup { animation: fadeInOut 3s forwards; }
     @keyframes fadeInOut {
@@ -17,9 +15,6 @@
     }
     .category-table { transition: all 0.2s ease; }
     .collapsed tbody { display: none; }
-    .sync-indicator { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
-    .sync-online { background: #22c55e; }
-    .sync-offline { background: #ef4444; }
   </style>
 </head>
 <body class="bg-gray-50 text-gray-800 max-w-5xl mx-auto p-4 md:p-6">
@@ -27,13 +22,7 @@
   <div id="popupContainer" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-md px-4 pointer-events-none"></div>
 
   <header class="mb-8 mt-4">
-    <div class="flex justify-between items-center mb-2">
-      <h1 class="text-2xl font-bold">📻 備品貸出管理</h1>
-      <span class="text-sm text-gray-500 flex items-center gap-2">
-        <span id="syncStatus" class="sync-indicator sync-offline"></span>
-        <span id="syncText">未接続</span>
-      </span>
-    </div>
+    <h1 class="text-2xl font-bold text-center mb-4">📻 備品貸出管理システム</h1>
     <nav class="flex flex-wrap justify-center gap-2 mb-6">
       <button data-tab="lend" class="tab-btn px-4 py-2 rounded-lg bg-blue-500 text-white">貸出</button>
       <button data-tab="return" class="tab-btn px-4 py-2 rounded-lg bg-gray-200">返却</button>
@@ -71,10 +60,9 @@
     </form>
   </section>
 
-  <!-- 返却画面：個別/一括/利用者別一括 -->
+  <!-- 返却画面 -->
   <section id="return" class="tab-content hidden">
     <h2 class="text-xl font-semibold mb-4">返却登録</h2>
-    
     <div class="flex flex-wrap gap-2 mb-4">
       <button data-return-mode="single" class="return-tab-btn px-4 py-2 rounded-lg bg-blue-500 text-white">個別返却</button>
       <button data-return-mode="bulk" class="return-tab-btn px-4 py-2 rounded-lg bg-gray-200">一括返却</button>
@@ -104,11 +92,9 @@
     <div id="returnBulk" class="return-mode-content hidden">
       <div class="bg-white p-6 rounded-lg shadow space-y-4">
         <p class="text-sm text-gray-600">返却する機器を選択してください</p>
-        <div class="flex justify-between items-center">
-          <label class="flex items-center gap-2 text-sm cursor-pointer">
-            <input type="checkbox" id="selectAllReturnBulk" class="rounded"> 全選択
-          </label>
-        </div>
+        <label class="flex items-center gap-2 text-sm cursor-pointer">
+          <input type="checkbox" id="selectAllBulk" class="rounded"> 全選択
+        </label>
         <div id="bulkReturnList" class="max-h-80 overflow-y-auto border rounded p-3 space-y-2">
           <p class="text-gray-400 text-center text-sm">貸出中の機器がありません</p>
         </div>
@@ -124,7 +110,7 @@
       </div>
     </div>
 
-    <!-- 利用者別一括返却 -->
+    <!-- 利用者別返却 -->
     <div id="returnByUser" class="return-mode-content hidden">
       <div class="bg-white p-6 rounded-lg shadow space-y-4">
         <div>
@@ -133,12 +119,12 @@
             <option value="">選択してください</option>
           </select>
         </div>
-        <p class="text-sm text-gray-600">上記利用者が借りている機器：<span id="userBorrowCount">0</span>台</p>
+        <p class="text-sm text-gray-600">貸出台数：<span id="userBorrowCount">0</span>台</p>
         <label class="flex items-center gap-2 text-sm cursor-pointer">
-          <input type="checkbox" id="selectAllUserReturn" class="rounded"> 全選択
+          <input type="checkbox" id="selectAllUser" class="rounded"> 全選択
         </label>
         <div id="userReturnList" class="max-h-80 overflow-y-auto border rounded p-3 space-y-2">
-          <p class="text-gray-400 text-center text-sm">選択してください</p>
+          <p class="text-gray-400 text-center text-sm">利用者を選択してください</p>
         </div>
         <div>
           <label class="block mb-1">電池残量（一括記録）</label>
@@ -148,7 +134,7 @@
             <option value="low">⚠️ 少ない</option>
           </select>
         </div>
-        <button id="userBulkReturnBtn" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition">利用者分を一括返却</button>
+        <button id="userBulkReturnBtn" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition">一括返却実行</button>
       </div>
     </div>
   </section>
@@ -177,13 +163,13 @@
   <section id="history" class="tab-content hidden">
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
       <h2 class="text-xl font-semibold">📋 操作履歴</h2>
-      <button id="exportHistoryCsv" class="bg-sky-100 text-sky-700 px-3 py-1 rounded hover:bg-sky-200 text-sm">📥 履歴CSV出力</button>
+      <button id="exportHistoryCsv" class="bg-sky-100 text-sky-700 px-3 py-1 rounded hover:bg-sky-200 text-sm">📥 CSV出力</button>
     </div>
     <div class="bg-white p-3 rounded-lg shadow mb-4 space-y-2">
       <div class="flex gap-2">
-        <input type="date" id="historyFrom" class="border rounded px-3 py-2 flex-1">
+        <input type="date" id="historyFrom" class="border rounded px-3 py-2 flex-1" placeholder="開始日">
         <span class="self-center">～</span>
-        <input type="date" id="historyTo" class="border rounded px-3 py-2 flex-1">
+        <input type="date" id="historyTo" class="border rounded px-3 py-2 flex-1" placeholder="終了日">
       </div>
       <select id="historyType" class="border rounded px-3 py-2">
         <option value="all">全操作</option>
@@ -191,7 +177,7 @@
         <option value="return">返却のみ</option>
       </select>
     </div>
-    <div id="historyList" class="bg-white rounded-lg shadow overflow-x-auto">
+    <div class="bg-white rounded-lg shadow overflow-x-auto">
       <table class="w-full text-sm">
         <thead class="bg-gray-50">
           <tr>
@@ -213,16 +199,14 @@
   <section id="settings" class="tab-content hidden">
     <h2 class="text-xl font-semibold mb-4">設定</h2>
     <div id="passwordArea">
-      <input type="password" id="passwordInput" placeholder="パスワードを入力" class="border rounded px-3 py-2 mb-3">
+      <input type="password" id="passwordInput" placeholder="パスワード（admin123）" class="border rounded px-3 py-2 mb-3 w-full">
       <button id="authBtn" class="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800 transition">認証</button>
     </div>
     <div id="settingsContent" class="hidden space-y-6">
-      <div class="p-4 bg-amber-50 rounded-lg border border-amber-200 mb-4">
-        <h3 class="font-medium mb-2 text-amber-700">☁️ クラウド設定</h3>
-        <p class="text-sm text-gray-600 mb-3">初回のみ以下にFirebaseの設定情報を入力してください。</p>
-        <textarea id="firebaseConfig" placeholder='{"apiKey":"xxx",...}' class="w-full border rounded px-3 py-2 text-sm h-32 mb-2"></textarea>
-        <button id="saveConfig" class="bg-amber-500 text-white px-4 py-2 rounded hover:bg-amber-600">設定を保存して接続</button>
-        <p class="text-xs text-gray-500 mt-2">設定方法はガイドを参照してください。未設定でもローカルで動作します。</p>
+      <div class="p-4 bg-amber-50 rounded-lg border border-amber-200">
+        <h3 class="font-medium mb-2 text-amber-700">💡 クラウド連携（任意）</h3>
+        <p class="text-sm text-gray-600 mb-2">現在：<span class="font-bold text-green-600">ローカルモード</span>で動作中</p>
+        <p class="text-xs text-gray-500 mb-3">クラウド設定は後から追加可能です。今はそのままお使いください。</p>
       </div>
       <div class="p-4 bg-white rounded-lg shadow">
         <h3 class="font-medium mb-2">📦 品目種別管理</h3>
@@ -260,8 +244,7 @@
       </div>
       <div class="p-4 bg-red-50 rounded-lg border border-red-200">
         <h3 class="font-medium mb-2 text-red-700">⚠️ データ管理</h3>
-        <button id="clearAll" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">ローカルデータ初期化</button>
-        <p class="text-xs text-gray-500 mt-2">クラウドデータは削除されません</p>
+        <button id="clearAll" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">全データ初期化</button>
       </div>
     </div>
   </section>
@@ -271,17 +254,8 @@
     let currentFilter = 'all';
     let searchKeyword = '';
     let collapsedCategories = new Set();
-    let db = null;
-    let localItems = [];
-    let localHistory = [];
-    let localCategories = [];
-    let localUsers = [];
-    let unsubscribeItems = null;
-    let unsubscribeHistory = null;
-    let unsubscribeMeta = null;
-    let useCloud = false;
 
-    // === ポップアップ ===
+    // === ポップアップ通知 ===
     function showPopup(message, type = 'success') {
       const container = document.getElementById('popupContainer');
       const colors = { success: 'bg-green-500', info: 'bg-blue-500', warning: 'bg-amber-500', error: 'bg-red-500' };
@@ -293,137 +267,27 @@
       setTimeout(() => popup.remove(), 3000);
     }
 
-    // === 同期状態表示 ===
-    function setSyncStatus(online, message) {
-      const indicator = document.getElementById('syncStatus');
-      const text = document.getElementById('syncText');
-      if (online) {
-        indicator.className = 'sync-indicator sync-online';
-        text.textContent = message || 'オンライン';
-      } else {
-        indicator.className = 'sync-indicator sync-offline';
-        text.textContent = message || 'オフライン';
-      }
-    }
-
-    // === データ保存：クラウドまたはローカル ===
-    async function saveItems(arr) {
-      localItems = arr;
+    // === データ操作 ===
+    function getItems() { return JSON.parse(localStorage.getItem('transceivers') || '[]'); }
+    function saveItems(arr) {
       localStorage.setItem('transceivers', JSON.stringify(arr));
       localStorage.setItem('lastUpdate', new Date().toLocaleString('ja-JP'));
-      if (useCloud && db) {
-        try {
-          await db.collection('metadata').doc('main').set({ items: arr, lastUpdate: new Date() });
-        } catch (e) { console.error(e); }
-      }
       renderAll();
     }
-
-    function getItems() { return localItems; }
-    async function saveCategories(arr) {
-      localCategories = arr;
-      localStorage.setItem('categories', JSON.stringify(arr));
-      if (useCloud && db) {
-        try { await db.collection('metadata').doc('config').set({ categories: arr }); }
-        catch (e) { console.error(e); }
-      }
-      renderAll();
-    }
-    function getCategories() { return localCategories; }
-    async function saveUsers(arr) {
-      localUsers = arr;
-      localStorage.setItem('users', JSON.stringify(arr));
-      if (useCloud && db) {
-        try { await db.collection('metadata').doc('config').set({ users: arr }); }
-        catch (e) { console.error(e); }
-      }
-      renderAll();
-    }
-    function getUsers() { return localUsers; }
-
-    // === 履歴追加 ===
-    async function addHistoryRecord(record) {
-      const fullRecord = {
+    function getCategories() { return JSON.parse(localStorage.getItem('categories') || '["トランシーバー"]'); }
+    function saveCategories(arr) { localStorage.setItem('categories', JSON.stringify(arr)); renderAll(); }
+    function getUsers() { return JSON.parse(localStorage.getItem('users') || '[]'); }
+    function saveUsers(arr) { localStorage.setItem('users', JSON.stringify(arr)); renderAll(); }
+    function getHistory() { return JSON.parse(localStorage.getItem('history') || '[]'); }
+    function addHistory(record) {
+      const history = getHistory();
+      history.unshift({
         ...record,
         timestamp: new Date().toLocaleString('ja-JP'),
         date: new Date().toISOString().slice(0, 10)
-      };
-      localHistory.unshift(fullRecord);
-      localStorage.setItem('history', JSON.stringify(localHistory.slice(0, 500)));
-      if (useCloud && db) {
-        try { await db.collection('history').add(fullRecord); }
-        catch (e) { console.error(e); }
-      }
+      });
+      localStorage.setItem('history', JSON.stringify(history.slice(0, 500)));
       renderHistory();
-    }
-
-    // === 初期データ読み込み ===
-    function loadLocalData() {
-      localItems = JSON.parse(localStorage.getItem('transceivers') || '[]');
-      localHistory = JSON.parse(localStorage.getItem('history') || '[]');
-      localCategories = JSON.parse(localStorage.getItem('categories') || '["トランシーバー"]');
-      localUsers = JSON.parse(localStorage.getItem('users') || '[]');
-      renderAll();
-    }
-
-    // === Firebase初期化 ===
-    async function initFirebase(configStr) {
-      try {
-        const config = JSON.parse(configStr);
-        if (!config.apiKey || !config.projectId) throw new Error('不正な設定');
-        
-        if (unsubscribeItems) { unsubscribeItems(); unsubscribeItems = null; }
-        if (unsubscribeHistory) { unsubscribeHistory(); unsubscribeHistory = null; }
-        if (unsubscribeMeta) { unsubscribeMeta(); unsubscribeMeta = null; }
-
-        const app = firebase.initializeApp(config);
-        db = firebase.firestore(app);
-        useCloud = true;
-        localStorage.setItem('firebaseConfig', configStr);
-
-        setSyncStatus(true, '接続中...');
-
-        // 機器データ同期
-        unsubscribeMeta = db.collection('metadata').doc('main').onSnapshot(snap => {
-          if (snap.exists) {
-            const data = snap.data();
-            if (data.items) {
-              localItems = data.items;
-              localStorage.setItem('transceivers', JSON.stringify(localItems));
-            }
-            if (data.lastUpdate) {
-              localStorage.setItem('lastUpdate', data.lastUpdate.toLocaleDateString ? data.lastUpdate.toLocaleString('ja-JP') : data.lastUpdate);
-            }
-            renderAll();
-          }
-        }, err => { setSyncStatus(false, '同期エラー'); console.error(err); });
-
-        // 設定同期
-        db.collection('metadata').doc('config').onSnapshot(snap => {
-          if (snap.exists) {
-            const d = snap.data();
-            if (d.categories) localCategories = d.categories;
-            if (d.users) localUsers = d.users;
-            localStorage.setItem('categories', JSON.stringify(localCategories));
-            localStorage.setItem('users', JSON.stringify(localUsers));
-            renderAll();
-          }
-        });
-
-        // 履歴同期
-        unsubscribeHistory = db.collection('history').orderBy('timestamp', 'desc').limit(500)
-          .onSnapshot(snap => {
-            localHistory = snap.docs.map(d => d.data());
-            localStorage.setItem('history', JSON.stringify(localHistory));
-            renderHistory();
-            setSyncStatus(true);
-          }, err => { setSyncStatus(false, '履歴取得エラー'); });
-
-        showPopup('クラウド接続しました', 'success');
-      } catch (e) {
-        showPopup('Firebase設定エラー: ' + e.message, 'error');
-        setSyncStatus(false, '設定エラー');
-      }
     }
 
     // === タブ切り替え ===
@@ -435,7 +299,6 @@
         });
         document.getElementById(btn.dataset.tab).classList.remove('hidden');
         btn.classList.remove('bg-gray-200'); btn.classList.add('bg-blue-500', 'text-white');
-        if (btn.dataset.tab === 'history') renderHistory();
         if (btn.dataset.tab === 'returnByUser') renderUserReturnSelect();
       });
     });
@@ -455,45 +318,6 @@
       });
     });
 
-    // === 利用者別返却：利用者一覧 ===
-    function renderUserReturnSelect() {
-      const users = [...new Set(getItems().filter(i => i.status === 'lend').map(i => i.user || '不明'))].sort();
-      const sel = document.getElementById('returnUserSelect');
-      sel.innerHTML = '<option value="">選択してください</option>' + users.map(u => `<option value="${u}">${u}</option>`).join('');
-      document.getElementById('userReturnList').innerHTML = '<p class="text-gray-400 text-center text-sm">利用者を選択してください</p>';
-      document.getElementById('userBorrowCount').textContent = '0';
-    }
-
-    // 利用者選択時のリスト更新
-    document.getElementById('returnUserSelect').addEventListener('change', e => {
-      const user = e.target.value;
-      const container = document.getElementById('userReturnList');
-      if (!user) {
-        container.innerHTML = '<p class="text-gray-400 text-center text-sm">利用者を選択してください</p>';
-        document.getElementById('userBorrowCount').textContent = '0';
-        return;
-      }
-      const items = getItems().filter(i => i.status === 'lend' && i.user === user);
-      document.getElementById('userBorrowCount').textContent = items.length;
-      if (!items.length) {
-        container.innerHTML = '<p class="text-gray-400 text-center text-sm">貸出中の機器はありません</p>';
-        return;
-      }
-      container.innerHTML = items.map(i => `
-        <label class="flex items-center gap-3 p-2 hover:bg-gray-50 rounded cursor-pointer">
-          <input type="checkbox" name="userReturnId" value="${i.id}" class="rounded">
-          <span class="font-medium">${i.id}</span>
-          <span class="text-sm text-gray-500">[${i.category}]</span>
-          <span class="text-xs text-gray-400 ml-auto">${i.place || '-'}</span>
-        </label>
-      `).join('');
-    });
-
-    // 利用者別全選択
-    document.getElementById('selectAllUserReturn').addEventListener('change', e => {
-      document.querySelectorAll('input[name="userReturnId"]').forEach(cb => cb.checked = e.target.checked);
-    });
-
     // === 一括返却リスト ===
     function renderBulkReturnList() {
       const items = getItems().filter(i => i.status === 'lend');
@@ -504,7 +328,7 @@
       }
       container.innerHTML = items.map(i => `
         <label class="flex items-center gap-3 p-2 hover:bg-gray-50 rounded cursor-pointer">
-          <input type="checkbox" name="bulkReturnId" value="${i.id}" class="rounded">
+          <input type="checkbox" name="bulkId" value="${i.id}" class="rounded">
           <span class="font-medium">${i.id}</span>
           <span class="text-sm text-gray-500">[${i.category}]</span>
           <span class="text-sm text-gray-600">— ${i.user || '不明'}</span>
@@ -512,9 +336,38 @@
         </label>
       `).join('');
     }
+    document.getElementById('selectAllBulk').addEventListener('change', e => {
+      document.querySelectorAll('input[name="bulkId"]').forEach(cb => cb.checked = e.target.checked);
+    });
 
-    document.getElementById('selectAllReturnBulk').addEventListener('change', e => {
-      document.querySelectorAll('input[name="bulkReturnId"]').forEach(cb => cb.checked = e.target.checked);
+    // === 利用者別返却 ===
+    function renderUserReturnSelect() {
+      const users = [...new Set(getItems().filter(i => i.status === 'lend').map(i => i.user || '不明'))].sort();
+      const sel = document.getElementById('returnUserSelect');
+      sel.innerHTML = '<option value="">選択してください</option>' + users.map(u => `<option value="${u}">${u}</option>`).join('');
+      document.getElementById('userReturnList').innerHTML = '<p class="text-gray-400 text-center text-sm">利用者を選択してください</p>';
+      document.getElementById('userBorrowCount').textContent = '0';
+    }
+    document.getElementById('returnUserSelect').addEventListener('change', e => {
+      const user = e.target.value;
+      const items = user ? getItems().filter(i => i.status === 'lend' && i.user === user) : [];
+      document.getElementById('userBorrowCount').textContent = items.length;
+      const container = document.getElementById('userReturnList');
+      if (!items.length) {
+        container.innerHTML = '<p class="text-gray-400 text-center text-sm">該当する機器がありません</p>';
+        return;
+      }
+      container.innerHTML = items.map(i => `
+        <label class="flex items-center gap-3 p-2 hover:bg-gray-50 rounded cursor-pointer">
+          <input type="checkbox" name="userId" value="${i.id}" class="rounded">
+          <span class="font-medium">${i.id}</span>
+          <span class="text-sm text-gray-500">[${i.category}]</span>
+          <span class="text-xs text-gray-400 ml-auto">${i.place || '-'}</span>
+        </label>
+      `).join('');
+    });
+    document.getElementById('selectAllUser').addEventListener('change', e => {
+      document.querySelectorAll('input[name="userId"]').forEach(cb => cb.checked = e.target.checked);
     });
 
     // === フィルター・検索 ===
@@ -533,7 +386,7 @@
       renderList();
     });
 
-    // === 描画 ===
+    // === 描画共通 ===
     function renderAll() {
       renderLendSelects();
       renderReturnSelect();
@@ -548,16 +401,14 @@
       const batteryLabel = { full: '🔋十分', medium: '🔌中', low: '⚠️少' };
       const batteryBg = { full: 'bg-green-50', medium: 'bg-yellow-50', low: 'bg-red-50' };
 
-      document.getElementById('lastUpdate').textContent = 
-        '最終更新: ' + (localStorage.getItem('lastUpdate') || '-');
+      document.getElementById('lastUpdate').textContent = '最終更新: ' + (localStorage.getItem('lastUpdate') || '-');
 
       let filtered = items.filter(i => {
-        const matchFilter = currentFilter === 'all' 
-          ? true 
-          : (currentFilter === 'ok' && (i.status === 'ok' || i.status === 'return')) ||
-            (currentFilter === 'lend' && i.status === 'lend');
+        const matchFilter = currentFilter === 'all' ? true :
+          (currentFilter === 'ok' && (i.status === 'ok' || i.status === 'return')) ||
+          (currentFilter === 'lend' && i.status === 'lend');
         const kw = searchKeyword.toLowerCase();
-        const matchSearch = !kw || 
+        const matchSearch = !kw ||
           i.id.toLowerCase().includes(kw) ||
           (i.user && i.user.toLowerCase().includes(kw)) ||
           (i.place && i.place.toLowerCase().includes(kw));
@@ -572,9 +423,9 @@
         const available = items.filter(i => (i.status === 'ok' || i.status === 'return') && i.category === cat).length;
         const isCollapsed = collapsedCategories.has(cat);
 
-        const tableWrapper = document.createElement('div');
-        tableWrapper.className = `category-table bg-white rounded-lg shadow overflow-hidden ${isCollapsed ? 'collapsed' : ''}`;
-        tableWrapper.innerHTML = `
+        const wrapper = document.createElement('div');
+        wrapper.className = `category-table bg-white rounded-lg shadow overflow-hidden ${isCollapsed ? 'collapsed' : ''}`;
+        wrapper.innerHTML = `
           <div class="p-3 bg-gray-50 flex justify-between items-center cursor-pointer" data-toggle="${cat}">
             <h3 class="font-medium">${cat}</h3>
             <span class="text-sm text-gray-500">貸出可 ${available} / 計 ${total} ${isCollapsed ? '▶' : '▼'}</span>
@@ -591,19 +442,16 @@
               </tr>
             </thead>
             <tbody>
-              ${catItems.length === 0 ? 
-                `<tr><td colspan="6" class="p-3 text-gray-400 text-center">該当なし</td></tr>` :
+              ${catItems.length === 0 ? `<tr><td colspan="6" class="p-3 text-gray-400 text-center">該当なし</td></tr>` :
                 catItems.map(i => `
                   <tr class="border-t hover:bg-gray-50">
                     <td class="p-2">${i.id}</td>
-                    <td class="p-2">
-                      <span class="px-2 py-0.5 rounded text-xs ${
-                        i.status === 'lend' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
-                      }">${i.status === 'lend' ? '貸出中' : '貸出可'}</span>
-                    </td>
+                    <td class="p-2"><span class="px-2 py-0.5 rounded text-xs ${
+                      i.status === 'lend' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
+                    }">${i.status === 'lend' ? '貸出中' : '貸出可'}</span></td>
                     <td class="p-2">${i.user || '-'}</td>
                     <td class="p-2">${i.place || '-'}</td>
-                    <td class="p-2 ${i.battery ? batteryBg[i.battery] || '' : ''}">${batteryLabel[i.battery] || '-'}</td>
+                    <td class="p-2 ${i.battery ? batteryBg[i.battery] : ''}">${batteryLabel[i.battery] || '-'}</td>
                     <td class="p-2 text-xs">${i.time || '-'}</td>
                   </tr>
                 `).join('')
@@ -611,25 +459,23 @@
             </tbody>
           </table>
         `;
-        container.appendChild(tableWrapper);
+        container.appendChild(wrapper);
       });
 
       document.querySelectorAll('[data-toggle]').forEach(btn => {
         btn.addEventListener('click', () => {
           const cat = btn.dataset.toggle;
-          if (collapsedCategories.has(cat)) collapsedCategories.delete(cat);
-          else collapsedCategories.add(cat);
+          collapsedCategories.has(cat) ? collapsedCategories.delete(cat) : collapsedCategories.add(cat);
           renderList();
         });
       });
     }
 
     function renderHistory() {
-      let list = [...localHistory];
+      let list = getHistory();
       const from = document.getElementById('historyFrom').value;
       const to = document.getElementById('historyTo').value;
       const type = document.getElementById('historyType').value;
-
       if (from) list = list.filter(r => r.date >= from);
       if (to) list = list.filter(r => r.date <= to);
       if (type !== 'all') list = list.filter(r => r.type === type);
@@ -653,32 +499,31 @@
         </tr>
       `).join('');
     }
-
     ['historyFrom','historyTo','historyType'].forEach(id => {
       document.getElementById(id).addEventListener('change', renderHistory);
     });
 
     function renderLendSelects() {
       const cats = getCategories();
-      const catSel = document.getElementById('lendCategory');
-      catSel.innerHTML = '<option value="">選択してください</option>' + cats.map(c => `<option value="${c}">${c}</option>`).join('');
-      document.getElementById('bulkCategory').innerHTML = catSel.innerHTML;
+      const catHtml = '<option value="">選択してください</option>' + cats.map(c => `<option value="${c}">${c}</option>`).join('');
+      document.getElementById('lendCategory').innerHTML = catHtml;
+      document.getElementById('bulkCategory').innerHTML = catHtml;
       const users = getUsers();
-      const userSel = document.getElementById('lendUser');
-      userSel.innerHTML = '<option value="">選択してください</option>' + users.map(u => `<option value="${u}">${u}</option>`).join('');
+      document.getElementById('lendUser').innerHTML = '<option value="">選択してください</option>' + users.map(u => `<option value="${u}">${u}</option>`).join('');
     }
 
     function renderReturnSelect() {
       const items = getItems().filter(i => i.status === 'lend');
-      const sel = document.getElementById('returnId');
-      sel.innerHTML = items.map(i => `<option value="${i.id}">${i.id} [${i.category}] — ${i.user || ''}</option>`).join('');
+      document.getElementById('returnId').innerHTML = items.map(i =>
+        `<option value="${i.id}">${i.id} [${i.category}] — ${i.user || ''}</option>`
+      ).join('');
     }
 
     function renderSettings() {
-      document.getElementById('categoryList').innerHTML = getCategories().map(cat => `
+      document.getElementById('categoryList').innerHTML = getCategories().map(c => `
         <li class="flex justify-between items-center border-b pb-1">
-          <span>${cat}</span>
-          <button data-del-cat="${cat}" class="text-red-500 text-xs">削除</button>
+          <span>${c}</span>
+          <button data-del-cat="${c}" class="text-red-500 text-xs">削除</button>
         </li>`).join('');
       document.getElementById('userList').innerHTML = getUsers().map(u => `
         <li class="flex justify-between items-center border-b pb-1">
@@ -690,11 +535,10 @@
           <span>${i.id} [${i.category}]</span>
           <button data-del-item="${i.id}" class="text-red-500 text-xs">削除</button>
         </li>`).join('');
-      document.getElementById('firebaseConfig').value = localStorage.getItem('firebaseConfig') || '';
     }
 
     // === 貸出処理 ===
-    document.getElementById('lendForm').addEventListener('submit', async e => {
+    document.getElementById('lendForm').addEventListener('submit', e => {
       e.preventDefault();
       const category = document.getElementById('lendCategory').value;
       const user = document.getElementById('lendUser').value;
@@ -703,9 +547,7 @@
       if (!category || !user || !count || !place) return;
 
       const items = getItems();
-      const available = items.filter(i => 
-        (i.status === 'ok' || i.status === 'return') && i.category === category
-      );
+      const available = items.filter(i => (i.status === 'ok' || i.status === 'return') && i.category === category);
       if (available.length < count) {
         showPopup(`在庫不足：利用可能な「${category}」は ${available.length} 台です`, 'warning');
         return;
@@ -716,71 +558,74 @@
         if (assignIds.includes(i.id)) return { ...i, status: 'lend', user, place, time: now };
         return i;
       });
-
-      await saveItems(updated);
-      for (const id of assignIds) {
-        const item = updated.find(i => i.id === id);
-        await addHistoryRecord({ type: 'lend', id, category, user, place, battery: '' });
-      }
+      saveItems(updated);
+      assignIds.forEach(id => {
+        addHistory({ type: 'lend', id, category, user, place, battery: '' });
+      });
       showPopup(`${assignIds.join(', ')} を貸し出しました`);
       e.target.reset();
     });
 
     // === 個別返却 ===
-    document.getElementById('returnForm').addEventListener('submit', async e => {
+    document.getElementById('returnForm').addEventListener('submit', e => {
       e.preventDefault();
       const id = document.getElementById('returnId').value;
       const battery = document.getElementById('returnBattery').value;
-      const items = getItems().map(i => {
+      const items = getItems();
+      const item = items.find(i => i.id === id);
+      const updated = items.map(i => {
         if (i.id === id) return { ...i, status: 'return', battery, time: new Date().toLocaleString('ja-JP') };
         return i;
       });
-      const item = getItems().find(i => i.id === id);
-      await saveItems(items);
-      await addHistoryRecord({ type: 'return', id, category: item?.category, user: item?.user, place: item?.place, battery });
-      e.target.reset();
+      saveItems(updated);
+      addHistory({ type: 'return', id, category: item?.category, user: item?.user, place: item?.place, battery });
       showPopup(`${id} を返却しました`);
+      e.target.reset();
+      renderReturnSelect();
     });
 
     // === 一括返却 ===
-    document.getElementById('bulkReturnBtn').addEventListener('click', async () => {
-      const selected = Array.from(document.querySelectorAll('input[name="bulkReturnId"]:checked')).map(cb => cb.value);
+    document.getElementById('bulkReturnBtn').addEventListener('click', () => {
+      const selected = Array.from(document.querySelectorAll('input[name="bulkId"]:checked')).map(cb => cb.value);
       if (!selected.length) return showPopup('返却する機器を選択してください', 'warning');
       const battery = document.getElementById('bulkBattery').value;
       if (!confirm(`${selected.length} 台を一括返却しますか？`)) return;
 
       let items = getItems();
-      for (const id of selected) {
+      selected.forEach(id => {
         const idx = items.findIndex(i => i.id === id);
         if (idx > -1) {
           items[idx] = { ...items[idx], status: 'return', battery, time: new Date().toLocaleString('ja-JP') };
-          await addHistoryRecord({ type: 'return', id, category: items[idx].category, user: items[idx].user, place: items[idx].place, battery });
+          addHistory({ type: 'return', id, category: items[idx].category, user: items[idx].user, place: items[idx].place, battery });
         }
-      }
-      await saveItems(items);
+      });
+      saveItems([...items]);
       showPopup(`${selected.length} 台を返却: ${selected.join(', ')}`);
       renderBulkReturnList();
-      document.getElementById('selectAllReturnBulk').checked = false;
+      document.getElementById('selectAllBulk').checked = false;
+      renderReturnSelect();
     });
 
-    // === 利用者別一括返却 ===
-    document.getElementById('userBulkReturnBtn').addEventListener('click', async () => {
-      const selected = Array.from(document.querySelectorAll('input[name="userReturnId"]:checked')).map(cb => cb.value);
+    // === 利用者別返却 ===
+    document.getElementById('userBulkReturnBtn').addEventListener('click', () => {
+      const selected = Array.from(document.querySelectorAll('input[name="userId"]:checked')).map(cb => cb.value);
       if (!selected.length) return showPopup('返却する機器を選択してください', 'warning');
       const battery = document.getElementById('userBulkBattery').value;
       if (!confirm(`${selected.length} 台を一括返却しますか？`)) return;
 
       let items = getItems();
-      for (const id of selected) {
+      selected.forEach(id => {
         const idx = items.findIndex(i => i.id === id);
         if (idx > -1) {
           items[idx] = { ...items[idx], status: 'return', battery, time: new Date().toLocaleString('ja-JP') };
-          await addHistoryRecord({ type: 'return', id, category: items[idx].category, user: items[idx].user, place: items[idx].place, battery });
+          addHistory({ type: 'return', id, category: items[idx].category, user: items[idx].user, place: items[idx].place, battery });
         }
-      }
-      await saveItems(items);
+      });
+      saveItems([...items]);
       showPopup(`${selected.length} 台を返却しました`);
       renderUserReturnSelect();
+      document.getElementById('selectAllUser').checked = false;
+      renderReturnSelect();
     });
 
     // === CSV出力 ===
@@ -794,7 +639,6 @@
       });
       a.click(); URL.revokeObjectURL(url);
     }
-
     document.getElementById('exportCsv').addEventListener('click', () => {
       const items = getItems();
       if (!items.length) return showPopup('データがありません', 'warning');
@@ -806,16 +650,16 @@
       ], '備品一覧');
       showPopup('CSV出力しました');
     });
-
     document.getElementById('exportHistoryCsv').addEventListener('click', () => {
-      if (!localHistory.length) return showPopup('履歴がありません', 'warning');
+      const history = getHistory();
+      if (!history.length) return showPopup('履歴がありません', 'warning');
       const typeLabel = { lend: '貸出', return: '返却' };
       const batteryLabel = { full: '十分', medium: '中', low: '少ない' };
       exportCsv([
         ['日時','操作','機器番号','種別','利用者','場所','電池残量'],
-        ...localHistory.map(r => [r.timestamp, typeLabel[r.type], r.id, r.category, r.user || '-', r.place || '-', batteryLabel[r.battery] || '-'])
+        ...history.map(r => [r.timestamp, typeLabel[r.type], r.id, r.category, r.user || '-', r.place || '-', batteryLabel[r.battery] || '-'])
       ], '操作履歴');
-      showPopup('履歴CSV出力しました');
+      showPopup('CSV出力しました');
     });
 
     // === 認証 ===
@@ -823,22 +667,76 @@
       if (document.getElementById('passwordInput').value === PASSWORD) {
         document.getElementById('passwordArea').classList.add('hidden');
         document.getElementById('settingsContent').classList.remove('hidden');
-        const savedConfig = localStorage.getItem('firebaseConfig');
-        if (savedConfig && !useCloud) initFirebase(savedConfig);
-      } else showPopup('パスワードが違います', 'warning');
+      } else {
+        showPopup('パスワードが違います', 'warning');
+      }
     });
 
-    // === Firebase設定保存 ===
-    document.getElementById('saveConfig').addEventListener('click', () => {
-      const cfg = document.getElementById('firebaseConfig').value.trim();
-      if (!cfg) return showPopup('設定を入力してください', 'warning');
-      initFirebase(cfg);
-    });
-
-    // === 各種設定処理 ===
+    // === 各種設定 ===
     document.getElementById('addCategory').addEventListener('click', () => {
       const val = document.getElementById('newCategory').value.trim();
       if (!val) return;
       const cats = getCategories();
-      if (!cats.includes(val)) { saveCategories([...cats, val]); showPopup(`「${val}」を追加`); }
-      else showPopup('既に存在します', '
+      if (!cats.includes(val)) { saveCategories([...cats, val]); showPopup(`「${val}」を追加しました`); }
+      else showPopup('既に存在します', 'warning');
+      document.getElementById('newCategory').value = '';
+    });
+    document.getElementById('addUser').addEventListener('click', () => {
+      const val = document.getElementById('newUser').value.trim();
+      if (!val) return;
+      const users = getUsers();
+      if (!users.includes(val)) { saveUsers([...users, val]); showPopup(`「${val}」を追加しました`); }
+      else showPopup('既に存在します', 'warning');
+      document.getElementById('newUser').value = '';
+    });
+    document.getElementById('bulkAdd').addEventListener('click', () => {
+      const category = document.getElementById('bulkCategory').value;
+      const prefix = document.getElementById('bulkPrefix').value.trim();
+      const start = parseInt(document.getElementById('bulkStart').value);
+      const end = parseInt(document.getElementById('bulkEnd').value);
+      if (!category || !prefix || !start || !end || start > end) {
+        showPopup('入力内容に不備があります', 'warning'); return;
+      }
+      const items = getItems();
+      const newItems = [];
+      for (let n = start; n <= end; n++) {
+        const id = prefix + String(n).padStart(3, '0');
+        if (!items.some(i => i.id === id)) {
+          newItems.push({ id, category, status: 'ok', user: '', place: '', battery: '', time: '' });
+        }
+      }
+      if (newItems.length) {
+        saveItems([...items, ...newItems]);
+        showPopup(`${newItems.length} 台を追加しました`);
+      } else showPopup('新規追加はありません', 'info');
+      ['bulkPrefix','bulkStart','bulkEnd'].forEach(id => document.getElementById(id).value = '');
+    });
+    document.getElementById('categoryList').addEventListener('click', e => {
+      if (e.target.dataset.delCat && confirm(`削除しますか：${e.target.dataset.delCat}`)) {
+        saveCategories(getCategories().filter(c => c !== e.target.dataset.delCat));
+        showPopup('削除しました');
+      }
+    });
+    document.getElementById('userList').addEventListener('click', e => {
+      if (e.target.dataset.delUser && confirm(`削除しますか：${e.target.dataset.delUser}`)) {
+        saveUsers(getUsers().filter(u => u !== e.target.dataset.delUser));
+        showPopup('削除しました');
+      }
+    });
+    document.getElementById('itemList').addEventListener('click', e => {
+      if (e.target.dataset.delItem && confirm(`削除しますか：${e.target.dataset.delItem}`)) {
+        saveItems(getItems().filter(i => i.id !== e.target.dataset.delItem));
+        showPopup('削除しました');
+      }
+    });
+    document.getElementById('clearAll').addEventListener('click', () => {
+      if (!confirm('⚠️ 全てのデータを削除します。よろしいですか？')) return;
+      localStorage.clear();
+      showPopup('データを初期化しました', 'info');
+      renderAll();
+    });
+
+    renderAll();
+  </script>
+</body>
+</html>
