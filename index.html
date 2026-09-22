@@ -59,24 +59,63 @@
     </form>
   </section>
 
-  <!-- 返却画面 -->
+  <!-- 返却画面：個別/一括切り替え -->
   <section id="return" class="tab-content hidden">
     <h2 class="text-xl font-semibold mb-4">返却登録</h2>
-    <form id="returnForm" class="space-y-3 bg-white p-6 rounded-lg shadow">
-      <div>
-        <label class="block mb-1">機器番号</label>
-        <select id="returnId" class="w-full border rounded px-3 py-2" required></select>
+    
+    <!-- 切り替えタブ -->
+    <div class="flex gap-2 mb-4">
+      <button data-return-mode="single" class="return-tab-btn px-4 py-2 rounded-lg bg-blue-500 text-white">個別返却</button>
+      <button data-return-mode="bulk" class="return-tab-btn px-4 py-2 rounded-lg bg-gray-200">一括返却</button>
+    </div>
+
+    <!-- 個別返却 -->
+    <div id="returnSingle" class="return-mode-content">
+      <form id="returnForm" class="space-y-3 bg-white p-6 rounded-lg shadow">
+        <div>
+          <label class="block mb-1">機器番号</label>
+          <select id="returnId" class="w-full border rounded px-3 py-2" required></select>
+        </div>
+        <div>
+          <label class="block mb-1">電池残量</label>
+          <select id="returnBattery" class="w-full border rounded px-3 py-2" required>
+            <option value="full">🔋 十分</option>
+            <option value="medium">🔌 中</option>
+            <option value="low">⚠️ 少ない</option>
+          </select>
+        </div>
+        <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition">返却実行</button>
+      </form>
+    </div>
+
+    <!-- 一括返却 -->
+    <div id="returnBulk" class="return-mode-content hidden">
+      <div class="bg-white p-6 rounded-lg shadow space-y-4">
+        <div class="flex justify-between items-center">
+          <p class="text-sm text-gray-600">返却する機器を選択してください</p>
+          <label class="flex items-center gap-2 text-sm cursor-pointer">
+            <input type="checkbox" id="selectAllReturn" class="rounded"> 全選択
+          </label>
+        </div>
+        
+        <div id="bulkReturnList" class="max-h-80 overflow-y-auto border rounded p-3 space-y-2">
+          <p class="text-gray-400 text-center text-sm">貸出中の機器がありません</p>
+        </div>
+
+        <div>
+          <label class="block mb-1">選択した機器の電池残量</label>
+          <select id="bulkBattery" class="w-full border rounded px-3 py-2" required>
+            <option value="full">🔋 十分</option>
+            <option value="medium">🔌 中</option>
+            <option value="low">⚠️ 少ない</option>
+          </select>
+        </div>
+        
+        <button id="bulkReturnBtn" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition">
+          一括返却実行
+        </button>
       </div>
-      <div>
-        <label class="block mb-1">電池残量</label>
-        <select id="returnBattery" class="w-full border rounded px-3 py-2" required>
-          <option value="full">🔋 十分</option>
-          <option value="medium">🔌 中</option>
-          <option value="low">⚠️ 少ない</option>
-        </select>
-      </div>
-      <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition">返却実行</button>
-    </form>
+    </div>
   </section>
 
   <!-- 一覧画面：品目別に分割 -->
@@ -185,7 +224,7 @@
     function getUsers() { return JSON.parse(localStorage.getItem('users') || '[]'); }
     function saveUsers(arr) { localStorage.setItem('users', JSON.stringify(arr)); renderAll(); }
 
-    // === タブ切り替え ===
+    // === タブ切り替え（メイン） ===
     document.querySelectorAll('.tab-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
@@ -194,6 +233,47 @@
         });
         document.getElementById(btn.dataset.tab).classList.remove('hidden');
         btn.classList.remove('bg-gray-200'); btn.classList.add('bg-blue-500', 'text-white');
+      });
+    });
+
+    // === 返却モード切り替え（個別/一括） ===
+    document.querySelectorAll('.return-tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.return-mode-content').forEach(c => c.classList.add('hidden'));
+        document.querySelectorAll('.return-tab-btn').forEach(b => {
+          b.classList.remove('bg-blue-500', 'text-white'); b.classList.add('bg-gray-200');
+        });
+        document.getElementById(`return${btn.dataset.returnMode.charAt(0).toUpperCase() + btn.dataset.returnMode.slice(1)}`).classList.remove('hidden');
+        btn.classList.remove('bg-gray-200'); btn.classList.add('bg-blue-500', 'text-white');
+        if (btn.dataset.returnMode === 'bulk') renderBulkReturnList();
+      });
+    });
+
+    // === 一括返却リスト描画 ===
+    function renderBulkReturnList() {
+      const items = getItems().filter(i => i.status === 'lend');
+      const container = document.getElementById('bulkReturnList');
+      
+      if (items.length === 0) {
+        container.innerHTML = '<p class="text-gray-400 text-center text-sm">貸出中の機器がありません</p>';
+        return;
+      }
+
+      container.innerHTML = items.map(i => `
+        <label class="flex items-center gap-3 p-2 hover:bg-gray-50 rounded cursor-pointer">
+          <input type="checkbox" name="bulkReturnId" value="${i.id}" class="rounded">
+          <span class="font-medium">${i.id}</span>
+          <span class="text-sm text-gray-500">[${i.category}]</span>
+          <span class="text-sm text-gray-600">— ${i.user || '不明'}</span>
+          <span class="text-xs text-gray-400 ml-auto">${i.place || '-'}</span>
+        </label>
+      `).join('');
+    }
+
+    // === 全選択/解除 ===
+    document.getElementById('selectAllReturn').addEventListener('change', e => {
+      document.querySelectorAll('input[name="bulkReturnId"]').forEach(cb => {
+        cb.checked = e.target.checked;
       });
     });
 
@@ -378,7 +458,7 @@
       e.target.reset();
     });
 
-    // === 返却処理 ===
+    // === 個別返却処理 ===
     document.getElementById('returnForm').addEventListener('submit', e => {
       e.preventDefault();
       const id = document.getElementById('returnId').value;
@@ -392,6 +472,34 @@
       saveItems(items);
       e.target.reset();
       showPopup(`${id} を返却しました`);
+    });
+
+    // === 一括返却処理 ===
+    document.getElementById('bulkReturnBtn').addEventListener('click', () => {
+      const selectedCheckboxes = document.querySelectorAll('input[name="bulkReturnId"]:checked');
+      if (selectedCheckboxes.length === 0) {
+        showPopup('返却する機器を選択してください', 'warning');
+        return;
+      }
+
+      const selectedIds = Array.from(selectedCheckboxes).map(cb => cb.value);
+      const battery = document.getElementById('bulkBattery').value;
+
+      if (!confirm(`${selectedIds.length} 台を一括返却してよろしいですか？\n電池残量：${
+        { full: '🔋 十分', medium: '🔌 中', low: '⚠️ 少ない' }[battery]
+      }`)) return;
+
+      const items = getItems().map(i => {
+        if (selectedIds.includes(i.id)) {
+          return { ...i, status: 'return', battery, time: new Date().toLocaleString('ja-JP') };
+        }
+        return i;
+      });
+
+      saveItems(items);
+      showPopup(`${selectedIds.length} 台を返却しました：${selectedIds.join(', ')}`);
+      renderBulkReturnList();
+      document.getElementById('selectAllReturn').checked = false;
     });
 
     // === CSV出力 ===
