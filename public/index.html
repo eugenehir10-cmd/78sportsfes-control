@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>備品貸出管理 - 確定版</title>
+  <title>備品貸出管理 - クラウド完全同期版</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -28,10 +28,12 @@
       <button data-tab="lend" class="tab-btn px-4 py-2 rounded-lg bg-blue-500 text-white">貸出</button>
       <button data-tab="return" class="tab-btn px-4 py-2 rounded-lg bg-gray-200">返却</button>
       <button data-tab="list" class="tab-btn px-4 py-2 rounded-lg bg-gray-200">一覧</button>
+      <button data-tab="history" class="tab-btn px-4 py-2 rounded-lg bg-gray-200">履歴</button>
       <button data-tab="settings" class="tab-btn px-4 py-2 rounded-lg bg-gray-200">設定</button>
     </nav>
   </header>
 
+  <!-- 貸出 -->
   <section id="lend" class="tab-content active">
     <h2 class="text-xl font-semibold mb-4">貸出登録</h2>
     <form id="lendForm" class="space-y-3 bg-white p-6 rounded-lg shadow">
@@ -48,8 +50,8 @@
         </select>
       </div>
       <div>
-        <label class="block mb-1">機器番号</label>
-        <select id="lendId" class="w-full border rounded px-3 py-2" required></select>
+        <label class="block mb-1">必要台数</label>
+        <input type="number" id="lendCount" min="1" class="w-full border rounded px-3 py-2" required>
       </div>
       <div>
         <label class="block mb-1">配置/行き先</label>
@@ -59,30 +61,83 @@
     </form>
   </section>
 
+  <!-- 返却 -->
   <section id="return" class="tab-content">
     <h2 class="text-xl font-semibold mb-4">返却登録</h2>
-    <form id="returnForm" class="space-y-3 bg-white p-6 rounded-lg shadow">
-      <div>
-        <label class="block mb-1">機器番号</label>
-        <select id="returnId" class="w-full border rounded px-3 py-2" required></select>
+    <div class="flex flex-wrap gap-2 mb-4">
+      <button data-return-mode="single" class="return-tab-btn px-4 py-2 rounded-lg bg-blue-500 text-white">個別返却</button>
+      <button data-return-mode="bulk" class="return-tab-btn px-4 py-2 rounded-lg bg-gray-200">一括返却</button>
+    </div>
+    <div id="returnSingle" class="return-mode-content">
+      <form id="returnForm" class="space-y-3 bg-white p-6 rounded-lg shadow">
+        <div>
+          <label class="block mb-1">機器番号</label>
+          <select id="returnId" class="w-full border rounded px-3 py-2" required></select>
+        </div>
+        <div>
+          <label class="block mb-1">電池残量</label>
+          <select id="returnBattery" class="w-full border rounded px-3 py-2" required>
+            <option value="full">🔋 十分</option>
+            <option value="medium">🔌 中</option>
+            <option value="low">⚠️ 少ない</option>
+          </select>
+        </div>
+        <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">返却実行</button>
+      </form>
+    </div>
+    <div id="returnBulk" class="return-mode-content hidden">
+      <div class="bg-white p-6 rounded-lg shadow space-y-4">
+        <label class="flex items-center gap-2 text-sm cursor-pointer">
+          <input type="checkbox" id="selectAllBulk" class="rounded"> 全選択
+        </label>
+        <div id="bulkReturnList" class="max-h-80 overflow-y-auto border rounded p-3 space-y-2">
+          <p class="text-gray-400 text-center text-sm">貸出中なし</p>
+        </div>
+        <div>
+          <label class="block mb-1">電池残量</label>
+          <select id="bulkBattery" class="w-full border rounded px-3 py-2">
+            <option value="full">🔋 十分</option>
+            <option value="medium">🔌 中</option>
+            <option value="low">⚠️ 少ない</option>
+          </select>
+        </div>
+        <button id="bulkReturnBtn" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">一括返却</button>
       </div>
-      <div>
-        <label class="block mb-1">電池残量</label>
-        <select id="returnBattery" class="w-full border rounded px-3 py-2" required>
-          <option value="full">🔋 十分</option>
-          <option value="medium">🔌 中</option>
-          <option value="low">⚠️ 少ない</option>
-        </select>
-      </div>
-      <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">返却実行</button>
-    </form>
+    </div>
   </section>
 
+  <!-- 一覧 -->
   <section id="list" class="tab-content">
-    <h2 class="text-xl font-semibold mb-4">一覧</h2>
+    <div class="flex flex-col sm:flex-row justify-between gap-2 mb-4">
+      <h2 class="text-xl font-semibold">一覧</h2>
+      <button id="exportCsv" class="bg-sky-100 text-sky-700 px-3 py-1 rounded hover:bg-sky-200">📥 CSV出力</button>
+    </div>
     <div id="categoryTables" class="space-y-4"></div>
   </section>
 
+  <!-- 履歴 -->
+  <section id="history" class="tab-content">
+    <div class="flex flex-col sm:flex-row justify-between gap-2 mb-4">
+      <h2 class="text-xl font-semibold">📋 操作履歴</h2>
+      <button id="exportHistoryCsv" class="bg-sky-100 text-sky-700 px-3 py-1 rounded hover:bg-sky-200 text-sm">📥 CSV出力</button>
+    </div>
+    <div class="bg-white rounded-lg shadow overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="p-2 text-left">日時</th>
+            <th class="p-2 text-left">操作</th>
+            <th class="p-2 text-left">機器番号</th>
+            <th class="p-2 text-left">利用者</th>
+            <th class="p-2 text-left">電池</th>
+          </tr>
+        </thead>
+        <tbody id="historyBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 設定 -->
   <section id="settings" class="tab-content">
     <h2 class="text-xl font-semibold mb-4">設定</h2>
     <div id="passwordArea">
@@ -91,10 +146,10 @@
     </div>
     <div id="settingsContent" class="hidden space-y-6">
       <div class="p-4 bg-green-50 rounded-lg border border-green-200">
-        <p class="text-green-700 font-medium">✅ クラウド保存中 - リロードしても消えません</p>
+        <p class="text-green-700 font-medium">✅ クラウド接続済み - リアルタイム同期中</p>
       </div>
       <div class="p-4 bg-white rounded-lg shadow">
-        <h3 class="font-medium mb-2">📦 品目種別追加</h3>
+        <h3 class="font-medium mb-2">📦 品目管理</h3>
         <div class="flex gap-2 mb-3">
           <input type="text" id="newCategory" placeholder="例: トランシーバー" class="border rounded px-3 py-2 flex-1">
           <button id="addCategory" class="bg-blue-500 text-white px-3 py-2 rounded">追加</button>
@@ -102,7 +157,7 @@
         <ul id="categoryList" class="space-y-1 text-sm"></ul>
       </div>
       <div class="p-4 bg-white rounded-lg shadow">
-        <h3 class="font-medium mb-2">👤 利用者追加</h3>
+        <h3 class="font-medium mb-2">👤 利用者管理</h3>
         <div class="flex gap-2 mb-3">
           <input type="text" id="newUser" placeholder="例: 田中" class="border rounded px-3 py-2 flex-1">
           <button id="addUser" class="bg-blue-500 text-white px-3 py-2 rounded">追加</button>
@@ -110,14 +165,14 @@
         <ul id="userList" class="space-y-1 text-sm"></ul>
       </div>
       <div class="p-4 bg-white rounded-lg shadow">
-        <h3 class="font-medium mb-2">📋 機器一括登録</h3>
+        <h3 class="font-medium mb-2">📋 一括登録</h3>
         <select id="bulkCategory" class="w-full border rounded px-3 py-2 mb-2">
           <option value="">種別選択</option>
         </select>
         <input type="text" id="bulkPrefix" placeholder="例: TR-" class="w-full border rounded px-3 py-2 mb-2">
         <div class="flex gap-2 mb-2">
-          <input type="number" id="bulkStart" placeholder="開始番号" class="border rounded px-3 py-2 flex-1">
-          <input type="number" id="bulkEnd" placeholder="終了番号" class="border rounded px-3 py-2 flex-1">
+          <input type="number" id="bulkStart" placeholder="開始" class="border rounded px-3 py-2 flex-1">
+          <input type="number" id="bulkEnd" placeholder="終了" class="border rounded px-3 py-2 flex-1">
         </div>
         <button id="bulkAdd" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">一括追加</button>
       </div>
@@ -126,7 +181,7 @@
 
   <script>
     // ==========================================
-    // Firebase設定
+    // 🔥 Firebase設定（直接書き込み済み）
     // ==========================================
     const FIREBASE_CONFIG = {
       apiKey: "AIzaSyAWVUxoXbvTraGUDozLztqcJx2f2fIHQntc",
@@ -138,13 +193,17 @@
     };
     const PASSWORD = 'admin123';
 
+    // グローバルデータ
     let db = null;
     let items = [];
+    let history = [];
     let categories = ['トランシーバー'];
     let users = [];
+    let unsubscribe = { items: null, history: null, meta: null };
 
+    // 画面表示
     function showPopup(msg, type='success') {
-      const col = { success:'bg-green-500', error:'bg-red-500', warning:'bg-amber-500' };
+      const col = { success:'bg-green-500', error:'bg-red-500', warning:'bg-amber-500', info:'bg-blue-500' };
       const el = Object.assign(document.createElement('div'), {
         className: `fixed top-4 left-1/2 -translate-x-1/2 ${col[type]} text-white px-6 py-3 rounded-lg shadow-lg z-50`,
         textContent: msg
@@ -153,72 +212,90 @@
       setTimeout(() => el.remove(), 3000);
     }
 
-    function setSync(online, text) {
-      document.getElementById('syncDot').className = `sync-dot ${online?'sync-online':'sync-offline'}`;
-      document.getElementById('syncText').textContent = text || (online?'✅ 保存中':'切断');
+    function setSyncStatus(online, text) {
+      document.getElementById('syncDot').className = `sync-dot ${online ? 'sync-online' : 'sync-offline'}`;
+      document.getElementById('syncText').textContent = text || (online ? 'オンライン' : 'オフライン');
     }
 
     // ==========================================
-    // データ初期化・読み込み
+    // 🔥 Firestore リアルタイム同期
     // ==========================================
     async function initFirebase() {
       try {
         const app = firebase.initializeApp(FIREBASE_CONFIG);
         db = firebase.firestore(app);
 
-        // 機器データ監視
-        db.collection('equipment').onSnapshot(snap => {
+        // 機器データ リアルタイム監視
+        unsubscribe.items = db.collection('equipment').onSnapshot(snap => {
           items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
           renderAll();
-          setSync(true, '✅ オンライン');
+          setSyncStatus(true, 'オンライン');
+        }, err => {
+          console.error(err);
+          setSyncStatus(false, '同期エラー');
         });
 
-        // 設定データ監視
-        db.collection('settings').doc('master').onSnapshot(snap => {
+        // 設定データ（種別・利用者）
+        unsubscribe.meta = db.collection('settings').doc('master').onSnapshot(snap => {
           if (snap.exists) {
             const d = snap.data();
             if (d.categories) categories = d.categories;
             if (d.users) users = d.users;
+            renderAll();
           }
-          renderAll();
         });
 
-        setSync(true, '✅ 接続完了');
+        // 履歴
+        unsubscribe.history = db.collection('history')
+          .orderBy('timestamp', 'desc').limit(200)
+          .onSnapshot(snap => {
+            history = snap.docs.map(d => d.data());
+            renderHistory();
+          });
+
+        setSyncStatus(true, '接続完了');
+        showPopup('✅ クラウド同期開始');
       } catch (e) {
-        showPopup('接続エラー: ' + e.message, 'error');
-        setSync(false, '接続失敗');
+        showPopup('❌ 接続失敗: ' + e.message, 'error');
+        setSyncStatus(false, '接続エラー');
       }
     }
 
     // ==========================================
-    // データ保存処理
+    // データ操作
     // ==========================================
-    async function saveSettings() {
-      await db.collection('settings').doc('master').set({ categories, users }, { merge: true });
-    }
-
     async function addEquipment(category, id) {
       await db.collection('equipment').doc(id).set({
         category, status: 'ok', user: '', place: '', battery: 'full', createdAt: new Date()
       });
     }
 
-    async function lendItem(id, user, place) {
-      const ref = db.collection('equipment').doc(id);
-      const data = (await ref.get()).data();
-      await ref.update({ status: 'lend', user, place });
-      await db.collection('history').add({
-        type: 'lend', id, category: data.category, user, place, time: new Date().toLocaleString('ja-JP')
-      });
+    async function lendItem(ids, category, user, place) {
+      const batch = db.batch();
+      const now = new Date().toLocaleString('ja-JP');
+      for (const id of ids) {
+        batch.update(db.collection('equipment').doc(id), {
+          status: 'lend', user, place, lendTime: now
+        });
+        batch.create(db.collection('history').doc(), {
+          type: 'lend', id, category, user, place, timestamp: new Date(), time: now
+        });
+      }
+      await batch.commit();
     }
 
     async function returnItem(id, battery) {
       const ref = db.collection('equipment').doc(id);
       const data = (await ref.get()).data();
-      await ref.update({ status: 'ok', battery });
+      await ref.update({ status: 'ok', battery, returnTime: new Date().toLocaleString('ja-JP') });
       await db.collection('history').add({
-        type: 'return', id, category: data.category, user: data.user, battery, time: new Date().toLocaleString('ja-JP')
+        type: 'return', id, category: data.category, user: data.user, battery,
+        timestamp: new Date(), time: new Date().toLocaleString('ja-JP')
       });
+    }
+
+    async function saveSettings() {
+      await db.collection('settings').doc('master').set({ categories, users }, { merge: true });
     }
 
     // ==========================================
@@ -226,6 +303,7 @@
     // ==========================================
     function renderAll() {
       renderSelects();
+      renderReturnSelect();
       renderList();
       renderSettings();
     }
@@ -233,22 +311,33 @@
     function renderSelects() {
       const catOpt = '<option value="">選択してください</option>' + categories.map(c => `<option value="${c}">${c}</option>`).join('');
       const userOpt = '<option value="">選択してください</option>' + users.map(u => `<option value="${u}">${u}</option>`).join('');
-      document.getElementById('lendCategory').innerHTML = catOpt + categories.map(c => `<option value="${c}">${c}</option>`).join('');
-      document.getElementById('lendUser').innerHTML = userOpt;
+      document.getElementById('lendCategory').innerHTML = catOpt;
       document.getElementById('bulkCategory').innerHTML = catOpt;
-
-      // 貸出用：選択された種別の在庫のみ表示
-      const lendCat = document.getElementById('lendCategory').value;
-      const avail = lendCat ? items.filter(i => i.category === lendCat && i.status === 'ok') : [];
-      document.getElementById('lendId').innerHTML = '<option value="">選択してください</option>' + avail.map(i => `<option value="${i.id}">${i.id}</option>`).join('');
-
-      // 返却用：貸出中のみ表示
-      const lending = items.filter(i => i.status === 'lend');
-      document.getElementById('returnId').innerHTML = '<option value="">選択してください</option>' + lending.map(i => `<option value="${i.id}">${i.id} — ${i.user||''}</option>`).join('');
+      document.getElementById('lendUser').innerHTML = userOpt;
     }
 
-    // 種別が変更されたら在庫を再描画
-    document.getElementById('lendCategory').addEventListener('change', renderSelects);
+    function renderReturnSelect() {
+      const lending = items.filter(i => i.status === 'lend');
+      document.getElementById('returnId').innerHTML =
+        '<option value="">選択してください</option>' +
+        lending.map(i => `<option value="${i.id}">${i.id} [${i.category}] — ${i.user || ''}</option>`).join('');
+      renderBulkReturnList(lending);
+    }
+
+    function renderBulkReturnList(lending) {
+      const cont = document.getElementById('bulkReturnList');
+      if (!lending.length) {
+        cont.innerHTML = '<p class="text-gray-400 text-center">貸出中なし</p>';
+        return;
+      }
+      cont.innerHTML = lending.map(i => `
+        <label class="flex items-center gap-3 p-2 hover:bg-gray-50 rounded">
+          <input type="checkbox" name="retid" value="${i.id}" class="rounded">
+          <span class="font-medium">${i.id}</span>
+          <span class="text-sm text-gray-500">[${i.category}]</span>
+          <span class="text-sm">— ${i.user || '不明'}</span>
+        </label>`).join('');
+    }
 
     function renderList() {
       const bt = { full: '🔋 十分', medium: '🔌 中', low: '⚠️ 少ない' };
@@ -256,10 +345,9 @@
       cont.innerHTML = '';
       categories.forEach(cat => {
         const list = items.filter(i => i.category === cat);
-        const ok = list.filter(i => i.status === 'ok').length;
         cont.innerHTML += `
           <div class="bg-white rounded-lg shadow overflow-hidden mb-3">
-            <div class="p-3 bg-gray-50 font-medium">${cat} (貸出可:${ok} / 全${list.length})</div>
+            <div class="p-3 bg-gray-50 font-medium">${cat} (${list.filter(i=>i.status==='ok').length}/${list.length})</div>
             <table class="w-full text-sm">
               <thead class="bg-gray-50">
                 <tr>
@@ -285,13 +373,34 @@
       });
     }
 
+    function renderHistory() {
+      const bt = { full: '🔋 十分', medium: '🔌 中', low: '⚠️ 少ない' };
+      const op = { lend: '📤 貸出', return: '📥 返却' };
+      document.getElementById('historyBody').innerHTML = history.length ? history.map(r => `
+        <tr class="border-t">
+          <td class="p-2 text-xs">${r.time || '-'}</td>
+          <td class="p-2">${op[r.type] || r.type}</td>
+          <td class="p-2 font-medium">${r.id}</td>
+          <td class="p-2">${r.user || '-'}</td>
+          <td class="p-2">${bt[r.battery] || '-'}</td>
+        </tr>`).join('') : '<tr><td colspan="5" class="p-4 text-gray-400 text-center">履歴なし</td></tr>';
+    }
+
     function renderSettings() {
-      document.getElementById('categoryList').innerHTML = categories.map(c => `<li class="flex justify-between items-center border-b pb-1"><span>${c}</span></li>`).join('');
-      document.getElementById('userList').innerHTML = users.map(u => `<li class="flex justify-between items-center border-b pb-1"><span>${u}</span></li>`).join('');
+      document.getElementById('categoryList').innerHTML = categories.map(c => `
+        <li class="flex justify-between items-center border-b pb-1">
+          <span>${c}</span>
+          <button data-del-cat="${c}" class="text-red-500 text-xs">削除</button>
+        </li>`).join('');
+      document.getElementById('userList').innerHTML = users.map(u => `
+        <li class="flex justify-between items-center border-b pb-1">
+          <span>${u}</span>
+          <button data-del-user="${u}" class="text-red-500 text-xs">削除</button>
+        </li>`).join('');
     }
 
     // ==========================================
-    // タブ切り替え
+    // イベント
     // ==========================================
     document.querySelectorAll('.tab-btn').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -303,34 +412,63 @@
         document.getElementById(btn.dataset.tab).classList.add('active');
         btn.classList.remove('bg-gray-200');
         btn.classList.add('bg-blue-500', 'text-white');
-        renderSelects();
       });
     });
 
-    // ==========================================
-    // 各種操作
-    // ==========================================
+    document.querySelectorAll('.return-tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.return-mode-content').forEach(c => c.classList.add('hidden'));
+        document.querySelectorAll('.return-tab-btn').forEach(b => {
+          b.classList.remove('bg-blue-500', 'text-white');
+          b.classList.add('bg-gray-200');
+        });
+        const mode = btn.dataset.returnMode;
+        document.getElementById(`return${mode[0].toUpperCase()}${mode.slice(1)}`).classList.remove('hidden');
+        btn.classList.remove('bg-gray-200');
+        btn.classList.add('bg-blue-500', 'text-white');
+      });
+    });
+
     // 貸出
     document.getElementById('lendForm').addEventListener('submit', async e => {
       e.preventDefault();
-      const id = document.getElementById('lendId').value;
+      const cat = document.getElementById('lendCategory').value;
       const usr = document.getElementById('lendUser').value;
+      const cnt = parseInt(document.getElementById('lendCount').value);
       const plc = document.getElementById('lendPlace').value;
-      if (!id || !usr || !plc) return showPopup('未入力の項目があります', 'warning');
-      await lendItem(id, usr, plc);
-      showPopup(`✅ ${id} 貸出完了 — クラウドに保存済`);
+      if (!cat || !usr || !cnt || !plc) return;
+
+      const avail = items.filter(i => i.category === cat && i.status !== 'lend');
+      if (avail.length < cnt) return showPopup(`在庫不足: ${avail.length}台`, 'warning');
+
+      const targetIds = avail.slice(0, cnt).map(i => i.id);
+      await lendItem(targetIds, cat, usr, plc);
+      showPopup(`✅ ${targetIds.join(', ')} 貸出完了`);
       e.target.reset();
     });
 
-    // 返却
+    // 個別返却
     document.getElementById('returnForm').addEventListener('submit', async e => {
       e.preventDefault();
       const id = document.getElementById('returnId').value;
       const bat = document.getElementById('returnBattery').value;
       if (!id) return;
       await returnItem(id, bat);
-      showPopup(`✅ ${id} 返却完了 — クラウドに保存済`);
+      showPopup(`✅ ${id} 返却完了`);
       e.target.reset();
+    });
+
+    // 一括返却
+    document.getElementById('selectAllBulk').addEventListener('change', e => {
+      document.querySelectorAll('input[name="retid"]').forEach(cb => cb.checked = e.target.checked);
+    });
+    document.getElementById('bulkReturnBtn').addEventListener('click', async () => {
+      const ids = Array.from(document.querySelectorAll('input[name="retid"]:checked')).map(cb => cb.value);
+      if (!ids.length) return showPopup('選択してください', 'warning');
+      const bat = document.getElementById('bulkBattery').value;
+      if (!confirm(`${ids.length}台 一括返却しますか？`)) return;
+      for (const id of ids) await returnItem(id, bat);
+      showPopup(`✅ ${ids.length}台 返却完了`);
     });
 
     // 認証
@@ -348,14 +486,14 @@
       const v = document.getElementById('newCategory').value.trim();
       if (!v || categories.includes(v)) return showPopup('無効または既存です', 'warning');
       categories.push(v); await saveSettings();
-      showPopup('✅ 種別追加 — 保存済');
+      showPopup('追加しました');
       document.getElementById('newCategory').value = '';
     });
     document.getElementById('addUser').addEventListener('click', async () => {
       const v = document.getElementById('newUser').value.trim();
       if (!v || users.includes(v)) return showPopup('無効または既存です', 'warning');
       users.push(v); await saveSettings();
-      showPopup('✅ 利用者追加 — 保存済');
+      showPopup('追加しました');
       document.getElementById('newUser').value = '';
     });
     document.getElementById('bulkAdd').addEventListener('click', async () => {
@@ -372,7 +510,45 @@
           added++;
         }
       }
-      showPopup(`✅ ${added}台 追加 — クラウドに保存済`);
+      showPopup(`${added}台 追加しました`);
+    });
+
+    // 削除
+    document.getElementById('categoryList').addEventListener('click', async e => {
+      if (e.target.dataset.delCat && confirm(`削除: ${e.target.dataset.delCat}`)) {
+        categories = categories.filter(c => c !== e.target.dataset.delCat);
+        await saveSettings(); showPopup('削除しました');
+      }
+    });
+    document.getElementById('userList').addEventListener('click', async e => {
+      if (e.target.dataset.delUser && confirm(`削除: ${e.target.dataset.delUser}`)) {
+        users = users.filter(u => u !== e.target.dataset.delUser);
+        await saveSettings(); showPopup('削除しました');
+      }
+    });
+
+    // CSV出力
+    document.getElementById('exportCsv').addEventListener('click', () => {
+      const BOM = '\uFEFF';
+      const rows = [['番号', '種別', '状態', '利用者', '場所', '電池']];
+      const st = { ok: '貸出可', lend: '貸出中' };
+      const bt = { full: '十分', medium: '中', low: '少ない' };
+      items.forEach(i => rows.push([i.id, i.category, st[i.status], i.user || '', i.place || '', bt[i.battery] || '']));
+      const blob = new Blob([BOM + rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n')], { type: 'text/csv;charset=utf-8;' });
+      const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: `備品一覧_${new Date().toISOString().slice(0,10)}.csv` });
+      a.click(); URL.revokeObjectURL(a.href);
+      showPopup('CSV出力しました');
+    });
+    document.getElementById('exportHistoryCsv').addEventListener('click', () => {
+      const BOM = '\uFEFF';
+      const rows = [['日時', '操作', '機器番号', '利用者', '電池']];
+      const op = { lend: '貸出', return: '返却' };
+      const bt = { full: '十分', medium: '中', low: '少ない' };
+      history.forEach(r => rows.push([r.time || '', op[r.type] || r.type, r.id, r.user || '', bt[r.battery] || '']));
+      const blob = new Blob([BOM + rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n')], { type: 'text/csv;charset=utf-8;' });
+      const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: `履歴_${new Date().toISOString().slice(0,10)}.csv` });
+      a.click(); URL.revokeObjectURL(a.href);
+      showPopup('CSV出力しました');
     });
 
     // 起動
