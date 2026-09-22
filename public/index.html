@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>備品貸出管理 - 最終版</title>
+  <title>備品貸出管理 - 一括操作版</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -13,6 +13,8 @@
     .sync-offline { background: #ef4444; }
     .tab-content { display: none; }
     .tab-content.active { display: block; }
+    .check-item { transition: background 0.2s; }
+    .check-item:hover { background: #f3f4f6; }
   </style>
 </head>
 <body class="bg-gray-50 text-gray-800 max-w-5xl mx-auto p-4 md:p-6">
@@ -25,16 +27,17 @@
       </span>
     </div>
     <nav class="flex flex-wrap justify-center gap-2 mb-6">
-      <button data-tab="lend" class="tab-btn px-4 py-2 rounded-lg bg-blue-500 text-white">貸出</button>
-      <button data-tab="return" class="tab-btn px-4 py-2 rounded-lg bg-gray-200">返却</button>
+      <button data-tab="lend" class="tab-btn px-4 py-2 rounded-lg bg-blue-500 text-white">一括貸出</button>
+      <button data-tab="return" class="tab-btn px-4 py-2 rounded-lg bg-gray-200">一括返却</button>
       <button data-tab="list" class="tab-btn px-4 py-2 rounded-lg bg-gray-200">一覧</button>
+      <button data-tab="history" class="tab-btn px-4 py-2 rounded-lg bg-gray-200">履歴</button>
       <button data-tab="settings" class="tab-btn px-4 py-2 rounded-lg bg-gray-200">設定</button>
     </nav>
   </header>
 
-  <!-- 貸出 -->
+  <!-- ===== 一括貸出 ===== -->
   <section id="lend" class="tab-content active">
-    <h2 class="text-xl font-semibold mb-4">貸出登録</h2>
+    <h2 class="text-xl font-semibold mb-4">📤 一括貸出</h2>
     <form id="lendForm" class="space-y-3 bg-white p-6 rounded-lg shadow">
       <div>
         <label class="block mb-1">品目種別</label>
@@ -49,57 +52,79 @@
         </select>
       </div>
       <div>
-        <label class="block mb-1">機器番号</label>
-        <select id="lendId" class="w-full border rounded px-3 py-2" required>
-          <option value="">先に種別を選択</option>
-        </select>
-      </div>
-      <div>
         <label class="block mb-1">配置/行き先</label>
         <input type="text" id="lendPlace" class="w-full border rounded px-3 py-2" required>
       </div>
-      <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">貸出実行</button>
+      <div>
+        <label class="block mb-1">貸出する機器を選択 <span id="lendCount" class="text-blue-600">(0台選択中)</span></label>
+        <div id="lendCheckList" class="border rounded p-3 max-h-64 overflow-y-auto bg-gray-50">
+          <p class="text-gray-400 text-sm">先に種別を選択してください</p>
+        </div>
+        <label class="mt-2 inline-flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" id="lendSelectAll" class="rounded">
+          全て選択
+        </label>
+      </div>
+      <button type="submit" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-medium">
+        ✅ 選択した機器を一括貸出
+      </button>
     </form>
   </section>
 
-  <!-- 返却 -->
+  <!-- ===== 一括返却 ===== -->
   <section id="return" class="tab-content">
-    <h2 class="text-xl font-semibold mb-4">返却登録</h2>
+    <h2 class="text-xl font-semibold mb-4">📥 一括返却</h2>
     <form id="returnForm" class="space-y-3 bg-white p-6 rounded-lg shadow">
       <div>
-        <label class="block mb-1">機器番号（貸出中のみ表示）</label>
-        <select id="returnId" class="w-full border rounded px-3 py-2" required>
-          <option value="">選択してください</option>
-        </select>
+        <label class="block mb-1">返却する機器を選択 <span id="returnCount" class="text-green-600">(0台選択中)</span></label>
+        <div id="returnCheckList" class="border rounded p-3 max-h-64 overflow-y-auto bg-gray-50">
+          <p class="text-gray-400 text-sm">貸出中の機器が表示されます</p>
+        </div>
+        <label class="mt-2 inline-flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" id="returnSelectAll" class="rounded">
+          全て選択
+        </label>
       </div>
       <div>
-        <label class="block mb-1">電池残量</label>
+        <label class="block mb-1">電池残量（一括設定）</label>
         <select id="returnBattery" class="w-full border rounded px-3 py-2" required>
           <option value="full">🔋 十分</option>
           <option value="medium">🔌 中</option>
           <option value="low">⚠️ 少ない</option>
         </select>
       </div>
-      <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">返却実行</button>
+      <button type="submit" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 font-medium">
+        ✅ 選択した機器を一括返却
+      </button>
     </form>
   </section>
 
-  <!-- 一覧 -->
+  <!-- ===== 在庫一覧 ===== -->
   <section id="list" class="tab-content">
-    <h2 class="text-xl font-semibold mb-4">在庫一覧</h2>
+    <h2 class="text-xl font-semibold mb-4">📋 在庫一覧</h2>
     <div id="categoryTables" class="space-y-4"></div>
   </section>
 
-  <!-- 設定 -->
+  <!-- ===== 履歴 ===== -->
+  <section id="history" class="tab-content">
+    <h2 class="text-xl font-semibold mb-4">📜 操作履歴</h2>
+    <div class="flex justify-between items-center mb-3">
+      <p class="text-sm text-gray-500">最新100件を表示</p>
+      <button id="clearHistory" class="text-red-500 text-sm hover:text-red-700">履歴をクリア</button>
+    </div>
+    <div id="historyList" class="space-y-2"></div>
+  </section>
+
+  <!-- ===== 設定 ===== -->
   <section id="settings" class="tab-content">
-    <h2 class="text-xl font-semibold mb-4">設定</h2>
+    <h2 class="text-xl font-semibold mb-4">⚙️ 設定</h2>
     <div id="passwordArea">
       <input type="password" id="passwordInput" placeholder="パスワード" class="border rounded px-3 py-2 mb-3 w-full">
       <button id="authBtn" class="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800">認証</button>
     </div>
     <div id="settingsContent" class="hidden space-y-6">
       <div class="p-4 bg-green-50 rounded-lg border border-green-200">
-        <p class="text-green-700 font-medium">✅ クラウド接続済 - データは永続保存されます</p>
+        <p class="text-green-700 font-medium">✅ クラウド接続済 — リロードしても消えません</p>
       </div>
       <div class="p-4 bg-white rounded-lg shadow">
         <h3 class="font-medium mb-2">📦 品目種別管理</h3>
@@ -134,7 +159,7 @@
 
   <script>
     // ==========================================
-    // Firebase 設定（正しいもの）
+    // Firebase 設定
     // ==========================================
     const FIREBASE_CONFIG = {
       apiKey: "AIzaSyAWVUxoXbvTraGUDozLztqcJx2f2fIHQntc",
@@ -148,12 +173,13 @@
 
     let db = null;
     let items = [];
+    let history = [];
     let categories = [];
     let users = [];
 
     // メッセージ表示
-    function showPopup(msg, type='success') {
-      const col = { success:'bg-green-500', error:'bg-red-500', warning:'bg-amber-500' };
+    function showPopup(msg, type = 'success') {
+      const col = { success: 'bg-green-500', error: 'bg-red-500', warning: 'bg-amber-500' };
       const el = Object.assign(document.createElement('div'), {
         className: `fixed top-4 left-1/2 -translate-x-1/2 ${col[type]} text-white px-6 py-3 rounded-lg shadow-lg z-50`,
         textContent: msg
@@ -169,14 +195,14 @@
     }
 
     // ==========================================
-    // Firebase 初期化・リアルタイム同期
+    // Firebase 初期化
     // ==========================================
     async function initFirebase() {
       try {
         const app = firebase.initializeApp(FIREBASE_CONFIG);
         db = firebase.firestore(app);
 
-        // 機器データ：変更があると自動更新
+        // 機器データ監視
         db.collection('equipment').onSnapshot(snap => {
           items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
           renderAll();
@@ -184,10 +210,16 @@
         }, err => {
           console.error('機器取得エラー:', err);
           showPopup('データ取得失敗: ' + err.message, 'error');
-          setSync(false, 'データエラー');
+          setSync(false, '権限エラー');
         });
 
-        // 設定データ（種別・利用者）
+        // 履歴データ監視（新しい順）
+        db.collection('history').orderBy('timestamp', 'desc').limit(100).onSnapshot(snap => {
+          history = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+          renderHistory();
+        }, err => console.error('履歴取得エラー:', err));
+
+        // 設定データ監視
         db.collection('settings').doc('master').onSnapshot(snap => {
           if (snap.exists) {
             const d = snap.data();
@@ -195,9 +227,7 @@
             users = d.users || [];
           }
           renderAll();
-        }, err => {
-          console.error('設定取得エラー:', err);
-        });
+        }, err => console.error('設定取得エラー:', err));
 
       } catch (e) {
         showPopup('Firebase接続失敗: ' + e.message, 'error');
@@ -206,7 +236,7 @@
     }
 
     // ==========================================
-    // データ操作：必ずFirebaseに書き込み
+    // データ操作
     // ==========================================
     async function saveSettings() {
       await db.collection('settings').doc('master').set(
@@ -217,40 +247,49 @@
 
     async function addEquipment(category, id) {
       await db.collection('equipment').doc(id).set({
-        category,
-        status: 'ok',
-        user: '',
-        place: '',
-        battery: 'full',
-        createdAt: new Date()
+        category, status: 'ok', user: '', place: '', battery: 'full',
+        createdAt: new Date().toLocaleString('ja-JP')
       });
-      showPopup(`✅ ${id} 登録完了`);
     }
 
-    async function lendItem(id, user, place) {
-      await db.collection('equipment').doc(id).update({
-        status: 'lend',
-        user,
-        place,
-        lendTime: new Date().toLocaleString('ja-JP')
+    async function lendItemsBatch(idList, user, place) {
+      const batch = db.batch();
+      const time = new Date().toLocaleString('ja-JP');
+      idList.forEach(id => {
+        const ref = db.collection('equipment').doc(id);
+        batch.update(ref, { status: 'lend', user, place, lendTime: time });
       });
-      showPopup(`✅ ${id} 貸出完了 — 保存済`);
+      await batch.commit();
+      // 履歴一括追加
+      await db.collection('history').add({
+        type: '一括貸出', count: idList.length, user, place, ids: idList,
+        timestamp: new Date(), time
+      });
+      showPopup(`✅ ${idList.length}台 一括貸出完了 — 保存済`);
     }
 
-    async function returnItem(id, battery) {
-      await db.collection('equipment').doc(id).update({
-        status: 'ok',
-        battery,
-        returnTime: new Date().toLocaleString('ja-JP')
+    async function returnItemsBatch(idList, battery) {
+      const batch = db.batch();
+      const time = new Date().toLocaleString('ja-JP');
+      idList.forEach(id => {
+        const ref = db.collection('equipment').doc(id);
+        batch.update(ref, { status: 'ok', battery, returnTime: time });
       });
-      showPopup(`✅ ${id} 返却完了 — 保存済`);
+      await batch.commit();
+      await db.collection('history').add({
+        type: '一括返却', count: idList.length, battery, ids: idList,
+        timestamp: new Date(), time
+      });
+      showPopup(`✅ ${idList.length}台 一括返却完了 — 保存済`);
     }
 
     // ==========================================
-    // 描画処理
+    // 描画
     // ==========================================
     function renderAll() {
       renderSelects();
+      renderLendCheckList();
+      renderReturnCheckList();
       renderList();
       renderSettings();
     }
@@ -264,40 +303,70 @@
       document.getElementById('lendCategory').innerHTML = catOpt;
       document.getElementById('bulkCategory').innerHTML = catOpt;
       document.getElementById('lendUser').innerHTML = userOpt;
-
-      // 返却用：貸出中の機器を表示
-      const lending = items.filter(i => i.status === 'lend');
-      document.getElementById('returnId').innerHTML =
-        '<option value="">選択してください</option>' +
-        lending.map(i => `<option value="${i.id}">${i.id} — ${i.user || ''}</option>`).join('');
     }
 
-    // 種別選択で在庫機器を更新
-    document.getElementById('lendCategory').addEventListener('change', e => {
-      const cat = e.target.value;
-      const avail = cat ? items.filter(i => i.category === cat && i.status === 'ok') : [];
-      document.getElementById('lendId').innerHTML =
-        '<option value="">選択してください</option>' +
-        avail.map(i => `<option value="${i.id}">${i.id}</option>`).join('');
-    });
+    // 貸出用チェックリスト描画
+    function renderLendCheckList() {
+      const cat = document.getElementById('lendCategory').value;
+      const container = document.getElementById('lendCheckList');
+      if (!cat) {
+        container.innerHTML = '<p class="text-gray-400 text-sm">上で種別を選択してください</p>';
+        return;
+      }
+      const avail = items.filter(i => i.category === cat && i.status === 'ok');
+      if (!avail.length) {
+        container.innerHTML = '<p class="text-gray-400 text-sm">貸出可能な機器がありません</p>';
+        return;
+      }
+      container.innerHTML = avail.map(i => `
+        <label class="check-item flex items-center gap-2 p-2 cursor-pointer">
+          <input type="checkbox" name="lendId" value="${i.id}" class="rounded">
+          ${i.id}
+        </label>`).join('');
+      updateLendCount();
+    }
 
+    // 返却用チェックリスト描画
+    function renderReturnCheckList() {
+      const container = document.getElementById('returnCheckList');
+      const lending = items.filter(i => i.status === 'lend');
+      if (!lending.length) {
+        container.innerHTML = '<p class="text-gray-400 text-sm">貸出中の機器はありません</p>';
+        return;
+      }
+      container.innerHTML = lending.map(i => `
+        <label class="check-item flex items-center gap-2 p-2 cursor-pointer">
+          <input type="checkbox" name="returnId" value="${i.id}" class="rounded">
+          ${i.id} — ${i.user || '利用者不明'}
+        </label>`).join('');
+      updateReturnCount();
+    }
+
+    // 選択台数カウント表示
+    function updateLendCount() {
+      const checked = document.querySelectorAll('input[name="lendId"]:checked').length;
+      document.getElementById('lendCount').textContent = `(${checked}台選択中)`;
+    }
+    function updateReturnCount() {
+      const checked = document.querySelectorAll('input[name="returnId"]:checked').length;
+      document.getElementById('returnCount').textContent = `(${checked}台選択中)`;
+    }
+
+    // 在庫一覧
     function renderList() {
       const bt = { full: '🔋 十分', medium: '🔌 中', low: '⚠️ 少ない' };
       const cont = document.getElementById('categoryTables');
       cont.innerHTML = '';
-
-      if (categories.length === 0) {
-        cont.innerHTML = '<p class="text-gray-400 text-center p-4">設定タブから品目種別を追加してください</p>';
+      if (!categories.length) {
+        cont.innerHTML = '<p class="text-gray-400 text-center p-4">設定タブから品目を追加してください</p>';
         return;
       }
-
       categories.forEach(cat => {
         const list = items.filter(i => i.category === cat);
-        const okCount = list.filter(i => i.status === 'ok').length;
-
+        const ok = list.filter(i => i.status === 'ok').length;
         cont.innerHTML += `
           <div class="bg-white rounded-lg shadow overflow-hidden mb-3">
-            <div class="p-3 bg-gray-50 font-medium">${cat} (貸出可: ${okCount} / 全${list.length})</div>
+            <div class="p-3 bg-gray-50 font-medium">${cat} (貸出可: ${ok} / 全${list.length})</div>
             <table class="w-full text-sm">
               <thead class="bg-gray-50">
                 <tr>
@@ -312,30 +381,47 @@
                 ${list.length ? list.map(i => `
                   <tr class="border-t">
                     <td class="p-2">${i.id}</td>
-                    <td class="p-2">
-                      <span class="px-2 py-0.5 rounded text-xs ${i.status === 'lend' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}">
-                        ${i.status === 'lend' ? '貸出中' : '貸出可'}
-                      </span>
-                    </td>
+                    <td class="p-2"><span class="px-2 py-0.5 rounded text-xs ${i.status==='lend'?'bg-red-100 text-red-700':'bg-green-100 text-green-700'}">${i.status==='lend'?'貸出中':'貸出可'}</span></td>
                     <td class="p-2">${i.user || '-'}</td>
                     <td class="p-2">${i.place || '-'}</td>
                     <td class="p-2">${bt[i.battery] || '-'}</td>
-                  </tr>
-                `).join('') : '<tr><td colspan="5" class="p-3 text-gray-400 text-center">機器が登録されていません</td></tr>'}
+                  </tr>`).join('') : '<tr><td colspan="5" class="p-3 text-gray-400 text-center">データなし</td></tr>'}
               </tbody>
             </table>
-          </div>
-        `;
+          </div>`;
       });
     }
 
+    // 履歴一覧
+    function renderHistory() {
+      const cont = document.getElementById('historyList');
+      if (!history.length) {
+        cont.innerHTML = '<p class="text-gray-400 text-center p-4">まだ操作履歴がありません</p>';
+        return;
+      }
+      const icon = { '一括貸出': '📤', '一括返却': '📥' };
+      cont.innerHTML = history.map(h => `
+        <div class="bg-white p-3 rounded shadow border-l-4 ${h.type.includes('貸出') ? 'border-blue-500' : 'border-green-500'}">
+          <div class="flex justify-between items-start">
+            <div>
+              <span class="font-medium">${icon[h.type] || '📝'} ${h.type}</span>
+              <span class="text-sm text-gray-500 ml-2">${h.time}</span>
+            </div>
+            <span class="text-sm font-bold ${h.type.includes('貸出') ? 'text-blue-600' : 'text-green-600'}">${h.count}台</span>
+          </div>
+          <div class="mt-1 text-sm text-gray-600">
+            ${h.user ? `利用者: ${h.user}` : ''} ${h.place ? ` / 行き先: ${h.place}` : ''}
+            ${h.battery ? ` / 電池: ${h.battery === 'full' ? '🔋十分' : h.battery === 'medium' ? '🔌中' : '⚠️少ない'}` : ''}
+          </div>
+          <div class="mt-1 text-xs text-gray-400 truncate">
+            ${h.ids ? `対象: ${h.ids.join(', ')}` : ''}
+          </div>
+        </div>`).join('');
+    }
+
     function renderSettings() {
-      document.getElementById('categoryList').innerHTML = categories.map(c =>
-        `<li class="border-b py-1">${c}</li>`
-      ).join('');
-      document.getElementById('userList').innerHTML = users.map(u =>
-        `<li class="border-b py-1">${u}</li>`
-      ).join('');
+      document.getElementById('categoryList').innerHTML = categories.map(c => `<li class="border-b py-1">${c}</li>`).join('');
+      document.getElementById('userList').innerHTML = users.map(u => `<li class="border-b py-1">${u}</li>`).join('');
     }
 
     // ==========================================
@@ -351,32 +437,53 @@
         document.getElementById(btn.dataset.tab).classList.add('active');
         btn.classList.remove('bg-gray-200');
         btn.classList.add('bg-blue-500', 'text-white');
-        renderSelects();
+        renderAll();
       });
     });
 
     // ==========================================
-    // 各種操作イベント
+    // イベント処理
     // ==========================================
-    // 貸出
-    document.getElementById('lendForm').addEventListener('submit', async e => {
-      e.preventDefault();
-      const id = document.getElementById('lendId').value;
-      const usr = document.getElementById('lendUser').value;
-      const plc = document.getElementById('lendPlace').value;
-      if (!id || !usr || !plc) return showPopup('未入力の項目があります', 'warning');
-      await lendItem(id, usr, plc);
-      e.target.reset();
+    // 貸出種別変更 → チェックリスト更新
+    document.getElementById('lendCategory').addEventListener('change', renderLendCheckList);
+    // チェックボックス変更 → 台数更新
+    document.addEventListener('change', e => {
+      if (e.target.name === 'lendId' || e.target.id === 'lendSelectAll') updateLendCount();
+      if (e.target.name === 'returnId' || e.target.id === 'returnSelectAll') updateReturnCount();
+    });
+    // 全選択：貸出
+    document.getElementById('lendSelectAll').addEventListener('change', e => {
+      document.querySelectorAll('input[name="lendId"]').forEach(cb => cb.checked = e.target.checked);
+      updateLendCount();
+    });
+    // 全選択：返却
+    document.getElementById('returnSelectAll').addEventListener('change', e => {
+      document.querySelectorAll('input[name="returnId"]').forEach(cb => cb.checked = e.target.checked);
+      updateReturnCount();
     });
 
-    // 返却
+    // 一括貸出実行
+    document.getElementById('lendForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const ids = Array.from(document.querySelectorAll('input[name="lendId"]:checked')).map(cb => cb.value);
+      const user = document.getElementById('lendUser').value;
+      const place = document.getElementById('lendPlace').value;
+      if (!ids.length) return showPopup('貸出する機器を選択してください', 'warning');
+      if (!user || !place) return showPopup('利用者と行き先を入力してください', 'warning');
+      await lendItemsBatch(ids, user, place);
+      e.target.reset();
+      renderLendCheckList();
+    });
+
+    // 一括返却実行
     document.getElementById('returnForm').addEventListener('submit', async e => {
       e.preventDefault();
-      const id = document.getElementById('returnId').value;
-      const bat = document.getElementById('returnBattery').value;
-      if (!id) return;
-      await returnItem(id, bat);
+      const ids = Array.from(document.querySelectorAll('input[name="returnId"]:checked')).map(cb => cb.value);
+      const battery = document.getElementById('returnBattery').value;
+      if (!ids.length) return showPopup('返却する機器を選択してください', 'warning');
+      await returnItemsBatch(ids, battery);
       e.target.reset();
+      renderReturnCheckList();
     });
 
     // 設定認証
@@ -393,10 +500,8 @@
     // 種別追加
     document.getElementById('addCategory').addEventListener('click', async () => {
       const v = document.getElementById('newCategory').value.trim();
-      if (!v) return showPopup('入力してください', 'warning');
-      if (categories.includes(v)) return showPopup('既に存在します', 'warning');
-      categories.push(v);
-      await saveSettings();
+      if (!v || categories.includes(v)) return showPopup('無効または既存です', 'warning');
+      categories.push(v); await saveSettings();
       showPopup(`✅ ${v} 追加`);
       document.getElementById('newCategory').value = '';
     });
@@ -404,10 +509,8 @@
     // 利用者追加
     document.getElementById('addUser').addEventListener('click', async () => {
       const v = document.getElementById('newUser').value.trim();
-      if (!v) return showPopup('入力してください', 'warning');
-      if (users.includes(v)) return showPopup('既に存在します', 'warning');
-      users.push(v);
-      await saveSettings();
+      if (!v || users.includes(v)) return showPopup('無効または既存です', 'warning');
+      users.push(v); await saveSettings();
       showPopup(`✅ ${v} 追加`);
       document.getElementById('newUser').value = '';
     });
@@ -418,21 +521,26 @@
       const pre = document.getElementById('bulkPrefix').value.trim();
       const s = parseInt(document.getElementById('bulkStart').value);
       const e = parseInt(document.getElementById('bulkEnd').value);
-
-      if (!cat || !pre || !s || !e || s > e) {
-        return showPopup('入力値が正しくありません', 'warning');
-      }
-
+      if (!cat || !pre || !s || !e || s > e) return showPopup('入力値が不正です', 'warning');
       let added = 0;
       for (let i = s; i <= e; i++) {
         const id = pre + String(i).padStart(3, '0');
-        const exists = items.some(x => x.id === id);
-        if (!exists) {
+        if (!items.some(x => x.id === id)) {
           await addEquipment(cat, id);
           added++;
         }
       }
       showPopup(`✅ ${added}台 登録完了`);
+    });
+
+    // 履歴クリア
+    document.getElementById('clearHistory').addEventListener('click', async () => {
+      if (!confirm('履歴を全て削除します。よろしいですか？')) return;
+      const snap = await db.collection('history').get();
+      const batch = db.batch();
+      snap.docs.forEach(d => batch.delete(d.ref));
+      await batch.commit();
+      showPopup('✅ 履歴を削除しました');
     });
 
     // 起動
