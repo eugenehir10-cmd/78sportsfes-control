@@ -1,466 +1,604 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>スポーツフェスタ・リンク｜体育祭進行管理＆集計アプリ</title>
-<style>
-:root{
-  --main: #2563eb; --ok: #10b981; --warn: #f59e0b; --danger: #ef4444; --dark: #1f2937; --light: #f3f4f6;
-  --shadow: 0 2px 8px rgba(0,0,0,.12);
-}
-*{box-sizing:border-box; margin:0; padding:0; font-family:system-ui, sans-serif;}
-body{background:#f8fafc; color:var(--dark); padding-bottom:80px;}
-
-/* 共通レイアウト */
-header{background:linear-gradient(135deg, var(--main), #3b82f6); color:#fff; padding:1rem; box-shadow:var(--shadow);}
-nav{position:fixed; bottom:0; left:0; right:0; background:#fff; display:flex; box-shadow:0 -2px 8px rgba(0,0,0,.1); z-index:99;}
-nav button{flex:1; border:none; background:none; padding:.75rem .5rem; color:#666; font-size:.85rem; cursor:pointer;}
-nav button.active{color:var(--main); border-top:3px solid var(--main); font-weight:bold;}
-main{max-width:960px; margin:0 auto; padding:1rem;}
-section{display:none;}
-section.active{display:block; animation:fadeIn .25s;}
-@keyframes fadeIn{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:none;}}
-
-/* カード・ボタン */
-.card{background:#fff; border-radius:10px; padding:1rem; margin-bottom:1rem; box-shadow:var(--shadow);}
-h2{font-size:1.1rem; margin-bottom:.75rem; border-left:4px solid var(--main); padding-left:.5rem;}
-.btn{border:none; border-radius:8px; padding:.6rem 1rem; font-weight:bold; cursor:pointer; transition:.2s;}
-.btn:hover{transform:translateY(-1px);}
-.btn.primary{background:var(--main); color:#fff;}
-.btn.success{background:var(--ok); color:#fff;}
-.btn.warning{background:var(--warn); color:#fff;}
-.btn.danger{background:var(--danger); color:#fff;}
-.btn.small{padding:.3rem .6rem; font-size:.85rem;}
-input,select,textarea{width:100%; padding:.6rem; margin:.3rem 0 .8rem; border:1px solid #ddd; border-radius:6px; font-size:1rem;}
-.grid{display:grid; gap:.75rem;}
-.flex{display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; justify-content:space-between;}
-
-/* 状態ラベル */
-.status{display:inline-block; padding:.25rem .6rem; border-radius:20px; font-size:.8rem; font-weight:bold; color:#fff;}
-.status.wait{background:#94a3b8;}
-.status.ready{background:var(--main);}
-.status.running{background:var(--ok);}
-.status.delay{background:var(--warn);}
-.status.done{background:#6b7280;}
-
-/* ランキング */
-.rank-1{background:linear-gradient(90deg, #fef3c7, #fffbeb); border-left:4px solid #f59e0b;}
-.rank-2{background:linear-gradient(90deg, #e5e7eb, #f9fafb); border-left:4px solid #9ca3af;}
-.rank-3{background:linear-gradient(90deg, #fed7c3, #fff7f0); border-left:4px solid #ea580c;}
-
-/* 通知 */
-.toast{position:fixed; top:1rem; right:1rem; background:var(--dark); color:#fff; padding:.8rem 1.2rem; border-radius:8px; box-shadow:var(--shadow); opacity:0; transform:translateY(-10px); transition:.3s; z-index:200;}
-.toast.show{opacity:1; transform:none;}
-
-.hidden{display:none !important;}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>備品貸出管理 - 台数指定版</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <style>
+    .sync-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+    .sync-online { background: #22c55e; }
+    .sync-offline { background: #ef4444; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .check-item { transition: background 0.2s; }
+    .check-item:hover { background: #f3f4f6; }
+  </style>
 </head>
-<body>
-
-<header>
-  <h1>🏆 スポーツフェスタ・リンク</h1>
-  <p id="roleDisplay" style="opacity:.9; font-size:.9rem;">役割：管理者</p>
-</header>
-
-<main>
-<!-- ========== ホーム ========== -->
-<section id="page-home" class="active">
-  <div class="card">
-    <h2>📢 現在の状況</h2>
-    <p id="nowRunning">進行中の種目：なし</p>
-    <p id="nextUp" style="margin-top:.3rem;">次の種目：-</p>
-  </div>
-  <div class="card">
-    <h2>🏅 暫定上位</h2>
-    <div id="topRanking"></div>
-  </div>
-  <div class="card">
-    <h2>🔐 役切替（デモ用）</h2>
-    <select id="roleSelect">
-      <option value="admin">管理者（全操作可）</option>
-      <option value="recorder">記録係（結果入力のみ）</option>
-      <option value="progress">進行係（スケジュール管理のみ）</option>
-      <option value="viewer">閲覧のみ</option>
-    </select>
-  </div>
-</section>
-
-<!-- ========== タイムテーブル ========== -->
-<section id="page-timetable">
-  <div class="flex" style="margin-bottom:.75rem;">
-    <h2>📅 タイムテーブル</h2>
-    <button class="btn primary small" id="addEventBtn">＋種目追加</button>
-  </div>
-  <div id="eventList"></div>
-</section>
-
-<!-- ========== 結果入力 ========== -->
-<section id="page-results">
-  <h2>✍️ 結果入力</h2>
-  <div class="card">
-    <label>種目を選択</label>
-    <select id="eventSelect"></select>
-    
-    <div id="resultInputArea" class="hidden">
-      <label>順位 / チーム</label>
-      <div id="rankInputs"></div>
-      <button class="btn success" id="submitResult">結果を確定</button>
+<body class="bg-gray-50 text-gray-800 max-w-5xl mx-auto p-4 md:p-6">
+  <header class="mb-8 mt-4">
+    <div class="flex justify-between items-center mb-2">
+      <h1 class="text-2xl font-bold">📻 備品貸出管理</h1>
+      <span class="text-sm text-gray-500 flex items-center gap-2">
+        <span id="syncDot" class="sync-dot sync-offline"></span>
+        <span id="syncText">接続中…</span>
+      </span>
     </div>
-  </div>
-  <div class="card" style="margin-top:1rem;">
-    <h3>📋 入力済み結果</h3>
-    <div id="enteredResults"></div>
-  </div>
-</section>
+    <nav class="flex flex-wrap justify-center gap-2 mb-6">
+      <button data-tab="lend" class="tab-btn px-4 py-2 rounded-lg bg-blue-500 text-white">台数指定貸出</button>
+      <button data-tab="return" class="tab-btn px-4 py-2 rounded-lg bg-gray-200">利用者別返却</button>
+      <button data-tab="list" class="tab-btn px-4 py-2 rounded-lg bg-gray-200">一覧</button>
+      <button data-tab="history" class="tab-btn px-4 py-2 rounded-lg bg-gray-200">履歴</button>
+      <button data-tab="settings" class="tab-btn px-4 py-2 rounded-lg bg-gray-200">設定</button>
+    </nav>
+  </header>
 
-<!-- ========== ランキング ========== -->
-<section id="page-ranking">
-  <h2>🏆 総合ランキング</h2>
-  <div style="margin-bottom:.75rem;">
-    <button class="btn small" data-view="all">全部門</button>
-    <button class="btn small" data-view="male">男子</button>
-    <button class="btn small" data-view="female">女子</button>
-  </div>
-  <div id="rankingBody"></div>
-</section>
-
-<!-- ========== 設定 ========== -->
-<section id="page-settings">
-  <h2>⚙️ 各種設定</h2>
-  <div class="card">
-    <h3>クラス/チーム編集</h3>
-    <textarea id="teamListArea" rows="6" placeholder="1年1組&#10;1年2組&#10;1年3組..."></textarea>
-    <button class="btn primary small" id="saveTeams">チーム保存</button>
-  </div>
-  <div class="card">
-    <h3>配点ルール</h3>
-    <p style="font-size:.85rem; color:#666; margin-bottom:.5rem;">1位から順にカンマ区切りで記入</p>
-    <input type="text" id="pointRule" value="10,8,7,6,5,4,3,2,1">
-    <button class="btn primary small" id="saveRule">ルール保存</button>
-  </div>
-  <div class="card">
-    <h3>データ管理</h3>
-    <button class="btn warning small" id="exportData">📤 エクスポート</button>
-    <button class="btn danger small" id="clearAll">🗑️ 全データ消去</button>
-  </div>
-</section>
-</main>
-
-<nav>
-  <button data-page="home" class="active">ホーム</button>
-  <button data-page="timetable">進行表</button>
-  <button data-page="results">結果</button>
-  <button data-page="ranking">順位</button>
-  <button data-page="settings">設定</button>
-</nav>
-
-<div id="toast" class="toast"></div>
-
-<script>
-// ===== データストレージ =====
-const STORAGE_KEY = 'sports_festa_data';
-let data = {
-  teams: ['赤組','白組','青組','黄組'],
-  pointRule: [10,8,7,6,5,4,3,2,1],
-  events: [
-    {id:1, name:'開会式', time:'09:00', place:'グラウンド', status:'done', delay:0, category:'general'},
-    {id:2, name:'100m走 予選', time:'09:20', place:'トラック', status:'running', delay:0, category:'male'},
-    {id:3, name:'玉入れ', time:'10:00', place:'グラウンド', status:'wait', delay:0, category:'general'},
-    {id:4, name:'綱引き 決勝', time:'10:30', place:'グラウンド', status:'wait', delay:0, category:'general'},
-  ],
-  results: {}, // eventId: {rank:team, ...}
-  role: 'admin'
-};
-
-// 保存・読込
-function saveData(){
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-}
-function loadData(){
-  const saved = localStorage.getItem(STORAGE_KEY);
-  if(saved) data = {...data, ...JSON.parse(saved)};
-}
-function showToast(msg){
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'), 2500);
-}
-
-// ===== 役割権限制御 =====
-function applyRole(){
-  const r = data.role;
-  document.getElementById('roleDisplay').textContent = 
-    '役割：'+{admin:'管理者', recorder:'記録係', progress:'進行係', viewer:'閲覧のみ'}[r];
-  
-  const canEditAll = r === 'admin';
-  const canInputResult = r === 'admin' || r === 'recorder';
-  const canManageTime = r === 'admin' || r === 'progress';
-
-  document.getElementById('addEventBtn').classList.toggle('hidden', !canManageTime);
-  document.getElementById('page-results').classList.toggle('hidden', !canInputResult && r!=='admin');
-  document.getElementById('page-settings').classList.toggle('hidden', !canEditAll);
-}
-
-// ===== ナビゲーション =====
-document.querySelectorAll('nav button').forEach(btn=>{
-  btn.addEventListener('click', ()=>{
-    document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
-    const pid = btn.dataset.page;
-    document.querySelectorAll('main section').forEach(s=>s.classList.remove('active'));
-    document.getElementById(`page-${pid}`).classList.add('active');
-    if(pid==='timetable') renderTimetable();
-    if(pid==='results') renderResultPage();
-    if(pid==='ranking') renderRanking();
-    if(pid==='home') updateHome();
-  });
-});
-
-// ===== タイムテーブル処理 =====
-function calcActualTime(event){
-  let base = event.time;
-  let totalDelay = 0;
-  // 前のイベントの遅延を累積
-  const sorted = [...data.events].sort((a,b)=>a.time.localeCompare(b.time));
-  for(let e of sorted){
-    if(e.id === event.id) break;
-    totalDelay += e.delay || 0;
-  }
-  const [h,m] = base.split(':').map(Number);
-  const add = (event.delay||0) + totalDelay;
-  const totalMin = h*60 + m + add;
-  const nh = Math.floor(totalMin/60);
-  const nm = totalMin % 60;
-  return `${String(nh).padStart(2,'0')}:${String(nm).padStart(2,'0')}`;
-}
-
-function renderTimetable(){
-  const list = document.getElementById('eventList');
-  list.innerHTML = '';
-  data.events.sort((a,b)=>a.time.localeCompare(b.time)).forEach(ev=>{
-    const actual = calcActualTime(ev);
-    const delayInfo = ev.delay>0 ? `<span style="color:var(--danger); font-size:.85rem;">+${ev.delay}分</span>` : '';
-    const statusClass = {wait:'wait', ready:'ready', running:'running', delay:'delay', done:'done'}[ev.status] || 'wait';
-    const statusText = {wait:'未開始', ready:'準備中', running:'進行中', delay:'遅延', done:'終了'}[ev.status];
-    
-    list.innerHTML += `
-    <div class="card">
-      <div class="flex">
-        <strong>${ev.name}</strong>
-        <span class="status ${statusClass}">${statusText}</span>
-      </div>
-      <p style="margin:.4rem 0;">予定: ${ev.time} → 実際: ${actual} ${delayInfo}<br>
-      📍 ${ev.place} | 部門: ${({general:'共通',male:'男子',female:'女子'})[ev.category]}</p>
-      ${data.role!=='viewer'?`
-      <div class="flex" style="margin-top:.5rem;">
-        <select class="eventStatus" data-id="${ev.id}">
-          ${['wait','ready','running','delay','done'].map(s=>`<option value="${s}" ${ev.status===s?'selected':''}>${{wait:'未開始',ready:'準備中',running:'進行中',delay:'遅延',done:'終了'}[s]}</option>`).join('')}
+  <!-- ===== 台数指定貸出 ===== -->
+  <section id="lend" class="tab-content active">
+    <h2 class="text-xl font-semibold mb-4">📤 台数指定貸出</h2>
+    <form id="lendForm" class="space-y-3 bg-white p-6 rounded-lg shadow">
+      <div>
+        <label class="block mb-1">品目種別</label>
+        <select id="lendCategory" class="w-full border rounded px-3 py-2" required>
+          <option value="">選択してください</option>
         </select>
-        <input type="number" class="delayInput" data-id="${ev.id}" value="${ev.delay||0}" style="width:70px;" placeholder="遅延分">
-        <button class="btn small primary jump-result" data-id="${ev.id}">結果入力</button>
-      </div>`:''}
-    </div>`;
-  });
-
-  // 状態変更イベント
-  document.querySelectorAll('.eventStatus').forEach(s=>{
-    s.addEventListener('change', e=>{
-      const ev = data.events.find(x=>x.id===Number(e.target.dataset.id));
-      if(ev){ ev.status = e.target.value; saveData(); renderTimetable(); updateHome(); }
-    });
-  });
-  document.querySelectorAll('.delayInput').forEach(i=>{
-    i.addEventListener('change', e=>{
-      const ev = data.events.find(x=>x.id===Number(e.target.dataset.id));
-      if(ev){ ev.delay = Number(e.target.value)||0; saveData(); renderTimetable(); }
-    });
-  });
-  document.querySelectorAll('.jump-result').forEach(b=>{
-    b.addEventListener('click', e=>{
-      const id = e.target.dataset.id;
-      document.querySelector('[data-page="results"]').click();
-      setTimeout(()=>document.getElementById('eventSelect').value=id, 50);
-    });
-  });
-}
-
-// ===== 結果入力処理 =====
-function renderResultPage(){
-  const sel = document.getElementById('eventSelect');
-  sel.innerHTML = '<option value="">種目を選択してください</option>';
-  data.events.forEach(ev=>{
-    sel.innerHTML += `<option value="${ev.id}">${ev.name} (${ev.time})</option>`;
-  });
-  updateResultInputForm();
-  renderEnteredResults();
-}
-
-document.getElementById('eventSelect').addEventListener('change', updateResultInputForm);
-
-function updateResultInputForm(){
-  const aid = Number(document.getElementById('eventSelect').value);
-  const area = document.getElementById('resultInputArea');
-  if(!aid){ area.classList.add('hidden'); return; }
-  area.classList.remove('hidden');
-  
-  const form = document.getElementById('rankInputs');
-  form.innerHTML = '';
-  data.teams.forEach((team, idx)=>{
-    form.innerHTML += `
-    <div style="margin:.4rem 0; display:flex; align-items:center; gap:.5rem;">
-      <span style="width:80px;">${idx+1}位</span>
-      <select class="rank-team" data-rank="${idx+1}" style="flex:1;">
-        <option value="">-- 選択 --</option>
-        ${data.teams.map(t=>`<option value="${t}">${t}</option>`).join('')}
-      </select>
-    </div>`;
-  });
-
-  // 既存入力があれば復元
-  if(data.results[aid]){
-    Object.entries(data.results[aid]).forEach(([rank, team])=>{
-      const sel = form.querySelector(`[data-rank="${rank}"]`);
-      if(sel) sel.value = team;
-    });
-  }
-}
-
-document.getElementById('submitResult').addEventListener('click', ()=>{
-  const aid = Number(document.getElementById('eventSelect').value);
-  if(!aid) return showToast('種目を選択してください');
-  
-  const res = {};
-  document.querySelectorAll('.rank-team').forEach(s=>{
-    if(s.value) res[s.dataset.rank] = s.value;
-  });
-  data.results[aid] = res;
-
-  // 自動でステータスを終了に
-  const ev = data.events.find(x=>x.id===aid);
-  if(ev) ev.status = 'done';
-
-  saveData();
-  showToast('✅ 結果を反映しました！');
-  renderResultPage();
-  updateHome();
-});
-
-function renderEnteredResults(){
-  const cont = document.getElementById('enteredResults');
-  cont.innerHTML = '';
-  Object.entries(data.results).forEach(([eid, res])=>{
-    const ev = data.events.find(x=>x.id===Number(eid));
-    if(!ev) return;
-    cont.innerHTML += `<p style="margin:.4rem 0;"><strong>${ev.name}</strong>: ${
-      Object.entries(res).sort((a,b)=>Number(a[0])-Number(b[0]))
-        .map(([r,t])=>`${r}位 ${t}`).join(' / ')
-    }</p>`;
-  });
-  if(!cont.innerHTML) cont.innerHTML = '<p style="color:#999;">まだ結果は入力されていません</p>';
-}
-
-// ===== ランキング計算 =====
-function calcPoints(filterCategory=null){
-  const scores = {};
-  data.teams.forEach(t=>scores[t]=0);
-  
-  data.events.forEach(ev=>{
-    if(filterCategory && ev.category!==filterCategory) return;
-    const res = data.results[ev.id];
-    if(!res) return;
-    Object.entries(res).forEach(([rank, team])=>{
-      const r = Number(rank)-1;
-      if(r < data.pointRule.length) scores[team] += data.pointRule[r];
-    });
-  });
-  return Object.entries(scores).sort((a,b)=>b[1]-a[1]);
-}
-
-function renderRanking(view='all'){
-  const cat = view==='all' ? null : view;
-  const ranking = calcPoints(cat);
-  const cont = document.getElementById('rankingBody');
-  cont.innerHTML = '';
-  ranking.forEach(([team, pts], idx)=>{
-    const cls = idx===0?'rank-1':idx===1?'rank-2':idx===2?'rank-3':'';
-    cont.innerHTML += `
-    <div class="card ${cls}">
-      <div class="flex">
-        <strong style="font-size:1.2rem;">${idx+1}位 ${team}</strong>
-        <span style="font-size:1.3rem; font-weight:bold;">${pts} 点</span>
       </div>
-    </div>`;
-  });
-}
+      <div>
+        <label class="block mb-1">利用者名</label>
+        <select id="lendUser" class="w-full border rounded px-3 py-2" required>
+          <option value="">選択してください</option>
+        </select>
+      </div>
+      <div>
+        <label class="block mb-1">貸出台数</label>
+        <input type="number" id="lendCount" min="1" class="w-full border rounded px-3 py-2" required>
+        <p id="availableInfo" class="text-sm text-gray-500 mt-1">貸出可能台数: -</p>
+      </div>
+      <div>
+        <label class="block mb-1">配置/行き先</label>
+        <input type="text" id="lendPlace" class="w-full border rounded px-3 py-2" required>
+      </div>
+      <div>
+        <label class="block mb-1">備考（任意）</label>
+        <textarea id="lendNote" rows="2" class="w-full border rounded px-3 py-2" placeholder="特記事項があれば記入"></textarea>
+      </div>
+      <div id="assignPreview" class="bg-blue-50 p-3 rounded hidden">
+        <p class="text-sm font-medium text-blue-700 mb-1">自動割当される機器:</p>
+        <p id="assignList" class="text-sm"></p>
+      </div>
+      <button type="submit" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-medium">
+        ✅ 一括貸出実行
+      </button>
+    </form>
+  </section>
 
-document.querySelectorAll('[data-view]').forEach(btn=>{
-  btn.addEventListener('click', ()=>renderRanking(btn.dataset.view));
-});
+  <!-- ===== 利用者別返却 ===== -->
+  <section id="return" class="tab-content">
+    <h2 class="text-xl font-semibold mb-4">📥 利用者別返却</h2>
+    <form id="returnForm" class="space-y-3 bg-white p-6 rounded-lg shadow">
+      <div>
+        <label class="block mb-1">利用者で絞り込み</label>
+        <select id="returnUserFilter" class="w-full border rounded px-3 py-2">
+          <option value="">全て表示</option>
+        </select>
+      </div>
+      <div>
+        <label class="block mb-1">返却する機器を選択 <span id="returnCount" class="text-green-600">(0台選択中)</span></label>
+        <div id="returnCheckList" class="border rounded p-3 max-h-64 overflow-y-auto bg-gray-50">
+          <p class="text-gray-400 text-sm">貸出中の機器が表示されます</p>
+        </div>
+        <label class="mt-2 inline-flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" id="returnSelectAll" class="rounded">
+          表示中のものを全て選択
+        </label>
+      </div>
+      <div>
+        <label class="block mb-1">電池残量（一括設定）</label>
+        <select id="returnBattery" class="w-full border rounded px-3 py-2" required>
+          <option value="full">🔋 十分</option>
+          <option value="medium">🔌 中</option>
+          <option value="low">⚠️ 少ない</option>
+        </select>
+      </div>
+      <div>
+        <label class="block mb-1">備考（任意）</label>
+        <textarea id="returnNote" rows="2" class="w-full border rounded px-3 py-2" placeholder="特記事項があれば記入"></textarea>
+      </div>
+      <button type="submit" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 font-medium">
+        ✅ 選択した機器を返却
+      </button>
+    </form>
+  </section>
 
-// ===== ホーム画面 =====
-function updateHome(){
-  const running = data.events.find(e=>e.status==='running'||e.status==='delay');
-  document.getElementById('nowRunning').textContent = 
-    '進行中：'+(running ? running.name : 'なし');
-  
-  const next = data.events.find(e=>['wait','ready'].includes(e.status));
-  document.getElementById('nextUp').textContent = 
-    '次：'+(next ? `${next.name} ${calcActualTime(next)}` : '予定なし');
+  <!-- ===== 在庫一覧 ===== -->
+  <section id="list" class="tab-content">
+    <h2 class="text-xl font-semibold mb-4">📋 在庫一覧</h2>
+    <div id="categoryTables" class="space-y-4"></div>
+  </section>
 
-  // トップ3
-  const top3 = calcPoints().slice(0,3);
-  document.getElementById('topRanking').innerHTML = top3.map(([t,p],i)=>
-    `<p style="padding:.3rem 0; border-bottom:1px solid #eee;">${i+1}位 ${t}：${p}点</p>`
-  ).join('') || '<p>集計中...</p>';
-}
+  <!-- ===== 履歴 ===== -->
+  <section id="history" class="tab-content">
+    <h2 class="text-xl font-semibold mb-4">📜 操作履歴</h2>
+    <div class="flex justify-between items-center mb-3">
+      <p class="text-sm text-gray-500">最新100件を表示</p>
+      <button id="clearHistory" class="text-red-500 text-sm hover:text-red-700">履歴をクリア</button>
+    </div>
+    <div id="historyList" class="space-y-2"></div>
+  </section>
 
-// ===== 設定画面 =====
-document.getElementById('roleSelect').addEventListener('change', e=>{
-  data.role = e.target.value;
-  saveData(); applyRole();
-});
-document.getElementById('saveTeams').addEventListener('click', ()=>{
-  const list = document.getElementById('teamListArea').value.split('\n').map(s=>s.trim()).filter(Boolean);
-  if(list.length<2) return alert('2チーム以上必要です');
-  data.teams = list; saveData(); showToast('チーム一覧を更新しました');
-});
-document.getElementById('saveRule').addEventListener('click', ()=>{
-  const rule = document.getElementById('pointRule').value.split(',').map(Number);
-  data.pointRule = rule; saveData(); showToast('配点ルールを保存しました');
-});
-document.getElementById('exportData').addEventListener('click', ()=>{
-  const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
-  const a = document.createElement('a');
-  a.href=URL.createObjectURL(blob); a.download='sports-festa-data.json'; a.click();
-});
-document.getElementById('clearAll').addEventListener('click', ()=>{
-  if(confirm('全データを消去します。よろしいですか？')){
-    localStorage.removeItem(STORAGE_KEY); location.reload();
-  }
-});
-document.getElementById('addEventBtn').addEventListener('click', ()=>{
-  const name = prompt('種目名を入力');
-  if(!name) return;
-  const time = prompt('開始予定時刻（例：10:30）');
-  const place = prompt('場所');
-  data.events.push({
-    id: Date.now(),
-    name, time, place,
-    status: 'wait', delay:0, category:'general'
-  });
-  saveData(); renderTimetable(); showToast('種目を追加しました');
-});
+  <!-- ===== 設定 ===== -->
+  <section id="settings" class="tab-content">
+    <h2 class="text-xl font-semibold mb-4">⚙️ 設定</h2>
+    <div id="passwordArea">
+      <input type="password" id="passwordInput" placeholder="パスワード" class="border rounded px-3 py-2 mb-3 w-full">
+      <button id="authBtn" class="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800">認証</button>
+    </div>
+    <div id="settingsContent" class="hidden space-y-6">
+      <div class="p-4 bg-green-50 rounded-lg border border-green-200">
+        <p class="text-green-700 font-medium">✅ クラウド接続済 — データは永続保存</p>
+      </div>
+      <div class="p-4 bg-white rounded-lg shadow">
+        <h3 class="font-medium mb-2">📦 品目種別管理</h3>
+        <div class="flex gap-2 mb-3">
+          <input type="text" id="newCategory" placeholder="例: トランシーバー" class="border rounded px-3 py-2 flex-1">
+          <button id="addCategory" class="bg-blue-500 text-white px-3 py-2 rounded">追加</button>
+        </div>
+        <ul id="categoryList" class="space-y-1 text-sm"></ul>
+      </div>
+      <div class="p-4 bg-white rounded-lg shadow">
+        <h3 class="font-medium mb-2">👤 利用者管理</h3>
+        <div class="flex gap-2 mb-3">
+          <input type="text" id="newUser" placeholder="例: 田中" class="border rounded px-3 py-2 flex-1">
+          <button id="addUser" class="bg-blue-500 text-white px-3 py-2 rounded">追加</button>
+        </div>
+        <ul id="userList" class="space-y-1 text-sm"></ul>
+      </div>
+      <div class="p-4 bg-white rounded-lg shadow">
+        <h3 class="font-medium mb-2">📋 機器一括登録（初期設定用）</h3>
+        <select id="bulkCategory" class="w-full border rounded px-3 py-2 mb-2">
+          <option value="">種別を選択</option>
+        </select>
+        <input type="text" id="bulkPrefix" placeholder="例: TR-" class="w-full border rounded px-3 py-2 mb-2">
+        <div class="flex gap-2 mb-2">
+          <input type="number" id="bulkStart" placeholder="開始番号" class="border rounded px-3 py-2 flex-1">
+          <input type="number" id="bulkEnd" placeholder="終了番号" class="border rounded px-3 py-2 flex-1">
+        </div>
+        <button id="bulkAdd" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">一括追加</button>
+      </div>
+    </div>
+  </section>
 
-// ===== 初期化 =====
-window.addEventListener('DOMContentLoaded', ()=>{
-  loadData();
-  document.getElementById('roleSelect').value = data.role;
-  document.getElementById('teamListArea').value = data.teams.join('\n');
-  document.getElementById('pointRule').value = data.pointRule.join(',');
-  applyRole();
-  updateHome();
-});
-</script>
+  <script>
+    // ==========================================
+    // Firebase 設定
+    // ==========================================
+    const FIREBASE_CONFIG = {
+      apiKey: "AIzaSyAWVUxoXbvTraGUDozLztqcJx2f2fIHQntc",
+      authDomain: "thsportsfes.firebaseapp.com",
+      projectId: "thsportsfes",
+      storageBucket: "thsportsfes.appspot.com",
+      messagingSenderId: "96596815858",
+      appId: "1:96596815858:web:5f85526bf785ccc5d8056b"
+    };
+    const PASSWORD = 'admin123';
+
+    let db = null;
+    let items = [];
+    let history = [];
+    let categories = [];
+    let users = [];
+
+    // ユーティリティ：タイムスタンプ
+    function nowTime() {
+      return new Date().toLocaleString('ja-JP', {
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit'
+      });
+    }
+
+    function showPopup(msg, type = 'success') {
+      const col = { success: 'bg-green-500', error: 'bg-red-500', warning: 'bg-amber-500' };
+      const el = Object.assign(document.createElement('div'), {
+        className: `fixed top-4 left-1/2 -translate-x-1/2 ${col[type]} text-white px-6 py-3 rounded-lg shadow-lg z-50`,
+        textContent: msg
+      });
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 3000);
+    }
+
+    function setSync(online, text) {
+      document.getElementById('syncDot').className = `sync-dot ${online ? 'sync-online' : 'sync-offline'}`;
+      document.getElementById('syncText').textContent = text || (online ? '✅ オンライン' : '❌ オフライン');
+    }
+
+    // ==========================================
+    // Firebase 初期化
+    // ==========================================
+    async function initFirebase() {
+      try {
+        const app = firebase.initializeApp(FIREBASE_CONFIG);
+        db = firebase.firestore(app);
+
+        // 機器データ
+        db.collection('equipment').onSnapshot(snap => {
+          items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+          renderAll();
+          setSync(true, '✅ 接続完了');
+        }, err => {
+          showPopup('データ取得失敗: ' + err.message, 'error');
+          setSync(false, '権限エラー');
+        });
+
+        // 履歴データ
+        db.collection('history').orderBy('timestamp', 'desc').limit(100).onSnapshot(snap => {
+          history = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+          renderHistory();
+        }, err => console.error('履歴取得エラー:', err));
+
+        // 設定データ
+        db.collection('settings').doc('master').onSnapshot(snap => {
+          if (snap.exists) {
+            const d = snap.data();
+            categories = d.categories || [];
+            users = d.users || [];
+          }
+          renderAll();
+        }, err => console.error('設定取得エラー:', err));
+
+      } catch (e) {
+        showPopup('Firebase接続失敗: ' + e.message, 'error');
+      }
+    }
+
+    // ==========================================
+    // データ操作
+    // ==========================================
+    async function saveSettings() {
+      await db.collection('settings').doc('master').set(
+        { categories, users }, { merge: true }
+      );
+    }
+
+    async function addEquipment(category, id) {
+      await db.collection('equipment').doc(id).set({
+        category, status: 'ok', user: '', place: '', battery: 'full',
+        createdAt: nowTime()
+      });
+    }
+
+    // 台数→空き品番自動取得
+    function getAvailableIds(category, count) {
+      const avail = items.filter(i => i.category === category && i.status === 'ok');
+      if (avail.length < count) return null;
+      return avail.slice(0, count).map(i => i.id);
+    }
+
+    async function lendItemsBatchAuto(category, count, user, place, note) {
+      const targetIds = getAvailableIds(category, count);
+      if (!targetIds) return null;
+
+      const batch = db.batch();
+      const time = nowTime();
+      targetIds.forEach(id => {
+        const ref = db.collection('equipment').doc(id);
+        batch.update(ref, {
+          status: 'lend', user, place, noteLend: note,
+          lendTime: time, lendTimestamp: new Date()
+        });
+      });
+      await batch.commit();
+
+      await db.collection('history').add({
+        type: '貸出', category, count, user, place, note, ids: targetIds,
+        timestamp: new Date(), time
+      });
+      return targetIds;
+    }
+
+    async function returnItemsBatch(idList, battery, note) {
+      const batch = db.batch();
+      const time = nowTime();
+      idList.forEach(id => {
+        const ref = db.collection('equipment').doc(id);
+        batch.update(ref, {
+          status: 'ok', battery, noteReturn: note,
+          returnTime: time, returnTimestamp: new Date()
+        });
+      });
+      await batch.commit();
+
+      await db.collection('history').add({
+        type: '返却', count: idList.length, battery, note, ids: idList,
+        timestamp: new Date(), time
+      });
+      return true;
+    }
+
+    // ==========================================
+    // 描画
+    // ==========================================
+    function renderAll() {
+      renderSelects();
+      renderReturnCheckList();
+      renderList();
+      renderSettings();
+    }
+
+    function renderSelects() {
+      const catOpt = '<option value="">選択してください</option>' +
+        categories.map(c => `<option value="${c}">${c}</option>`).join('');
+      const userOpt = '<option value="">選択してください</option>' +
+        users.map(u => `<option value="${u}">${u}</option>`).join('');
+
+      document.getElementById('lendCategory').innerHTML = catOpt;
+      document.getElementById('bulkCategory').innerHTML = catOpt;
+      document.getElementById('lendUser').innerHTML = userOpt;
+      document.getElementById('returnUserFilter').innerHTML =
+        '<option value="">全て表示</option>' +
+        [...new Set(items.filter(i => i.status === 'lend').map(i => i.user))]
+          .filter(Boolean).map(u => `<option value="${u}">${u}</option>`).join('');
+    }
+
+    // 貸出台数変更 → 割当候補表示
+    function updateAssignPreview() {
+      const cat = document.getElementById('lendCategory').value;
+      const count = parseInt(document.getElementById('lendCount').value) || 0;
+      const preview = document.getElementById('assignPreview');
+      const info = document.getElementById('availableInfo');
+
+      if (!cat || !count) {
+        preview.classList.add('hidden');
+        info.textContent = '貸出可能台数: -';
+        return;
+      }
+      const avail = items.filter(i => i.category === cat && i.status === 'ok');
+      info.textContent = `貸出可能台数: ${avail.length}台`;
+
+      if (avail.length < count) {
+        preview.classList.add('hidden');
+        info.classList.add('text-red-500');
+        return;
+      }
+      info.classList.remove('text-red-500');
+      const ids = avail.slice(0, count).map(i => i.id);
+      document.getElementById('assignList').textContent = ids.join(', ');
+      preview.classList.remove('hidden');
+    }
+
+    // 返却リスト：利用者別フィルター対応
+    function renderReturnCheckList() {
+      const filter = document.getElementById('returnUserFilter').value;
+      const container = document.getElementById('returnCheckList');
+      let list = items.filter(i => i.status === 'lend');
+      if (filter) list = list.filter(i => i.user === filter);
+
+      if (!list.length) {
+        container.innerHTML = '<p class="text-gray-400 text-sm">該当する貸出中の機器はありません</p>';
+        updateReturnCount();
+        return;
+      }
+      container.innerHTML = list.map(i => `
+        <label class="check-item flex items-center gap-2 p-2 cursor-pointer">
+          <input type="checkbox" name="returnId" value="${i.id}" class="rounded">
+          <span class="font-medium">${i.id}</span>
+          <span class="text-sm text-blue-600">— ${i.user || '利用者不明'}</span>
+          <span class="text-xs text-gray-400 ml-auto">${i.lendTime || ''}</span>
+        </label>`).join('');
+      updateReturnCount();
+    }
+
+    function updateReturnCount() {
+      const n = document.querySelectorAll('input[name="returnId"]:checked').length;
+      document.getElementById('returnCount').textContent = `(${n}台選択中)`;
+    }
+
+    // 在庫一覧
+    function renderList() {
+      const bt = { full: '🔋 十分', medium: '🔌 中', low: '⚠️ 少ない' };
+      const cont = document.getElementById('categoryTables');
+      cont.innerHTML = '';
+      if (!categories.length) {
+        cont.innerHTML = '<p class="text-gray-400 text-center p-4">設定タブから品目を追加してください</p>';
+        return;
+      }
+      categories.forEach(cat => {
+        const list = items.filter(i => i.category === cat);
+        const ok = list.filter(i => i.status === 'ok').length;
+        cont.innerHTML += `
+          <div class="bg-white rounded-lg shadow overflow-hidden mb-3">
+            <div class="p-3 bg-gray-50 font-medium">${cat} (貸出可: ${ok} / 全${list.length})</div>
+            <table class="w-full text-sm">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="p-2 text-left">品番</th>
+                  <th class="p-2 text-left">状態</th>
+                  <th class="p-2 text-left">利用者</th>
+                  <th class="p-2 text-left">場所</th>
+                  <th class="p-2 text-left">貸出日時</th>
+                  <th class="p-2 text-left">備考</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${list.length ? list.map(i => `
+                  <tr class="border-t">
+                    <td class="p-2 font-mono">${i.id}</td>
+                    <td class="p-2"><span class="px-2 py-0.5 rounded text-xs ${i.status==='lend'?'bg-red-100 text-red-700':'bg-green-100 text-green-700'}">${i.status==='lend'?'貸出中':'貸出可'}</span></td>
+                    <td class="p-2">${i.user || '-'}</td>
+                    <td class="p-2">${i.place || '-'}</td>
+                    <td class="p-2 text-xs text-gray-500">${i.lendTime || '-'}</td>
+                    <td class="p-2 text-xs text-gray-500">${i.noteLend || i.noteReturn || '-'}</td>
+                  </tr>`).join('') : '<tr><td colspan="6" class="p-3 text-gray-400 text-center">データなし</td></tr>'}
+              </tbody>
+            </table>
+          </div>`;
+      });
+    }
+
+    // 履歴
+    function renderHistory() {
+      const cont = document.getElementById('historyList');
+      if (!history.length) {
+        cont.innerHTML = '<p class="text-gray-400 text-center p-4">まだ操作履歴がありません</p>';
+        return;
+      }
+      const icon = { '貸出': '📤', '返却': '📥' };
+      cont.innerHTML = history.map(h => `
+        <div class="bg-white p-3 rounded shadow border-l-4 ${h.type==='貸出'?'border-blue-500':'border-green-500'}">
+          <div class="flex justify-between items-start">
+            <div>
+              <span class="font-medium">${icon[h.type]} ${h.type}</span>
+              <span class="text-sm text-gray-500 ml-2">${h.time}</span>
+            </div>
+            <span class="text-sm font-bold ${h.type==='貸出'?'text-blue-600':'text-green-600'}">${h.count}台</span>
+          </div>
+          <div class="mt-1 text-sm text-gray-600 space-y-0.5">
+            ${h.user ? `<div>利用者: ${h.user} ${h.place ? `／行き先: ${h.place}` : ''}</div>` : ''}
+            ${h.category ? `<div>種別: ${h.category}</div>` : ''}
+            ${h.battery ? `<div>電池: ${h.battery==='full'?'🔋十分':h.battery==='medium'?'🔌中':'⚠️少ない'}</div>` : ''}
+            ${h.note ? `<div class="text-gray-700">📝 備考: ${h.note}</div>` : ''}
+            <div class="text-xs text-gray-400">対象: ${h.ids.join(', ')}</div>
+          </div>
+        </div>`).join('');
+    }
+
+    function renderSettings() {
+      document.getElementById('categoryList').innerHTML = categories.map(c => `<li class="border-b py-1">${c}</li>`).join('');
+      document.getElementById('userList').innerHTML = users.map(u => `<li class="border-b py-1">${u}</li>`).join('');
+    }
+
+    // ==========================================
+    // イベント処理
+    // ==========================================
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => {
+          b.classList.remove('bg-blue-500', 'text-white');
+          b.classList.add('bg-gray-200');
+        });
+        document.getElementById(btn.dataset.tab).classList.add('active');
+        btn.classList.remove('bg-gray-200');
+        btn.classList.add('bg-blue-500', 'text-white');
+        renderAll();
+      });
+    });
+
+    // 貸出：種別・台数変更 → 自動割当プレビュー
+    document.getElementById('lendCategory').addEventListener('change', updateAssignPreview);
+    document.getElementById('lendCount').addEventListener('input', updateAssignPreview);
+
+    // 返却：利用者フィルター
+    document.getElementById('returnUserFilter').addEventListener('change', renderReturnCheckList);
+
+    // 全選択
+    document.getElementById('returnSelectAll').addEventListener('change', e => {
+      document.querySelectorAll('input[name="returnId"]').forEach(cb => cb.checked = e.target.checked);
+      updateReturnCount();
+    });
+    document.addEventListener('change', e => {
+      if (e.target.name === 'returnId') updateReturnCount();
+    });
+
+    // 貸出実行
+    document.getElementById('lendForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const cat = document.getElementById('lendCategory').value;
+      const count = parseInt(document.getElementById('lendCount').value);
+      const user = document.getElementById('lendUser').value;
+      const place = document.getElementById('lendPlace').value;
+      const note = document.getElementById('lendNote').value.trim();
+
+      if (!cat || !count || !user || !place) {
+        return showPopup('必須項目を入力してください', 'warning');
+      }
+      const avail = items.filter(i => i.category === cat && i.status === 'ok');
+      if (avail.length < count) {
+        return showPopup(`貸出可能台数が不足しています（${avail.length}台）`, 'error');
+      }
+      const assigned = await lendItemsBatchAuto(cat, count, user, place, note);
+      if (!assigned) return showPopup('割当に失敗しました', 'error');
+
+      showPopup(`✅ ${assigned.join(', ')} を貸出しました`);
+      e.target.reset();
+      document.getElementById('assignPreview').classList.add('hidden');
+      document.getElementById('availableInfo').textContent = '貸出可能台数: -';
+    });
+
+    // 返却実行
+    document.getElementById('returnForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const ids = Array.from(document.querySelectorAll('input[name="returnId"]:checked')).map(cb => cb.value);
+      const battery = document.getElementById('returnBattery').value;
+      const note = document.getElementById('returnNote').value.trim();
+
+      if (!ids.length) return showPopup('返却する機器を選択してください', 'warning');
+
+      await returnItemsBatch(ids, battery, note);
+      showPopup(`✅ ${ids.length}台 返却完了`);
+      e.target.reset();
+      renderReturnCheckList();
+    });
+
+    // 設定認証
+    document.getElementById('authBtn').addEventListener('click', () => {
+      if (document.getElementById('passwordInput').value === PASSWORD) {
+        document.getElementById('passwordArea').classList.add('hidden');
+        document.getElementById('settingsContent').classList.remove('hidden');
+        showPopup('✅ 設定を開きました');
+      } else {
+        showPopup('パスワードが違います', 'warning');
+      }
+    });
+
+    // 種別追加
+    document.getElementById('addCategory').addEventListener('click', async () => {
+      const v = document.getElementById('newCategory').value.trim();
+      if (!v || categories.includes(v)) return showPopup('無効または既存です', 'warning');
+      categories.push(v); await saveSettings();
+      showPopup(`✅ ${v} 追加`);
+      document.getElementById('newCategory').value = '';
+    });
+
+    // 利用者追加
+    document.getElementById('addUser').addEventListener('click', async () => {
+      const v = document.getElementById('newUser').value.trim();
+      if (!v || users.includes(v)) return showPopup('無効または既存です', 'warning');
+      users.push(v); await saveSettings();
+      showPopup(`✅ ${v} 追加`);
+      document.getElementById('newUser').value = '';
+    });
+
+    // 機器一括登録
+    document.getElementById('bulkAdd').addEventListener('click', async () => {
+      const cat = document.getElementById('bulkCategory').value;
+      const pre = document.getElementById('bulkPrefix').value.trim();
+      const s = parseInt(document.getElementById('bulkStart').value);
+      const e = parseInt(document.getElementById('bulkEnd').value);
+      if (!cat || !pre || !s || !e || s > e) return showPopup('入力値が不正です', 'warning');
+      let added = 0;
+      for (let i = s; i <= e; i++) {
+        const id = pre + String(i).padStart(3, '0');
+        if (!items.some(x => x.id === id)) {
+          await addEquipment(cat, id);
+          added++;
+        }
+      }
+      showPopup(`✅ ${added}台 登録完了`);
+    });
+
+    // 履歴クリア
+    document.getElementById('clearHistory').addEventListener('click', async () => {
+      if (!confirm('履歴を全て削除します。よろしいですか？')) return;
+      const snap = await db.collection('history').get();
+      const batch = db.batch();
+      snap.docs.forEach(d => batch.delete(d.ref));
+      await batch.commit();
+      showPopup('✅ 履歴を削除しました');
+    });
+
+    initFirebase();
+  </script>
 </body>
 </html>
