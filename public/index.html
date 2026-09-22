@@ -791,4 +791,46 @@
       }
       const delUser = e.target.getAttribute('data-del-user');
       if (delUser && !e.target.disabled) {
-        if (!confirm(`「${delUser
+        if (!confirm(`「${delUser}」を削除してもよろしいですか？`)) return;
+        users = users.filter(u => u !== delUser);
+        await saveSettings();
+        showPopup(`✅ ${delUser} を削除しました`);
+        return;
+      }
+      const delDevice = e.target.getAttribute('data-del-device');
+      if (delDevice && !e.target.disabled) {
+        if (!confirm(`機器「${delDevice}」を削除してもよろしいですか？`)) return;
+        if (!db) return showPopup('未接続です', 'warning');
+        await db.collection('equipment').doc(delDevice).delete();
+        showPopup(`✅ ${delDevice} を削除しました`);
+        return;
+      }
+    });
+
+    // ===== 種目追加ボタン =====
+    document.getElementById('addEventBtn')?.addEventListener('click', () => {
+      const newId = scheduleData.events.length ? Math.max(...scheduleData.events.map(e=>e.id)) + 1 : 1;
+      scheduleData.events.push({
+        id: newId,
+        name: '新しい種目',
+        time: '00:00',
+        place: '',
+        status: 'wait',
+        delay: 0,
+        category: 'general'
+      });
+      saveSchedule();
+      renderTimetable();
+    });
+
+    // ==========================================
+    // 初期化実行
+    // ==========================================
+    document.addEventListener('DOMContentLoaded', async () => {
+      loadSchedule();
+      renderTimetable();
+      await initFirebase();
+    });
+  </script>
+</body>
+</html>
