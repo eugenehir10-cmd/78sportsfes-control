@@ -677,6 +677,20 @@
       }
     });
 
+    document.addEventListener('change', e => {
+      if (e.target.id === 'editFilterCategory') renderSettings();
+    });
+
+    document.addEventListener('click', async e => {
+      const delId = e.target.getAttribute('data-del-device');
+      if (delId && !e.target.disabled) {
+        if (!confirm(`機器「${delId}」を削除してもよろしいですか？`)) return;
+        await db.collection('equipment').doc(delId).delete();
+        showPopup(`✅ ${delId} を削除しました`);
+      }
+    });
+    
+
     document.getElementById('bulkAdd').addEventListener('click', async () => {
       const cat = document.getElementById('bulkCategory').value;
       const pre = document.getElementById('bulkPrefix').value.trim();
