@@ -2,8 +2,8 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>備品貸出管理 - 台数指定版</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>備品貸出管理</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -13,62 +13,73 @@
     .sync-offline { background: #ef4444; }
     .tab-content { display: none; }
     .tab-content.active { display: block; }
-    .check-item { transition: background 0.2s; }
-    .check-item:hover { background: #f3f4f6; }
+    .check-item { transition: background 0.2s; padding: 10px 8px; cursor: pointer; }
+    .check-item:hover, .check-item:active { background: #f3f4f6; }
+    .tab-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+    .tab-scroll::-webkit-scrollbar { display: none; }
+    table { width: 100%; min-width: 640px; }
+    .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    input, select, textarea, button { font-size: 16px !important; }
+    @media (max-width: 640px) {
+      h1 { font-size: 1.25rem !important; }
+      h2 { font-size: 1.1rem !important; }
+    }
   </style>
 </head>
-<body class="bg-gray-50 text-gray-800 max-w-5xl mx-auto p-4 md:p-6">
-  <header class="mb-8 mt-4">
-    <div class="flex justify-between items-center mb-2">
-      <h1 class="text-2xl font-bold">📻 備品貸出管理</h1>
-      <span class="text-sm text-gray-500 flex items-center gap-2">
+<body class="bg-gray-50 text-gray-800 max-w-5xl mx-auto p-3 md:p-6 pb-8">
+  <header class="mb-4 mt-2">
+    <div class="flex justify-between items-center mb-3 gap-2">
+      <h1 class="text-xl font-bold">📻 備品貸出管理</h1>
+      <span class="text-xs text-gray-500 flex items-center gap-1 whitespace-nowrap">
         <span id="syncDot" class="sync-dot sync-offline"></span>
         <span id="syncText">接続中…</span>
       </span>
     </div>
-    <nav class="flex flex-wrap justify-center gap-2 mb-6">
-      <button data-tab="lend" class="tab-btn px-4 py-2 rounded-lg bg-blue-500 text-white">台数指定貸出</button>
-      <button data-tab="return" class="tab-btn px-4 py-2 rounded-lg bg-gray-200">利用者別返却</button>
-      <button data-tab="list" class="tab-btn px-4 py-2 rounded-lg bg-gray-200">一覧</button>
-      <button data-tab="history" class="tab-btn px-4 py-2 rounded-lg bg-gray-200">履歴</button>
-      <button data-tab="settings" class="tab-btn px-4 py-2 rounded-lg bg-gray-200">設定</button>
+    <nav class="tab-scroll mb-4">
+      <div class="flex gap-2 pb-1 min-w-max">
+        <button data-tab="lend" class="tab-btn px-3 py-2.5 rounded-lg bg-blue-500 text-white text-sm font-medium whitespace-nowrap">台数指定貸出</button>
+        <button data-tab="return" class="tab-btn px-3 py-2.5 rounded-lg bg-gray-200 text-sm font-medium whitespace-nowrap">利用者別返却</button>
+        <button data-tab="list" class="tab-btn px-3 py-2.5 rounded-lg bg-gray-200 text-sm font-medium whitespace-nowrap">一覧</button>
+        <button data-tab="history" class="tab-btn px-3 py-2.5 rounded-lg bg-gray-200 text-sm font-medium whitespace-nowrap">履歴</button>
+        <button data-tab="settings" class="tab-btn px-3 py-2.5 rounded-lg bg-gray-200 text-sm font-medium whitespace-nowrap">設定</button>
+      </div>
     </nav>
   </header>
 
   <!-- ===== 台数指定貸出 ===== -->
   <section id="lend" class="tab-content active">
-    <h2 class="text-xl font-semibold mb-4">📤 台数指定貸出</h2>
-    <form id="lendForm" class="space-y-3 bg-white p-6 rounded-lg shadow">
+    <h2 class="text-lg font-semibold mb-3">📤 台数指定貸出</h2>
+    <form id="lendForm" class="space-y-3 bg-white p-4 rounded-lg shadow">
       <div>
-        <label class="block mb-1">品目種別</label>
-        <select id="lendCategory" class="w-full border rounded px-3 py-2" required>
+        <label class="block mb-1.5 text-sm font-medium">品目種別</label>
+        <select id="lendCategory" class="w-full border rounded-lg px-3 py-2.5" required>
           <option value="">選択してください</option>
         </select>
       </div>
       <div>
-        <label class="block mb-1">利用者名</label>
-        <select id="lendUser" class="w-full border rounded px-3 py-2" required>
+        <label class="block mb-1.5 text-sm font-medium">利用者名</label>
+        <select id="lendUser" class="w-full border rounded-lg px-3 py-2.5" required>
           <option value="">選択してください</option>
         </select>
       </div>
       <div>
-        <label class="block mb-1">貸出台数</label>
-        <input type="number" id="lendCount" min="1" class="w-full border rounded px-3 py-2" required>
-        <p id="availableInfo" class="text-sm text-gray-500 mt-1">貸出可能台数: -</p>
+        <label class="block mb-1.5 text-sm font-medium">貸出台数</label>
+        <input type="number" id="lendCount" min="1" class="w-full border rounded-lg px-3 py-2.5" required>
+        <p id="availableInfo" class="text-xs text-gray-500 mt-1">貸出可能台数: -</p>
       </div>
       <div>
-        <label class="block mb-1">配置/行き先</label>
-        <input type="text" id="lendPlace" class="w-full border rounded px-3 py-2" required>
+        <label class="block mb-1.5 text-sm font-medium">配置/行き先</label>
+        <input type="text" id="lendPlace" class="w-full border rounded-lg px-3 py-2.5" required>
       </div>
       <div>
-        <label class="block mb-1">備考（任意）</label>
-        <textarea id="lendNote" rows="2" class="w-full border rounded px-3 py-2" placeholder="特記事項があれば記入"></textarea>
+        <label class="block mb-1.5 text-sm font-medium">備考（任意）</label>
+        <textarea id="lendNote" rows="2" class="w-full border rounded-lg px-3 py-2.5" placeholder="特記事項があれば記入"></textarea>
       </div>
-      <div id="assignPreview" class="bg-blue-50 p-3 rounded hidden">
+      <div id="assignPreview" class="bg-blue-50 p-3 rounded-lg hidden">
         <p class="text-sm font-medium text-blue-700 mb-1">自動割当される機器:</p>
-        <p id="assignList" class="text-sm"></p>
+        <p id="assignList" class="text-sm break-all"></p>
       </div>
-      <button type="submit" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-medium">
+      <button type="submit" class="w-full bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 font-medium text-lg">
         ✅ 一括貸出実行
       </button>
     </form>
@@ -76,37 +87,37 @@
 
   <!-- ===== 利用者別返却 ===== -->
   <section id="return" class="tab-content">
-    <h2 class="text-xl font-semibold mb-4">📥 利用者別返却</h2>
-    <form id="returnForm" class="space-y-3 bg-white p-6 rounded-lg shadow">
+    <h2 class="text-lg font-semibold mb-3">📥 利用者別返却</h2>
+    <form id="returnForm" class="space-y-3 bg-white p-4 rounded-lg shadow">
       <div>
-        <label class="block mb-1">利用者で絞り込み</label>
-        <select id="returnUserFilter" class="w-full border rounded px-3 py-2">
+        <label class="block mb-1.5 text-sm font-medium">利用者で絞り込み</label>
+        <select id="returnUserFilter" class="w-full border rounded-lg px-3 py-2.5">
           <option value="">全て表示</option>
         </select>
       </div>
       <div>
-        <label class="block mb-1">返却する機器を選択 <span id="returnCount" class="text-green-600">(0台選択中)</span></label>
-        <div id="returnCheckList" class="border rounded p-3 max-h-64 overflow-y-auto bg-gray-50">
-          <p class="text-gray-400 text-sm">貸出中の機器が表示されます</p>
+        <label class="block mb-1.5 text-sm font-medium">返却する機器を選択 <span id="returnCount" class="text-green-600 font-normal">(0台選択中)</span></label>
+        <div id="returnCheckList" class="border rounded-lg p-2 max-h-72 overflow-y-auto bg-gray-50">
+          <p class="text-gray-400 text-sm p-2">貸出中の機器が表示されます</p>
         </div>
-        <label class="mt-2 inline-flex items-center gap-2 cursor-pointer">
-          <input type="checkbox" id="returnSelectAll" class="rounded">
+        <label class="mt-2.5 inline-flex items-center gap-2 cursor-pointer px-1 select-none">
+          <input type="checkbox" id="returnSelectAll" class="rounded w-5 h-5">
           表示中のものを全て選択
         </label>
       </div>
       <div>
-        <label class="block mb-1">電池残量（一括設定）</label>
-        <select id="returnBattery" class="w-full border rounded px-3 py-2" required>
+        <label class="block mb-1.5 text-sm font-medium">電池残量（一括設定）</label>
+        <select id="returnBattery" class="w-full border rounded-lg px-3 py-2.5" required>
           <option value="full">🔋 十分</option>
           <option value="medium">🔌 中</option>
           <option value="low">⚠️ 少ない</option>
         </select>
       </div>
       <div>
-        <label class="block mb-1">備考（任意）</label>
-        <textarea id="returnNote" rows="2" class="w-full border rounded px-3 py-2" placeholder="特記事項があれば記入"></textarea>
+        <label class="block mb-1.5 text-sm font-medium">備考（任意）</label>
+        <textarea id="returnNote" rows="2" class="w-full border rounded-lg px-3 py-2.5" placeholder="特記事項があれば記入"></textarea>
       </div>
-      <button type="submit" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 font-medium">
+      <button type="submit" class="w-full bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 font-medium text-lg">
         ✅ 選択した機器を返却
       </button>
     </form>
@@ -114,58 +125,58 @@
 
   <!-- ===== 在庫一覧 ===== -->
   <section id="list" class="tab-content">
-    <h2 class="text-xl font-semibold mb-4">📋 在庫一覧</h2>
+    <h2 class="text-lg font-semibold mb-3">📋 在庫一覧</h2>
     <div id="categoryTables" class="space-y-4"></div>
   </section>
 
   <!-- ===== 履歴 ===== -->
   <section id="history" class="tab-content">
-    <h2 class="text-xl font-semibold mb-4">📜 操作履歴</h2>
+    <h2 class="text-lg font-semibold mb-3">📜 操作履歴</h2>
     <div class="flex justify-between items-center mb-3">
-      <p class="text-sm text-gray-500">最新100件を表示</p>
+      <p class="text-xs text-gray-500">最新100件を表示</p>
       <button id="clearHistory" class="text-red-500 text-sm hover:text-red-700">履歴をクリア</button>
     </div>
-    <div id="historyList" class="space-y-2"></div>
+    <div id="historyList" class="space-y-3"></div>
   </section>
 
   <!-- ===== 設定 ===== -->
   <section id="settings" class="tab-content">
-    <h2 class="text-xl font-semibold mb-4">⚙️ 設定</h2>
-    <div id="passwordArea">
-      <input type="password" id="passwordInput" placeholder="パスワード" class="border rounded px-3 py-2 mb-3 w-full">
-      <button id="authBtn" class="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800">認証</button>
+    <h2 class="text-lg font-semibold mb-3">⚙️ 設定</h2>
+    <div id="passwordArea" class="space-y-3">
+      <input type="password" id="passwordInput" placeholder="パスワード" class="w-full border rounded-lg px-3 py-2.5">
+      <button id="authBtn" class="w-full bg-gray-700 text-white px-4 py-3 rounded-lg hover:bg-gray-800 font-medium">認証</button>
     </div>
-    <div id="settingsContent" class="hidden space-y-6">
-      <div class="p-4 bg-green-50 rounded-lg border border-green-200">
-        <p class="text-green-700 font-medium">✅ クラウド接続済 — データは永続保存</p>
+    <div id="settingsContent" class="hidden space-y-5 mt-4">
+      <div class="p-3 bg-green-50 rounded-lg border border-green-200">
+        <p class="text-green-700 text-sm font-medium">✅ クラウド接続済 — データは永続保存</p>
       </div>
-      <div class="p-4 bg-white rounded-lg shadow">
-        <h3 class="font-medium mb-2">📦 品目種別管理</h3>
+      <div class="p-3 bg-white rounded-lg shadow">
+        <h3 class="font-medium mb-2 text-sm">📦 品目種別管理</h3>
         <div class="flex gap-2 mb-3">
-          <input type="text" id="newCategory" placeholder="例: トランシーバー" class="border rounded px-3 py-2 flex-1">
-          <button id="addCategory" class="bg-blue-500 text-white px-3 py-2 rounded">追加</button>
+          <input type="text" id="newCategory" placeholder="例: トランシーバー" class="flex-1 border rounded-lg px-3 py-2.5">
+          <button id="addCategory" class="bg-blue-500 text-white px-4 py-2.5 rounded-lg whitespace-nowrap">追加</button>
         </div>
         <ul id="categoryList" class="space-y-1 text-sm"></ul>
       </div>
-      <div class="p-4 bg-white rounded-lg shadow">
-        <h3 class="font-medium mb-2">👤 利用者管理</h3>
+      <div class="p-3 bg-white rounded-lg shadow">
+        <h3 class="font-medium mb-2 text-sm">👤 利用者管理</h3>
         <div class="flex gap-2 mb-3">
-          <input type="text" id="newUser" placeholder="例: 田中" class="border rounded px-3 py-2 flex-1">
-          <button id="addUser" class="bg-blue-500 text-white px-3 py-2 rounded">追加</button>
+          <input type="text" id="newUser" placeholder="例: 田中" class="flex-1 border rounded-lg px-3 py-2.5">
+          <button id="addUser" class="bg-blue-500 text-white px-4 py-2.5 rounded-lg whitespace-nowrap">追加</button>
         </div>
         <ul id="userList" class="space-y-1 text-sm"></ul>
       </div>
-      <div class="p-4 bg-white rounded-lg shadow">
-        <h3 class="font-medium mb-2">📋 機器一括登録（初期設定用）</h3>
-        <select id="bulkCategory" class="w-full border rounded px-3 py-2 mb-2">
+      <div class="p-3 bg-white rounded-lg shadow">
+        <h3 class="font-medium mb-2 text-sm">📋 機器一括登録</h3>
+        <select id="bulkCategory" class="w-full border rounded-lg px-3 py-2.5 mb-2">
           <option value="">種別を選択</option>
         </select>
-        <input type="text" id="bulkPrefix" placeholder="例: TR-" class="w-full border rounded px-3 py-2 mb-2">
+        <input type="text" id="bulkPrefix" placeholder="例: TR-" class="w-full border rounded-lg px-3 py-2.5 mb-2">
         <div class="flex gap-2 mb-2">
-          <input type="number" id="bulkStart" placeholder="開始番号" class="border rounded px-3 py-2 flex-1">
-          <input type="number" id="bulkEnd" placeholder="終了番号" class="border rounded px-3 py-2 flex-1">
+          <input type="number" id="bulkStart" placeholder="開始番号" class="flex-1 border rounded-lg px-3 py-2.5">
+          <input type="number" id="bulkEnd" placeholder="終了番号" class="flex-1 border rounded-lg px-3 py-2.5">
         </div>
-        <button id="bulkAdd" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">一括追加</button>
+        <button id="bulkAdd" class="w-full bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 font-medium">一括追加</button>
       </div>
     </div>
   </section>
@@ -200,7 +211,7 @@
     function showPopup(msg, type = 'success') {
       const col = { success: 'bg-green-500', error: 'bg-red-500', warning: 'bg-amber-500' };
       const el = Object.assign(document.createElement('div'), {
-        className: `fixed top-4 left-1/2 -translate-x-1/2 ${col[type]} text-white px-6 py-3 rounded-lg shadow-lg z-50`,
+        className: `fixed top-4 left-1/2 -translate-x-1/2 ${col[type]} text-white px-5 py-2.5 rounded-lg shadow-lg z-50 text-sm`,
         textContent: msg
       });
       document.body.appendChild(el);
@@ -339,6 +350,7 @@
       if (!cat || !count) {
         preview.classList.add('hidden');
         info.textContent = '貸出可能台数: -';
+        info.classList.remove('text-red-500');
         return;
       }
       const avail = items.filter(i => i.category === cat && i.status === 'ok');
@@ -362,16 +374,18 @@
       if (filter) list = list.filter(i => i.user === filter);
 
       if (!list.length) {
-        container.innerHTML = '<p class="text-gray-400 text-sm">該当する貸出中の機器はありません</p>';
+        container.innerHTML = '<p class="text-gray-400 text-sm p-2">該当する貸出中の機器はありません</p>';
         updateReturnCount();
         return;
       }
       container.innerHTML = list.map(i => `
-        <label class="check-item flex items-center gap-2 p-2 cursor-pointer">
-          <input type="checkbox" name="returnId" value="${i.id}" class="rounded">
-          <span class="font-medium">${i.id}</span>
-          <span class="text-sm text-blue-600">— ${i.user || '利用者不明'}</span>
-          <span class="text-xs text-gray-400 ml-auto">${i.lendTime || ''}</span>
+        <label class="check-item flex items-center gap-2 rounded-lg border-b border-gray-100">
+          <input type="checkbox" name="returnId" value="${i.id}" class="rounded w-5 h-5 flex-shrink-0">
+          <div class="min-w-0">
+            <div class="font-medium text-sm">${i.id}</div>
+            <div class="text-xs text-gray-500">${i.user || '利用者不明'}</div>
+          </div>
+          <div class="ml-auto text-xs text-gray-400 flex-shrink-0">${i.lendTime || ''}</div>
         </label>`).join('');
       updateReturnCount();
     }
@@ -393,31 +407,33 @@
         const list = items.filter(i => i.category === cat);
         const ok = list.filter(i => i.status === 'ok').length;
         cont.innerHTML += `
-          <div class="bg-white rounded-lg shadow overflow-hidden mb-3">
-            <div class="p-3 bg-gray-50 font-medium">${cat} (貸出可: ${ok} / 全${list.length})</div>
-            <table class="w-full text-sm">
-              <thead class="bg-gray-50">
-                <tr>
-                  <th class="p-2 text-left">品番</th>
-                  <th class="p-2 text-left">状態</th>
-                  <th class="p-2 text-left">利用者</th>
-                  <th class="p-2 text-left">場所</th>
-                  <th class="p-2 text-left">貸出日時</th>
-                  <th class="p-2 text-left">備考</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${list.length ? list.map(i => `
-                  <tr class="border-t">
-                    <td class="p-2 font-mono">${i.id}</td>
-                    <td class="p-2"><span class="px-2 py-0.5 rounded text-xs ${i.status==='lend'?'bg-red-100 text-red-700':'bg-green-100 text-green-700'}">${i.status==='lend'?'貸出中':'貸出可'}</span></td>
-                    <td class="p-2">${i.user || '-'}</td>
-                    <td class="p-2">${i.place || '-'}</td>
-                    <td class="p-2 text-xs text-gray-500">${i.lendTime || '-'}</td>
-                    <td class="p-2 text-xs text-gray-500">${i.noteLend || i.noteReturn || '-'}</td>
-                  </tr>`).join('') : '<tr><td colspan="6" class="p-3 text-gray-400 text-center">データなし</td></tr>'}
-              </tbody>
-            </table>
+          <div class="bg-white rounded-lg shadow overflow-hidden">
+            <div class="p-3 bg-gray-50 font-medium text-sm">${cat} (貸出可: ${ok} / 全${list.length})</div>
+            <div class="table-wrap">
+              <table class="text-sm">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th class="p-2 text-left whitespace-nowrap">品番</th>
+                    <th class="p-2 text-left whitespace-nowrap">状態</th>
+                    <th class="p-2 text-left whitespace-nowrap">利用者</th>
+                    <th class="p-2 text-left whitespace-nowrap">場所</th>
+                    <th class="p-2 text-left whitespace-nowrap">貸出日時</th>
+                    <th class="p-2 text-left whitespace-nowrap">備考</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${list.length ? list.map(i => `
+                    <tr class="border-t">
+                      <td class="p-2 font-mono whitespace-nowrap">${i.id}</td>
+                      <td class="p-2 whitespace-nowrap"><span class="px-2 py-0.5 rounded text-xs ${i.status==='lend'?'bg-red-100 text-red-700':'bg-green-100 text-green-700'}">${i.status==='lend'?'貸出中':'貸出可'}</span></td>
+                      <td class="p-2 whitespace-nowrap">${i.user || '-'}</td>
+                      <td class="p-2 whitespace-nowrap">${i.place || '-'}</td>
+                      <td class="p-2 text-xs text-gray-500 whitespace-nowrap">${i.lendTime || '-'}</td>
+                      <td class="p-2 text-xs text-gray-500 max-w-[120px] truncate">${i.noteLend || i.noteReturn || '-'}</td>
+                    </tr>`).join('') : '<tr><td colspan="6" class="p-3 text-gray-400 text-center">データなし</td></tr>'}
+                </tbody>
+              </table>
+            </div>
           </div>`;
       });
     }
@@ -430,27 +446,27 @@
       }
       const icon = { '貸出': '📤', '返却': '📥' };
       cont.innerHTML = history.map(h => `
-        <div class="bg-white p-3 rounded shadow border-l-4 ${h.type==='貸出'?'border-blue-500':'border-green-500'}">
-          <div class="flex justify-between items-start">
-            <div>
+        <div class="bg-white p-3 rounded-lg shadow border-l-4 ${h.type==='貸出'?'border-blue-500':'border-green-500'}">
+          <div class="flex justify-between items-start gap-2 mb-1">
+            <div class="min-w-0">
               <span class="font-medium">${icon[h.type]} ${h.type}</span>
-              <span class="text-sm text-gray-500 ml-2">${h.time}</span>
+              <span class="text-xs text-gray-500 ml-1">${h.time}</span>
             </div>
-            <span class="text-sm font-bold ${h.type==='貸出'?'text-blue-600':'text-green-600'}">${h.count}台</span>
+            <span class="text-sm font-bold ${h.type==='貸出'?'text-blue-600':'text-green-600'} flex-shrink-0">${h.count}台</span>
           </div>
-          <div class="mt-1 text-sm text-gray-600 space-y-0.5">
-            ${h.user ? `<div>利用者: ${h.user} ${h.place ? `／行き先: ${h.place}` : ''}</div>` : ''}
+          <div class="text-sm text-gray-600 space-y-0.5">
+            ${h.user ? `<div class="truncate">利用者: ${h.user}${h.place ? ` / ${h.place}` : ''}</div>` : ''}
             ${h.category ? `<div>種別: ${h.category}</div>` : ''}
             ${h.battery ? `<div>電池: ${h.battery==='full'?'🔋十分':h.battery==='medium'?'🔌中':'⚠️少ない'}</div>` : ''}
-            ${h.note ? `<div class="text-gray-700">📝 備考: ${h.note}</div>` : ''}
-            <div class="text-xs text-gray-400">対象: ${h.ids.join(', ')}</div>
+            ${h.note ? `<div class="text-gray-700 break-words">📝 ${h.note}</div>` : ''}
+            <div class="text-xs text-gray-400 break-all">対象: ${h.ids.join(', ')}</div>
           </div>
         </div>`).join('');
     }
 
     function renderSettings() {
-      document.getElementById('categoryList').innerHTML = categories.map(c => `<li class="border-b py-1">${c}</li>`).join('');
-      document.getElementById('userList').innerHTML = users.map(u => `<li class="border-b py-1">${u}</li>`).join('');
+      document.getElementById('categoryList').innerHTML = categories.map(c => `<li class="border-b py-1.5 text-sm">${c}</li>`).join('');
+      document.getElementById('userList').innerHTML = users.map(u => `<li class="border-b py-1.5 text-sm">${u}</li>`).join('');
     }
 
     document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -493,12 +509,12 @@
       }
       const avail = items.filter(i => i.category === cat && i.status === 'ok');
       if (avail.length < count) {
-        return showPopup(`貸出可能台数が不足しています（${avail.length}台）`, 'error');
+        return showPopup(`貸出可能台数が不足 (${avail.length}台)`, 'error');
       }
       const assigned = await lendItemsBatchAuto(cat, count, user, place, note);
       if (!assigned) return showPopup('割当に失敗しました', 'error');
 
-      showPopup(`✅ ${assigned.join(', ')} を貸出しました`);
+      showPopup(`✅ ${assigned.join(', ')} 貸出完了`);
       e.target.reset();
       document.getElementById('assignPreview').classList.add('hidden');
       document.getElementById('availableInfo').textContent = '貸出可能台数: -';
