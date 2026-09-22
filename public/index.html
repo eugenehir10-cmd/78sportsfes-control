@@ -15,8 +15,6 @@
       85% { opacity: 1; transform: translateY(0); }
       100% { opacity: 0; transform: translateY(-10px); pointer-events: none; }
     }
-    .category-table { transition: all 0.2s ease; }
-    .collapsed tbody { display: none; }
     .sync-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
     .sync-online { background: #22c55e; }
     .sync-offline { background: #ef4444; }
@@ -204,12 +202,9 @@
       <button id="authBtn" class="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800">認証</button>
     </div>
     <div id="settingsContent" class="hidden space-y-6">
-      <div class="p-4 bg-amber-50 rounded-lg border border-amber-200">
-        <h3 class="font-medium mb-2 text-amber-700">☁️ Firebase設定</h3>
-        <p class="text-sm text-gray-600 mb-2">下記に設定JSONを貼り付けて「接続」を押してください</p>
-        <textarea id="firebaseConfig" placeholder='{"apiKey":"...","projectId":"..."}' class="w-full border rounded px-3 py-2 text-sm h-28 mb-2"></textarea>
-        <button id="connectCloud" class="bg-amber-500 text-white px-4 py-2 rounded hover:bg-amber-600">クラウド接続</button>
-        <p class="text-xs text-gray-500 mt-2">接続後、他の端末とデータが同期されます</p>
+      <div class="p-4 bg-green-50 rounded-lg border border-green-200">
+        <h3 class="font-medium mb-2 text-green-700">✅ クラウド設定済み</h3>
+        <p class="text-sm text-gray-600">自動的に接続されます。どの端末からでも同じデータが使えます。</p>
       </div>
       <div class="p-4 bg-white rounded-lg shadow">
         <h3 class="font-medium mb-2">📦 品目管理</h3>
@@ -243,6 +238,19 @@
   </section>
 
   <script>
+    // ==========================================
+    // ★ ここにFirebase設定を直接書き込み ★
+    // ==========================================
+    const PRESET_FIREBASE_CONFIG = {
+      apiKey: "AIzaSyAWVUxoXbvTraGUDozLztqcJx2f2fIHQntc",
+      authDomain: "thsportsfes.firebaseapp.com",
+      projectId: "thsportsfes",
+      storageBucket: "thsportsfes.appspot.com",
+      messagingSenderId: "96596815858",
+      appId: "1:96596815858:web:5f85526bf785ccc5d8056b"
+    };
+    // ==========================================
+
     const PASSWORD = 'admin123';
     let db = null;
     let useCloud = false;
@@ -263,7 +271,7 @@
       document.getElementById('syncText').textContent = text || (online?'オンライン':'オフライン');
     }
 
-    // === データ読み書き：クラウド/ローカル自動切替 ===
+    // === データ読み書き ===
     function loadLocal() {
       local.items = JSON.parse(localStorage.getItem('transceivers')||'[]');
       local.history = JSON.parse(localStorage.getItem('history')||'[]');
@@ -300,11 +308,9 @@
       renderHistory();
     }
 
-    // === Firebase接続 ===
-    async function connectFirebase(configStr) {
+    // === Firebase自動接続 ===
+    async function connectFirebase(cfg) {
       try {
-        const cfg = JSON.parse(configStr);
-        if (!cfg.apiKey || !cfg.projectId) throw new Error('形式エラー');
         if (unsubscribe.items) unsubscribe.items();
         if (unsubscribe.history) unsubscribe.history();
         if (unsubscribe.meta) unsubscribe.meta();
@@ -312,10 +318,9 @@
         const app = firebase.initializeApp(cfg);
         db = firebase.firestore(app);
         useCloud = true;
-        localStorage.setItem('firebaseConfig', configStr);
+        localStorage.setItem('firebaseConfig', JSON.stringify(cfg));
         setSync(true, '接続中...');
 
-        // データ同期
         unsubscribe.meta = db.collection('metadata').doc('main').onSnapshot(snap => {
           if (snap.exists) {
             const d = snap.data();
@@ -341,14 +346,19 @@
           renderHistory(); setSync(true, 'オンライン');
         }, err => setSync(false, '履歴エラー'));
 
-        showPopup('✅ クラウド接続成功！', 'success');
+        showPopup('✅ クラウド接続成功！');
       } catch (e) {
-        showPopup('❌ 設定エラー：'+e.message, 'error');
+        showPopup('❌ 接続エラー：'+e.message, 'error');
         setSync(false, '接続失敗');
       }
     }
 
-    // === タブ/モード切替 ===
+    // 自動接続実行
+    if (PRESET_FIREBASE_CONFIG) {
+      connectFirebase(PRESET_FIREBASE_CONFIG);
+    }
+
+    // === タブ切り替え ===
     document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => {
       document.querySelectorAll('.tab-content').forEach(c=>c.classList.add('hidden'));
       document.querySelectorAll('.tab-btn').forEach(x=>{x.classList.remove('bg-blue-500','text-white');x.classList.add('bg-gray-200');});
@@ -458,7 +468,6 @@
     function renderSettings() {
       document.getElementById('categoryList').innerHTML = local.cats.map(c=>`<li class="flex justify-between items-center border-b pb-1"><span>${c}</span><button data-del-cat="${c}" class="text-red-500 text-xs">削除</button></li>`).join('');
       document.getElementById('userList').innerHTML = local.users.map(u=>`<li class="flex justify-between items-center border-b pb-1"><span>${u}</span><button data-del-user="${u}" class="text-red-500 text-xs">削除</button></li>`).join('');
-      document.getElementById('firebaseConfig').value = localStorage.getItem('firebaseConfig')||'';
     }
 
     // === 貸出処理 ===
@@ -531,7 +540,7 @@
       renderUserSel(); renderReturnOpts();
     });
 
-    // === CSV ===
+    // === CSV出力 ===
     function csv(rows, name) {
       const BOM='\uFEFF';
       const b = new Blob([BOM+rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n')],{type:'text/csv;charset=utf-8;'});
@@ -556,14 +565,7 @@
       if(document.getElementById('passwordInput').value===PASSWORD){
         document.getElementById('passwordArea').classList.add('hidden');
         document.getElementById('settingsContent').classList.remove('hidden');
-        const saved = localStorage.getItem('firebaseConfig');
-        if(saved) connectFirebase(saved);
       }else showPopup('パスワード違い','warning');
-    });
-    document.getElementById('connectCloud').addEventListener('click',()=>{
-      const val = document.getElementById('firebaseConfig').value.trim();
-      if(!val) return showPopup('設定を入力してください','warning');
-      connectFirebase(val);
     });
     document.getElementById('addCategory').addEventListener('click',()=>{
       const v = document.getElementById('newCategory').value.trim();
