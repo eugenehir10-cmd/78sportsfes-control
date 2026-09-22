@@ -47,15 +47,23 @@
 
   <!-- ホーム画面 -->
   <div id="pageHome" class="page active">
-    <h2 class="text-2xl font-bold text-center mb-8">📂 機能メニュー</h2>
-    <div class="grid gap-4 sm:grid-cols-2">
-      <button data-page="pageLend" class="func-card bg-white p-6 rounded-xl shadow text-left border-2 border-transparent hover:border-blue-400">
-        <div class="text-3xl mb-2">📻</div>
-        <h3 class="font-bold text-lg mb-1">備品貸出管理</h3>
-        <p class="text-sm text-gray-500">機器の貸出・返却・在庫管理</p>
-      </button>
-    </div>
+  <h2 class="text-2xl font-bold text-center mb-8">📂 機能メニュー</h2>
+  <div class="grid gap-4 sm:grid-cols-2">
+    <!-- 既存：備品貸出管理 -->
+    <button data-page="pageLend" class="func-card bg-white p-6 rounded-xl shadow text-left border-2 border-transparent hover:border-blue-400">
+      <div class="text-3xl mb-2">📻</div>
+      <h3 class="font-bold text-lg mb-1">備品貸出管理</h3>
+      <p class="text-sm text-gray-500">機器の貸出・返却・在庫管理</p>
+    </button>
+
+    <!--進行管理 -->
+    <button data-page="pageTimetable" class="func-card bg-white p-6 rounded-xl shadow text-left border-2 border-transparent hover:border-blue-400">
+      <div class="text-3xl mb-2">🏆</div>
+      <h3 class="font-bold text-lg mb-1">進行管理</h3>
+      <p class="text-sm text-gray-500">種目スケジュール・状況管理・結果集計</p>
+    </button>
   </div>
+</div>
 
   <!-- 備品貸出管理ページ -->
   <div id="pageLend" class="page">
