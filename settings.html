@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>体育祭トランシーバー貸出 - 設定</title>
+    <link rel="stylesheet" href="/_next/static/chunks/5af32d58fc8f441e.css"/>
+    <link rel="stylesheet" href="/_next/static/chunks/46680c00c60c31b7.css"/>
+    <link rel="stylesheet" href="/_next/static/chunks/da44bdd0400cd77b.css"/>
+    <style>
+        .form-input { width:100%; padding:12px; font-size:1rem; border:1px solid #ced4da; border-radius:8px; margin-top:6px; margin-bottom:16px; box-sizing:border-box; }
+        .form-label { font-weight:600; font-size:0.95rem; color:#212529; }
+    </style>
+</head>
+<body>
+    <div style="max-width:960px;margin:0 auto;padding:32px 16px;">
+        <div style="margin-bottom:16px;">
+            <a style="color:#495057;text-decoration:none;font-weight:bold;" href="./index.html">← トップへ戻る</a>
+        </div>
+        <h1 style="color:#495057;text-align:center;margin-bottom:24px;">システム設定</h1>
+        
+        <form id="settings-form">
+            <label class="form-label">Google Apps Script (GAS) Web API URL</label>
+            <input class="form-input" type="url" id="gasUrl" placeholder="https://script.google.com/macros/s/.../exec" />
+            
+            <button style="width:100%;height:50px;background:#228be6;color:#fff;border:none;border-radius:8px;font-size:1rem;font-weight:bold;cursor:pointer;" type="submit">
+                設定を保存する
+            </button>
+        </form>
+    </div>
+
+    <script>
+        const input = document.getElementById('gasUrl');
+        input.value = localStorage.getItem('gas_url') || '';
+
+        document.getElementById('settings-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            localStorage.setItem('gas_url', input.value);
+            alert('設定を保存しました！');
+        });
+    </script>
+</body>
+</html>
