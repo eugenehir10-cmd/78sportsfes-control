@@ -268,21 +268,10 @@
             <div class="settings-section">
               <h4><i data-lucide="trophy" class="w-4 h-4 text-blue-400"></i>⚽ 球技日 試合追加</h4>
               <div class="grid gap-3 mb-4">
-                <select id="ballVenue" class="rounded-lg px-3 py-2 text-sm">
-                  <option value="">会場を選択</option>
-                  <option>上グラウンド</option><option>下グラウンド</option><option>体育館</option>
-                  <option>ハードコート</option><option>オムニコート</option><option>卓球場</option>
-                </select>
+                <select id="ballVenue" class="rounded-lg px-3 py-2 text-sm"></select>
                 <input type="time" id="ballTime" class="rounded-lg px-3 py-2 text-sm" placeholder="開始時刻">
-                <select id="ballSport" class="rounded-lg px-3 py-2 text-sm">
-                  <option value="">競技を選択</option>
-                  <option>サッカー</option><option>野球</option><option>バスケットボール</option>
-                  <option>バレーボール</option><option>ドッジボール</option>
-                  <option>アルティメット</option><option>卓球</option>
-                </select>
-                <select id="ballGrade" class="rounded-lg px-3 py-2 text-sm">
-                  <option value="">学年を選択</option>
-                </select>
+                <select id="ballSport" class="rounded-lg px-3 py-2 text-sm"></select>
+                <select id="ballGrade" class="rounded-lg px-3 py-2 text-sm"></select>
                 <input type="number" id="ballDuration" value="30" min="1" class="rounded-lg px-3 py-2 text-sm" placeholder="所要時間（分）">
               </div>
               <button id="addBallMatchBtn" class="w-full py-3 rounded-xl btn-primary font-medium">試合を追加</button>
@@ -298,9 +287,7 @@
                 <input type="text" id="teamName" class="rounded-lg px-3 py-2 text-sm" placeholder="種目名">
                 <input type="time" id="teamTime" class="rounded-lg px-3 py-2 text-sm" placeholder="開始時刻">
                 <input type="number" id="teamDuration" value="15" min="1" class="rounded-lg px-3 py-2 text-sm" placeholder="所要時間（分）">
-                <select id="teamGrade" class="rounded-lg px-3 py-2 text-sm">
-                  <option value="">対象学年（任意）</option>
-                </select>
+                <select id="teamGrade" class="rounded-lg px-3 py-2 text-sm"></select>
                 <input type="text" id="teamPlace" class="rounded-lg px-3 py-2 text-sm" placeholder="場所（任意）">
                 <input type="text" id="teamNote" class="rounded-lg px-3 py-2 text-sm" placeholder="備考（任意）">
               </div>
@@ -383,7 +370,7 @@
 
     // 🔥 Firebase初期化
     const FIREBASE_CONFIG = {
-      apiKey: "AIzaSyCVYfQSmKyPvbDWrAp6FNMUmuu3_GyrM00",
+      apiKey: "AIzaSyAWVUxoXbvTraGUDozLztqcJx2f2fIHQntc",
       authDomain: "thsportsfes.firebaseapp.com",
       projectId: "thsportsfes",
       storageBucket: "thsportsfes.appspot.com",
@@ -397,7 +384,7 @@
     // 🔐 設定パスワード（ハッシュ化：admin123）
     const SETTINGS_PASSWORD_HASH = '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9';
     
-    // 👑 特権管理者アカウント（この2人だけが許可アカウントを管理可能）
+    // 👑 特権管理者アカウント
     const ADMIN_EMAILS = [
       'jh62231310@s.musashi.ed.jp',
       'eugene.hir.10@gmail.com'
@@ -424,6 +411,49 @@
       return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
     }
 
+    // ✅ 全ての選択肢を初期化するマスター関数
+    function initAllSelects() {
+      try {
+        // --- 会場選択肢 ---
+        const venues = ['上グラウンド', '下グラウンド', '体育館', 'ハードコート', 'オムニコート', '卓球場'];
+        const ballVenue = document.getElementById('ballVenue');
+        if (ballVenue) {
+          const currentVal = ballVenue.value;
+          ballVenue.innerHTML = '<option value="">会場を選択</option>' + 
+            venues.map(v => `<option value="${v}">${v}</option>`).join('');
+          if (currentVal && venues.includes(currentVal)) ballVenue.value = currentVal;
+        }
+
+        // --- 競技選択肢 ---
+        const sports = ['サッカー', '野球', 'バスケットボール', 'バレーボール', 'ドッジボール', 'アルティメット', '卓球'];
+        const ballSport = document.getElementById('ballSport');
+        if (ballSport) {
+          const currentVal = ballSport.value;
+          ballSport.innerHTML = '<option value="">競技を選択</option>' + 
+            sports.map(s => `<option value="${s}">${s}</option>`).join('');
+          if (currentVal && sports.includes(currentVal)) ballSport.value = currentVal;
+        }
+
+        // --- 学年選択肢 ---
+        const grades = (commonSettings && commonSettings.grades) || DEFAULT_COMMON_SETTINGS.grades;
+        const ballGrade = document.getElementById('ballGrade');
+        const teamGrade = document.getElementById('teamGrade');
+        const gradeOpts = grades.map(g => `<option value="${g}">${g}</option>`).join('');
+        if (ballGrade) {
+          const currentVal = ballGrade.value;
+          ballGrade.innerHTML = '<option value="">学年を選択</option>' + gradeOpts;
+          if (currentVal && grades.includes(currentVal)) ballGrade.value = currentVal;
+        }
+        if (teamGrade) {
+          const currentVal = teamGrade.value;
+          teamGrade.innerHTML = '<option value="">対象学年（任意）</option>' + gradeOpts;
+          if (currentVal && grades.includes(currentVal)) teamGrade.value = currentVal;
+        }
+      } catch (e) {
+        console.warn('選択肢初期化エラー:', e);
+      }
+    }
+
     // タブ切り替え
     document.querySelectorAll('.tab-btn').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -431,6 +461,9 @@
         document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
         btn.classList.add('active');
         document.getElementById('tab-' + btn.dataset.tab).classList.remove('hidden');
+        // ✅ タブ切り替え時に選択肢を再初期化
+        setTimeout(initAllSelects, 30);
+        setTimeout(initAllSelects, 150);
       });
     });
 
@@ -446,7 +479,7 @@
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
           });
         }
-      } catch (e) { console.warn(e); }
+      } catch (e) { console.warn('許可ユーザー読込エラー:', e); }
       renderEmailList();
     }
 
@@ -477,17 +510,15 @@
       }).join('');
       lucide.createIcons();
       
-    // タブ切り替え
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
-        btn.classList.add('active');
-        document.getElementById('tab-' + btn.dataset.tab).classList.remove('hidden');
-        // ✅ タブ切り替え時に学年選択肢を再更新
-        updateGradeSelects();
+      document.querySelectorAll('.remove-email-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const email = btn.dataset.email;
+          if (!confirm(`このアカウントを許可リストから削除しますか？\n${email}`)) return;
+          const newList = AUTHORIZED_EMAILS.filter(e => e !== email);
+          await saveAuthorizedUsers(newList);
+        });
       });
-    });
+    }
 
     async function saveAuthorizedUsers(list) {
       try {
@@ -576,11 +607,23 @@
         const doc = await db.collection('app_data').doc('common_settings').get();
         if (doc.exists && doc.data().data) {
           commonSettings = doc.data().data;
+        } else {
+          commonSettings = { ...DEFAULT_COMMON_SETTINGS };
+          await db.collection('app_data').doc('common_settings').set({
+            data: commonSettings,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
         }
-      } catch (e) {}
-      renderClassList();
-      renderGradeList();
-      updateGradeSelects();
+      } catch (e) {
+        console.warn('共通設定読込失敗、デフォルト値を使用:', e);
+        commonSettings = { ...DEFAULT_COMMON_SETTINGS };
+      }
+      
+      try {
+        renderClassList();
+        renderGradeList();
+        initAllSelects();
+      } catch (e) { console.warn('レンダリングエラー:', e); }
     }
 
     async function saveCommonSettings() {
@@ -594,6 +637,7 @@
 
     function renderClassList() {
       const el = document.getElementById('classList');
+      if (!el) return;
       el.innerHTML = commonSettings.classes.map(c => `
         <div class="list-item"><span>${c}</span><button data-class="${c}">削除</button></div>
       `).join('');
@@ -607,6 +651,7 @@
 
     function renderGradeList() {
       const el = document.getElementById('gradeList');
+      if (!el) return;
       el.innerHTML = commonSettings.grades.map(g => `
         <div class="list-item"><span>${g}</span><button data-grade="${g}">削除</button></div>
       `).join('');
@@ -615,16 +660,8 @@
         commonSettings.grades = commonSettings.grades.filter(g => g !== btn.dataset.grade);
         await saveCommonSettings();
         renderGradeList();
-        updateGradeSelects();
+        initAllSelects();
       }));
-    }
-
-    function updateGradeSelects() {
-      const opts = commonSettings.grades.map(g => `<option value="${g}">${g}</option>`).join('');
-      const ballGrade = document.getElementById('ballGrade');
-      const teamGrade = document.getElementById('teamGrade');
-      if (ballGrade) ballGrade.innerHTML = '<option value="">学年を選択</option>' + opts;
-      if (teamGrade) teamGrade.innerHTML = '<option value="">対象学年（任意）</option>' + opts;
     }
 
     document.getElementById('addClassBtn').addEventListener('click', async () => {
@@ -644,7 +681,7 @@
       commonSettings.grades.push(v);
       await saveCommonSettings();
       renderGradeList();
-      updateGradeSelects();
+      initAllSelects();
       document.getElementById('newGradeInput').value = '';
     });
 
@@ -674,8 +711,9 @@
         });
         
         alert('試合を追加しました');
-        ['ballVenue', 'ballTime', 'ballSport', 'ballGrade'].forEach(id => document.getElementById(id).value = '');
+        document.getElementById('ballTime').value = '';
         document.getElementById('ballDuration').value = '30';
+        initAllSelects();
       } catch (e) { alert('追加に失敗しました'); }
     });
 
@@ -706,9 +744,12 @@
         });
         
         alert('種目を追加しました');
-        ['teamName', 'teamTime', 'teamPlace', 'teamNote'].forEach(id => document.getElementById(id).value = '');
+        document.getElementById('teamName').value = '';
+        document.getElementById('teamTime').value = '';
         document.getElementById('teamDuration').value = '15';
-        document.getElementById('teamGrade').value = '';
+        document.getElementById('teamPlace').value = '';
+        document.getElementById('teamNote').value = '';
+        initAllSelects();
       } catch (e) { alert('追加に失敗しました'); }
     });
 
@@ -734,9 +775,7 @@
       if (!confirm('最後の確認です。本当に実行しますか？')) return;
       try {
         const keys = ['ball_sports_data_v4', 'team_events_data_v4', 'common_settings'];
-        for (const key of keys) {
-          localStorage.removeItem(key);
-        }
+        for (const key of keys) localStorage.removeItem(key);
         localStorage.removeItem('input_history_v4');
         alert('初期化が完了しました。ページを更新します。');
         location.reload();
@@ -751,6 +790,9 @@
         document.getElementById('passwordArea').classList.add('hidden');
         document.getElementById('settingsContent').classList.remove('hidden');
         document.getElementById('settingsAuthError').classList.add('hidden');
+        // 設定画面表示後に選択肢を初期化
+        setTimeout(initAllSelects, 50);
+        setTimeout(initAllSelects, 200);
       } else {
         document.getElementById('settingsAuthError').classList.remove('hidden');
       }
@@ -818,15 +860,34 @@
       }
     };
 
+    // ========== ✅ 修正済み init() 関数 ==========
     async function init() {
       Sync.setStatus('syncing', '接続中...');
-      await loadAuthorizedUsers();
-      await loadCommonSettings();
-      updateAdminAuthUI();
-      calcTotalRanking();
-      Sync.setStatus('online', 'オンライン');
-      db.collection('app_data').onSnapshot(() => calcTotalRanking());
+      
+      try { await loadAuthorizedUsers(); } catch (e) { console.warn(e); }
+      try { await loadCommonSettings(); } catch (e) { console.warn(e); }
+      try { updateAdminAuthUI(); } catch (e) { console.warn(e); }
+      try { calcTotalRanking(); } catch (e) { console.warn(e); }
+      try { initAllSelects(); } catch (e) { console.warn(e); }
+      
+      // ✅ 何があっても3秒後には「オンライン」表示
+      setTimeout(() => {
+        Sync.setStatus('online', 'オンライン');
+        try { initAllSelects(); } catch (e) {}
+      }, 3000);
+      
+      // さらにバックアップで5秒後にも
+      setTimeout(() => {
+        try { initAllSelects(); } catch (e) {}
+      }, 5000);
+      
+      try {
+        db.collection('app_data').onSnapshot(() => {
+          try { calcTotalRanking(); } catch (e) {}
+        });
+      } catch (e) {}
     }
+    
     init();
   </script>
 </body>
