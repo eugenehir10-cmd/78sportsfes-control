@@ -341,58 +341,43 @@
 
     // ===== 機器削除（関連履歴も削除）=====
     // ===== 機器削除（完全抹消：他に引き継がない）=====
-async function deleteDeviceWithHistory(deviceId) {
-  if (!db) return false;
-  
-  const deviceRef = db.collection('equipment').doc(deviceId);
-  const deviceSnap = await deviceRef.get();
-  
-  if (!deviceSnap.exists) {
-    showPopup('指定された機器が存在しません', 'warning');
-    // 既に存在しない場合は強制的に画面から削除
-    items = items.filter(i => i.id !== deviceId);
-    renderSettings();
-    return false;
-  }
-  
-  const deviceData = deviceSnap.data();
-  
-  if (deviceData.status === 'lend') {
-    showPopup('貸出中の機器は削除できません。先に返却してください', 'error');
-    return false;
-  }
-  
-  // ✅ 先に画面上から即時削除
-  items = items.filter(i => i.id !== deviceId);
-  renderSettings();
-  
-  // ✅ Firestoreから削除
-  await deviceRef.delete();
-  
-  // ✅ 関連履歴削除
-  const histSnap = await db.collection('history').get();
-  const batch = db.batch();
-  let deletedHistCount = 0;
-  
-  histSnap.docs.forEach(doc => {
-    const data = doc.data();
-    if (data.ids && data.ids.includes(deviceId)) {
-      batch.delete(doc.ref);
-      deletedHistCount++;
-    }
-  });
-  
-  if (deletedHistCount > 0) await batch.commit();
-  
-  showPopup(
-    `✅ 機器を完全削除しました\n` +
-    `番号：${deviceId}\n` +
-    `種別：${deviceData.category || 'なし'}\n` +
-    `関連履歴：${deletedHistCount}件削除`
-  );
-  return true;
-}
-    // ===== 全データ初期化 =====
+    // ===== 機器削除（完全削除・復活防止）=====
+    async function deleteDeviceWithHistory(deviceId) {
+      if (!db) return false;
+      
+      const deviceRef = db.collection('equipment').doc(deviceId);
+      
+      // ✅ 先にFirestoreから削除が成功してから画面を更新
+      try {
+        await deviceRef.delete();
+      } catch (err) {
+        console.error('削除エラー:', err);
+        showPopup('削除に失敗しました: ' + err.message, 'error');
+        return false;
+      }
+      
+      // ✅ 関連履歴削除
+      try {
+        const histSnap = await db.collection('history').get();
+        const batch = db.batch();
+        histSnap.docs.forEach(doc => {
+          const data = doc.data();
+          if (data.ids && data.ids.includes(deviceId)) {
+            batch.delete(doc.ref);
+          }
+        });
+        await batch.commit();
+      } catch (err) {
+        console.warn('履歴削除エラー（機器本体は削除済）:', err);
+      }
+      
+      // ✅ 画面から消す（同期が戻しても消え続ける）
+      items = items.filter(i => i.id !== deviceId);
+      renderAll();
+      
+      showPopup(`✅ ${deviceId} を完全削除しました`);
+      return true;
+    }    // ===== 全データ初期化 =====
     async function resetAllData() {
       if (!db) return false;
       
@@ -752,15 +737,18 @@ async function deleteDeviceWithHistory(deviceId) {
         if (!confirm(
           `⚠️ 機器を完全削除します\n` +
           `管理番号：${delDevice}\n` +
-          `この機器のデータ（ラベル・詳細情報）は\n` +
-          `完全に消去され、他の備品に引き継がれることは\n` +
-          `一切ありません。復元できません。\n\n` +
-          `よろしいですか？`
+          `データは復元できません。よろしいですか？`
         )) return;
         
         if (!db) return showPopup('未接続です', 'warning');
+        
+        // ✅ 貸出中は削除不可
+        const targetItem = items.find(i => i.id === delDevice);
+        if (targetItem && targetItem.status === 'lend') {
+          return showPopup('貸出中の機器は削除できません。先に返却してください', 'error');
+        }
+        
         await deleteDeviceWithHistory(delDevice);
-        renderSettings(); // 画面を更新
         return;
       }
     });
