@@ -384,6 +384,55 @@
         return false;
       }
     }
+        // ===== 全データ初期化 =====
+    async function resetAllData() {
+      if (!db) {
+        showPopup('未接続です', 'warning');
+        return false;
+      }
+      
+      if (!confirm('⚠️ 本当に全てのデータを削除しますか？\n機器・履歴・設定すべて消去されます。')) return false;
+      if (!confirm('もう一度確認：完全に消去しますか？')) return false;
+      
+      try {
+        let count = 0;
+        
+        // 1. 機器全削除
+        const equipSnap = await db.collection('equipment').get();
+        const batch = db.batch();
+        equipSnap.docs.forEach(d => { batch.delete(d.ref); count++; });
+        await batch.commit();
+        console.log(`機器 ${count}件 削除`);
+        
+        // 2. 履歴全削除
+        const histSnap = await db.collection('history').get();
+        const batch2 = db.batch();
+        histSnap.docs.forEach(d => { batch2.delete(d.ref); });
+        await batch2.commit();
+        console.log('履歴 削除完了');
+        
+        // 3. 設定リセット
+        await db.collection('settings').doc('master').set({
+          categories: [],
+          users: []
+        });
+        console.log('設定 リセット完了');
+        
+        // 4. ローカルも空に
+        items = [];
+        history = [];
+        categories = [];
+        users = [];
+        
+        showPopup('✅ 全データを初期化しました');
+        return true;
+        
+      } catch (err) {
+        console.error('初期化エラー:', err);
+        showPopup('❌ 初期化失敗: ' + err.message, 'error');
+        return false;
+      }
+    }
 
     // ===== 描画 =====
     function renderAll() {
