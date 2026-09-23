@@ -149,6 +149,24 @@
       border: 1px solid rgba(59,130,246,0.3);
     }
     .tab-btn:hover:not(.active) { background: rgba(255,255,255,0.1); color: #e5e7eb; }
+    /* ✅ セレクトボックスの白飛び防止 */
+    select option {
+      background-color: #1a1a1a !important;
+      color: #ffffff !important;
+      padding: 8px 12px;
+    }
+    select option:checked {
+      background-color: #2563eb !important;
+      color: #ffffff !important;
+    }
+    select option:hover {
+      background-color: #374151 !important;
+    }
+    /* Firefox対応 */
+    select {
+      background-color: rgba(255,255,255,0.05) !important;
+      color: #ffffff !important;
+    }
   </style>
 </head>
 <body class="text-white max-w-5xl mx-auto px-4 py-10 md:py-14">
