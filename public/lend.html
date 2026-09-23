@@ -343,64 +343,46 @@
     // ===== 機器削除（完全抹消：他に引き継がない）=====
     // ===== 機器削除（完全削除・復活防止）=====
     async function deleteDeviceWithHistory(deviceId) {
-      if (!db) return false;
-      
-      const deviceRef = db.collection('equipment').doc(deviceId);
-      
-      // ✅ 先にFirestoreから削除が成功してから画面を更新
-      try {
-        await deviceRef.delete();
-      } catch (err) {
-        console.error('削除エラー:', err);
-        showPopup('削除に失敗しました: ' + err.message, 'error');
+      if (!db) {
+        showPopup('DB未接続', 'error');
         return false;
       }
-      
-      // ✅ 関連履歴削除
+
+      // 貸出中チェック
+      const targetItem = items.find(i => i.id === deviceId);
+      if (targetItem && targetItem.status === 'lend') {
+        showPopup('貸出中のため削除不可', 'error');
+        return false;
+      }
+
       try {
+        // 1. 機器を削除
+        await db.collection('equipment').doc(deviceId).delete();
+        console.log('✅ 機器削除成功:', deviceId);
+
+        // 2. 関連履歴削除
         const histSnap = await db.collection('history').get();
         const batch = db.batch();
         histSnap.docs.forEach(doc => {
-          const data = doc.data();
-          if (data.ids && data.ids.includes(deviceId)) {
+          const d = doc.data();
+          if (d.ids && d.ids.includes(deviceId)) {
             batch.delete(doc.ref);
           }
         });
         await batch.commit();
+
+        // 3. 画面から確実に消す
+        items = items.filter(i => i.id !== deviceId);
+        renderAll();
+
+        showPopup(`✅ ${deviceId} 削除完了`);
+        return true;
+
       } catch (err) {
-        console.warn('履歴削除エラー（機器本体は削除済）:', err);
+        console.error('❌ 削除失敗:', err);
+        showPopup('削除失敗: ' + err.message, 'error');
+        return false;
       }
-      
-      // ✅ 画面から消す（同期が戻しても消え続ける）
-      items = items.filter(i => i.id !== deviceId);
-      renderAll();
-      
-      showPopup(`✅ ${deviceId} を完全削除しました`);
-      return true;
-    }    // ===== 全データ初期化 =====
-    async function resetAllData() {
-      if (!db) return false;
-      
-      if (!confirm('⚠️ 本当に全てのデータを削除しますか？この操作は取り消せません。')) return false;
-      if (!confirm('もう一度確認：機器・履歴・設定すべて消去しますか？')) return false;
-      
-      const batch = db.batch();
-      
-      // 機器全削除
-      const equipSnap = await db.collection('equipment').get();
-      equipSnap.docs.forEach(d => batch.delete(d.ref));
-      
-      // 履歴全削除
-      const histSnap = await db.collection('history').get();
-      histSnap.docs.forEach(d => batch.delete(d.ref));
-      
-      // 設定リセット
-      batch.set(db.collection('settings').doc('master'), {
-        categories: [], users: []
-      });
-      
-      await batch.commit();
-      return true;
     }
 
     // ===== 描画 =====
