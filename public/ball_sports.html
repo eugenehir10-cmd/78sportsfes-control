@@ -279,8 +279,10 @@
     }
 
     let data = getDefaultData();
-    function saveData() { localStorage.setItem('ball_sports_data_v4', JSON.stringify(data)); }
-    function loadData() { const s = localStorage.getItem('ball_sports_data_v4'); if (s) try { data = Object.assign(getDefaultData(), JSON.parse(s)); } catch {} }
+        async function saveData() {
+      localStorage.setItem('ball_sports_data_v4', JSON.stringify(data));
+      await db.collection('app_data').doc('ball_sports_data_v4').set({ data: data });
+    }
 
     // 🔴 入力履歴に追加
     function addHistory(type, matchId, before, after) {
