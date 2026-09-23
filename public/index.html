@@ -21,17 +21,20 @@
   <style>
     * {
       font-family: 'Space Grotesk', system-ui, sans-serif;
+      -webkit-tap-highlight-color: transparent;
     }
     .font-mono-num {
       font-family: 'JetBrains Mono', monospace;
     }
 
-    /* ===== 背景：グリッド + 星屑パーティクル ===== */
+    /* ===== 背景：オーロラ + グリッド + 星屑 ===== */
     body {
       background: 
-        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(255,255,255,0.07) 0%, transparent 60%),
-        radial-gradient(ellipse 50% 40% at 10% 100%, rgba(59,130,246,0.04) 0%, transparent 60%),
-        radial-gradient(ellipse 50% 40% at 90% 100%, rgba(16,185,129,0.04) 0%, transparent 60%),
+        /* オーロラ光 */
+        radial-gradient(ellipse 60% 40% at 20% 0%, rgba(59,130,246,0.08) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 80% 10%, rgba(16,185,129,0.06) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 30% at 50% 100%, rgba(251,191,36,0.04) 0%, transparent 60%),
+        /* ベース */
         linear-gradient(180deg, #050505 0%, #0a0a0a 50%, #050505 100%);
       min-height: 100vh;
       position: relative;
@@ -45,14 +48,34 @@
       right: 0;
       bottom: 0;
       background-image: 
-        linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
-      background-size: 60px 60px;
-      mask-image: radial-gradient(ellipse at center, black 25%, transparent 85%);
-      -webkit-mask-image: radial-gradient(ellipse at center, black 25%, transparent 85%);
+        linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px);
+      background-size: 50px 50px;
+      mask-image: radial-gradient(ellipse at center, black 30%, transparent 85%);
+      -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 85%);
       pointer-events: none;
       z-index: 0;
     }
+    /* オーロラの揺らぎ */
+    body::after {
+      content: '';
+      position: fixed;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: 
+        radial-gradient(circle at 30% 30%, rgba(59,130,246,0.03) 0%, transparent 40%),
+        radial-gradient(circle at 70% 70%, rgba(16,185,129,0.025) 0%, transparent 40%);
+      animation: aurora-shift 20s ease-in-out infinite alternate;
+      pointer-events: none;
+      z-index: 0;
+    }
+    @keyframes aurora-shift {
+      0% { transform: translate(0, 0) rotate(0deg); }
+      100% { transform: translate(-3%, 2%) rotate(3deg); }
+    }
+
     /* 星屑パーティクル */
     .particles {
       position: fixed;
@@ -73,20 +96,23 @@
       opacity: 0;
       animation: particle-float linear infinite;
     }
+    .particle.bright {
+      box-shadow: 0 0 6px rgba(255,255,255,0.6);
+    }
     @keyframes particle-float {
       0% {
         opacity: 0;
         transform: translateY(100vh) translateX(0);
       }
       10% {
-        opacity: 0.6;
+        opacity: 0.7;
       }
       90% {
-        opacity: 0.6;
+        opacity: 0.7;
       }
       100% {
         opacity: 0;
-        transform: translateY(-10vh) translateX(50px);
+        transform: translateY(-15vh) translateX(40px);
       }
     }
 
@@ -143,10 +169,10 @@
     .countdown-card::after {
       content: '';
       position: absolute;
-      top: 20px;
-      right: 20px;
-      width: 40px;
-      height: 40px;
+      top: 16px;
+      right: 16px;
+      width: 32px;
+      height: 32px;
       background: url('https://p16-flow-image-sign.ibyteimg.com/tos-mya-i-uo7y4d541q/a3ab12918aba45a2a2329845f6dcc9e9.jpg~tplv-0es2k971ck-image.image?rcl=202609240247184651974C1893822DA5C7&rk3s=8e244e95&rrcfp=935dee89&x-expires=1790794039&x-signature=CNjmqAzc0rP2t6PzpuA9Xa2Qioc%3D') center/contain no-repeat;
       opacity: 0.15;
       pointer-events: none;
@@ -215,6 +241,7 @@
       transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
       position: relative;
       overflow: hidden;
+      -webkit-tap-highlight-color: transparent;
     }
     .func-card::before {
       content: '';
@@ -226,7 +253,8 @@
       background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
       transition: left 0.9s ease;
     }
-    .func-card:hover::before {
+    .func-card:hover::before,
+    .func-card:active::before {
       left: 100%;
     }
     .func-card::after {
@@ -243,28 +271,32 @@
       transition: all 0.5s ease;
       pointer-events: none;
     }
-    .func-card:hover::after {
+    .func-card:hover::after,
+    .func-card:active::after {
       background: linear-gradient(135deg, rgba(255,255,255,0.22), transparent 35%, transparent 65%, rgba(255,255,255,0.12));
     }
-    .func-card:hover {
-      transform: translateY(-12px) scale(1.025);
+    .func-card:hover,
+    .func-card:active {
+      transform: translateY(-8px) scale(1.02);
       border-color: rgba(255,255,255,0.22);
       box-shadow: 
-        0 45px 90px rgba(0,0,0,0.7),
+        0 30px 60px rgba(0,0,0,0.6),
         0 0 0 1px rgba(255,255,255,0.05),
-        0 0 100px rgba(255,255,255,0.04);
+        0 0 80px rgba(255,255,255,0.04);
     }
-    .func-card-blue:hover {
+    .func-card-blue:hover,
+    .func-card-blue:active {
       box-shadow: 
-        0 45px 90px rgba(0,0,0,0.7),
+        0 30px 60px rgba(0,0,0,0.6),
         0 0 0 1px rgba(59,130,246,0.12),
-        0 0 90px rgba(59,130,246,0.1);
+        0 0 70px rgba(59,130,246,0.08);
     }
-    .func-card-emerald:hover {
+    .func-card-emerald:hover,
+    .func-card-emerald:active {
       box-shadow: 
-        0 45px 90px rgba(0,0,0,0.7),
+        0 30px 60px rgba(0,0,0,0.6),
         0 0 0 1px rgba(16,185,129,0.12),
-        0 0 90px rgba(16,185,129,0.1);
+        0 0 70px rgba(16,185,129,0.08);
     }
 
     /* ===== アイコンボックス ===== */
@@ -283,11 +315,13 @@
       transition: opacity 0.55s ease;
       z-index: -1;
     }
-    .func-card:hover .icon-box::before {
+    .func-card:hover .icon-box::before,
+    .func-card:active .icon-box::before {
       opacity: 0.7;
     }
-    .func-card:hover .icon-box {
-      transform: scale(1.18) rotate(-6deg);
+    .func-card:hover .icon-box,
+    .func-card:active .icon-box {
+      transform: scale(1.15) rotate(-5deg);
     }
 
     /* ===== テキストスタイル ===== */
@@ -375,14 +409,167 @@
       box-shadow: 0 0 12px rgba(34,197,94,0.7);
     }
 
-    /* ===== レスポンシブ調整 ===== */
+    /* ============================================ */
+    /* ===== スマホ最適化（640px以下） ===== */
+    /* ============================================ */
     @media (max-width: 640px) {
-      .time-block {
-        min-width: 60px !important;
-        padding: 10px 6px !important;
+      body {
+        padding: 1rem 0.75rem !important;
       }
+
+      /* ヘッダー */
+      header {
+        margin-bottom: 2.5rem !important;
+      }
+      .logo-main {
+        width: 5rem !important;
+        height: 5rem !important;
+      }
+      h1 {
+        font-size: 1.75rem !important;
+        letter-spacing: 0.1em !important;
+      }
+      header p {
+        font-size: 0.75rem !important;
+        letter-spacing: 0.2em !important;
+      }
+      .divider {
+        width: 6rem !important;
+        margin-top: 1.5rem !important;
+      }
+
+      /* カウントダウン：スマホ専用レイアウト */
+      .countdown-card {
+        padding: 1.5rem 1rem !important;
+        margin-bottom: 2.5rem !important;
+        border-radius: 1.25rem !important;
+      }
+      .countdown-card::after {
+        width: 24px !important;
+        height: 24px !important;
+        top: 12px !important;
+        right: 12px !important;
+      }
+      #countdown {
+        display: grid !important;
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 0.5rem !important;
+        align-items: stretch !important;
+      }
+      .time-block,
       .ms-block {
-        min-width: 50px !important;
+        min-width: 0 !important;
+        width: 100% !important;
+        padding: 0.75rem 0.25rem !important;
+        border-radius: 0.75rem !important;
+        animation: none !important;
+      }
+      .time-block .font-mono-num,
+      .ms-block .font-mono-num {
+        font-size: 1.75rem !important;
+        line-height: 1 !important;
+      }
+      .time-block .text-gray-500,
+      .ms-block .text-gray-400 {
+        font-size: 8px !important;
+        margin-top: 0.4rem !important;
+        letter-spacing: 0.15em !important;
+      }
+      /* ミリ秒だけ下に大きく表示 */
+      .ms-block {
+        grid-column: 1 / -1 !important;
+        margin-top: 0.25rem !important;
+        padding: 0.5rem !important;
+      }
+      .ms-block .font-mono-num {
+        font-size: 1.25rem !important;
+      }
+      /* コロンを非表示 */
+      .pulse-dot {
+        display: none !important;
+      }
+      /* カウントダウン下部 */
+      .countdown-card > div:last-child {
+        margin-top: 1.5rem !important;
+        gap: 0.75rem !important;
+      }
+      .countdown-card > div:first-child {
+        margin-bottom: 1.5rem !important;
+      }
+
+      /* 機能メニュー */
+      .section-divider {
+        margin-bottom: 1.5rem !important;
+      }
+      .section-divider span {
+        font-size: 0.7rem !important;
+        letter-spacing: 0.15em !important;
+        padding: 0 0.75rem !important;
+      }
+      .func-card {
+        padding: 1.25rem !important;
+        border-radius: 1rem !important;
+      }
+      .func-card:hover,
+      .func-card:active {
+        transform: translateY(-4px) scale(1.01) !important;
+      }
+      .icon-box {
+        width: 3rem !important;
+        height: 3rem !important;
+        margin-bottom: 1rem !important;
+      }
+      .icon-box svg {
+        width: 1.5rem !important;
+        height: 1.5rem !important;
+      }
+      .func-card h3 {
+        font-size: 1.1rem !important;
+        margin-bottom: 0.35rem !important;
+      }
+      .func-card p {
+        font-size: 0.8rem !important;
+      }
+      .func-card > div:last-child {
+        margin-top: 1rem !important;
+        font-size: 0.8rem !important;
+      }
+
+      /* フッター */
+      footer {
+        margin-top: 3rem !important;
+        padding-bottom: 1.5rem !important;
+      }
+      footer img {
+        width: 1.5rem !important;
+        height: 1.5rem !important;
+      }
+      footer p {
+        font-size: 8px !important;
+        letter-spacing: 0.2em !important;
+      }
+
+      /* マウスグローはモバイルで非表示 */
+      .mouse-glow {
+        display: none !important;
+      }
+    }
+
+    /* ===== 中間サイズ（タブレット）最適化 ===== */
+    @media (min-width: 641px) and (max-width: 1024px) {
+      #countdown {
+        gap: 0.75rem !important;
+      }
+      .time-block,
+      .ms-block {
+        min-width: 70px !important;
+        padding: 0.75rem 0.5rem !important;
+      }
+      .time-block .font-mono-num {
+        font-size: 2.25rem !important;
+      }
+      .ms-block .font-mono-num {
+        font-size: 1.75rem !important;
       }
     }
   </style>
@@ -391,7 +578,7 @@
   <!-- 星屑パーティクル背景 -->
   <div class="particles" id="particles"></div>
 
-  <!-- マウス追従グロー -->
+  <!-- マウス追従グロー（PCのみ） -->
   <div class="mouse-glow" id="mouseGlow"></div>
 
   <!-- ヘッダー -->
@@ -446,7 +633,7 @@
       Features
     </span>
   </div>
-  <div class="grid gap-6 md:gap-8 sm:grid-cols-2 fade-in-up delay-3 relative z-10">
+  <div class="grid gap-5 md:gap-8 sm:grid-cols-2 fade-in-up delay-3 relative z-10">
     <a href="lend.html" class="func-card func-card-blue p-8 md:p-10 rounded-2xl block group">
       <div class="icon-box w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500/25 to-blue-700/10 border border-blue-500/25 flex items-center justify-center mb-7">
         <i data-lucide="radio" class="w-8 h-8 text-blue-400"></i>
@@ -489,25 +676,30 @@
 
     // 星屑パーティクル生成
     const particlesContainer = document.getElementById('particles');
-    const particleCount = 60;
+    const particleCount = 80;
     for (let i = 0; i < particleCount; i++) {
       const particle = document.createElement('div');
-      particle.className = 'particle';
+      particle.className = 'particle' + (Math.random() > 0.85 ? ' bright' : '');
       particle.style.left = Math.random() * 100 + '%';
-      particle.style.animationDuration = (15 + Math.random() * 20) + 's';
-      particle.style.animationDelay = Math.random() * 20 + 's';
-      particle.style.width = (1 + Math.random() * 2) + 'px';
-      particle.style.height = particle.style.width;
-      particle.style.opacity = 0.3 + Math.random() * 0.4;
+      particle.style.animationDuration = (12 + Math.random() * 18) + 's';
+      particle.style.animationDelay = Math.random() * 15 + 's';
+      const size = 1 + Math.random() * 2.5;
+      particle.style.width = size + 'px';
+      particle.style.height = size + 'px';
+      particle.style.opacity = 0.3 + Math.random() * 0.5;
       particlesContainer.appendChild(particle);
     }
 
-    // マウス追従グロー
+    // マウス追従グロー（PCのみ）
     const mouseGlow = document.getElementById('mouseGlow');
-    document.addEventListener('mousemove', (e) => {
-      mouseGlow.style.left = e.clientX + 'px';
-      mouseGlow.style.top = e.clientY + 'px';
-    });
+    if (window.innerWidth > 640) {
+      document.addEventListener('mousemove', (e) => {
+        mouseGlow.style.left = e.clientX + 'px';
+        mouseGlow.style.top = e.clientY + 'px';
+      });
+    } else {
+      mouseGlow.style.display = 'none';
+    }
 
     const TARGET = new Date('2026-10-01T00:00:00');
     
@@ -522,17 +714,17 @@
 
       if (diff <= 0) {
         container.innerHTML = `
-          <div class="w-full py-12">
+          <div class="w-full py-8 md:py-12">
             <div class="flex items-center justify-center gap-3 mb-6">
               <img 
                 src="https://p16-flow-image-sign.ibyteimg.com/tos-mya-i-uo7y4d541q/a3ab12918aba45a2a2329845f6dcc9e9.jpg~tplv-0es2k971ck-image.image?rcl=202609240247184651974C1893822DA5C7&rk3s=8e244e95&rrcfp=935dee89&x-expires=1790794039&x-signature=CNjmqAzc0rP2t6PzpuA9Xa2Qioc%3D" 
                 alt="78th Logo" 
-                class="w-16 h-16"
+                class="w-12 h-12 md:w-16 md:h-16"
                 style="filter: drop-shadow(0 0 20px rgba(255,255,255,0.2));"
               >
             </div>
-            <p class="text-3xl md:text-5xl lg:text-6xl font-bold gradient-text glow-text tracking-[0.1em]">体育祭当日！</p>
-            <p class="text-gray-400 mt-6 tracking-[0.2em] uppercase text-sm">Let's make it unforgettable!</p>
+            <p class="text-2xl md:text-5xl lg:text-6xl font-bold gradient-text glow-text tracking-[0.1em]">体育祭当日！</p>
+            <p class="text-gray-400 mt-4 md:mt-6 tracking-[0.2em] uppercase text-xs md:text-sm">Let's make it unforgettable!</p>
           </div>
         `;
         lucide.createIcons();
