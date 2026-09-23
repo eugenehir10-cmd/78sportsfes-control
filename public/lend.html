@@ -68,7 +68,9 @@
       </div>
       <div>
         <label class="block mb-1.5 text-sm font-medium">配置/行き先</label>
-        <input type="text" id="lendPlace" class="w-full border rounded-lg px-3 py-2.5" required>
+        <select id="lendPlace" class="w-full border rounded-lg px-3 py-2.5" required>
+          <option value="">選択してください</option>
+        </select>
       </div>
       <div>
         <label class="block mb-1.5 text-sm font-medium">備考（任意）</label>
@@ -164,6 +166,15 @@
         </div>
         <ul id="userList" class="space-y-1.5 text-sm"></ul>
       </div>
+      <!-- 配置/行き先 選択肢管理 -->
+      <div class="p-3 bg-white rounded-lg shadow">
+        <h3 class="font-medium mb-2 text-sm">📍 配置/行き先 選択肢</h3>
+        <div class="flex gap-2 mb-3">
+          <input type="text" id="newPlaceOption" placeholder="例: 体育館 / 本部 / グラウンド" class="flex-1 border rounded-lg px-3 py-2.5">
+          <button id="addPlaceOption" class="bg-blue-500 text-white px-4 py-2.5 rounded-lg whitespace-nowrap">追加</button>
+        </div>
+        <ul id="placeOptionList" class="space-y-1.5 text-sm"></ul>
+      </div>
       <!-- 一括登録 -->
       <div class="p-3 bg-white rounded-lg shadow">
         <h3 class="font-medium mb-2 text-sm">📋 機器一括登録</h3>
@@ -214,6 +225,7 @@
     let history = [];
     let categories = [];
     let users = [];
+    let placeOptions = [];
 
     // ===== ユーティリティ =====
     function nowTime() {
@@ -278,6 +290,7 @@
               const d = snap.data();
               categories = d.categories || [];
               users = d.users || [];
+              placeOptions = d.placeOptions || [];
             }
             renderAll();
           },
@@ -292,7 +305,11 @@
     // ===== データ操作 =====
     async function saveSettings() {
       if (!db) return;
-      await db.collection('settings').doc('master').set({ categories, users }, { merge: true });
+      await db.collection('settings').doc('master').set({ 
+        categories, 
+        users,
+        placeOptions
+      }, { merge: true });
     }
     async function addEquipment(category, id) {
       if (!db) return;
@@ -387,8 +404,8 @@
         const batch2 = db.batch();
         histSnap.docs.forEach(d => batch2.delete(d.ref));
         await batch2.commit();
-        await db.collection('settings').doc('master').set({ categories: [], users: [] });
-        items = []; history = []; categories = []; users = [];
+        await db.collection('settings').doc('master').set({ categories: [], users: [], placeOptions: [] });
+        items = []; history = []; categories = []; users = []; placeOptions = [];
         showPopup('✅ 全データを初期化しました');
         return true;
       } catch (err) {
@@ -406,6 +423,12 @@
       renderSettings();
     }
     function renderSelects() {
+      // 配置/行き先 選択肢
+      const placeSelect = document.getElementById('lendPlace');
+      if (placeSelect) {
+        placeSelect.innerHTML = '<option value="">選択してください</option>'
+          + placeOptions.map(p => `<option value="${p}">${p}</option>`).join('');
+      }
       const catOpt = '<option value="">選択してください</option>' + categories.map(c => `<option value="${c}">${c}</option>`).join('');
       const userOpt = '<option value="">選択してください</option>' + users.map(u => `<option value="${u}">${u}</option>`).join('');
       const lendCat = document.getElementById('lendCategory');
@@ -551,6 +574,13 @@
             </button>
           </li>`;
       }).join('');
+      // 配置/行き先 選択肢一覧
+      const placeList = document.getElementById('placeOptionList');
+      if (placeList) placeList.innerHTML = placeOptions.map(p => `
+        <li class="flex items-center justify-between border-b py-2">
+          <span>${p}</span>
+          <button data-del-place="${p}" class="text-red-500 hover:text-red-700 text-sm px-2 py-1 rounded">🗑️ 削除</button>
+        </li>`).join('');
       const filterSelect = document.getElementById('editFilterCategory');
       if (filterSelect) filterSelect.innerHTML = '<option value="">全て表示</option>' + categories.map(c => `<option value="${c}">${c}</option>`).join('');
       const filterCat = filterSelect?.value || '';
@@ -665,6 +695,13 @@
       showPopup(`✅ ${v} 追加`);
       document.getElementById('newUser').value = '';
     });
+    document.getElementById('addPlaceOption')?.addEventListener('click', async () => {
+      const v = document.getElementById('newPlaceOption')?.value.trim();
+      if (!v || placeOptions.includes(v)) return showPopup('無効または既存です', 'warning');
+      placeOptions.push(v); await saveSettings();
+      showPopup(`✅ "${v}" 追加`);
+      document.getElementById('newPlaceOption').value = '';
+    });
     document.getElementById('bulkAdd')?.addEventListener('click', async () => {
       const cat = document.getElementById('bulkCategory')?.value;
       const pre = document.getElementById('bulkPrefix')?.value.trim();
@@ -720,6 +757,15 @@
         users = users.filter(u => u !== delUser);
         await saveSettings();
         showPopup(`✅ ${delUser} を削除しました`);
+        return;
+      }
+      // 配置/行き先 削除
+      const delPlace = e.target.getAttribute('data-del-place');
+      if (delPlace && !e.target.disabled) {
+        if (!confirm(`「${delPlace}」を削除してもよろしいですか？`)) return;
+        placeOptions = placeOptions.filter(p => p !== delPlace);
+        await saveSettings();
+        showPopup(`✅ "${delPlace}" 削除しました`);
         return;
       }
       // 個別削除
