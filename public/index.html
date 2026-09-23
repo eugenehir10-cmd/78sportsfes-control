@@ -5,10 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>78th Sports Festival Portal</title>
   <!-- リンクプレビュー設定 -->
-  <meta name="description" content="体育祭進行管理システム｜備品貸出・進行スケジュールを一元管理">
+  <meta name="description" content="第78回体育祭進行管理システム｜備品貸出・進行スケジュールを一元管理">
   <meta property="og:title" content="78th Sports Festival Portal">
-  <meta property="og:description" content="体育祭進行管理システム｜備品貸出・進行スケジュールを一元管理">
+  <meta property="og:description" content="第78回体育祭進行管理システム｜備品貸出・進行スケジュールを一元管理">
   <meta property="og:type" content="website">
+  <meta property="og:image" content="https://p16-flow-image-sign.ibyteimg.com/tos-mya-i-uo7y4d541q/a3ab12918aba45a2a2329845f6dcc9e9.jpg~tplv-0es2k971ck-image.image?rcl=202609240247184651974C1893822DA5C7&rk3s=8e244e95&rrcfp=935dee89&x-expires=1790794039&x-signature=CNjmqAzc0rP2t6PzpuA9Xa2Qioc%3D">
   <meta name="twitter:card" content="summary_large_image">
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Lucide アイコン -->
@@ -25,11 +26,12 @@
       font-family: 'JetBrains Mono', monospace;
     }
 
-    /* ===== 背景：グリッド + パーティクル ===== */
+    /* ===== 背景：グリッド + ロゴウォーターマーク ===== */
     body {
       background: 
-        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(255,255,255,0.08) 0%, transparent 60%),
-        radial-gradient(ellipse 60% 40% at 50% 120%, rgba(251,191,36,0.05) 0%, transparent 60%),
+        url('https://p16-flow-image-sign.ibyteimg.com/tos-mya-i-uo7y4d541q/a3ab12918aba45a2a2329845f6dcc9e9.jpg~tplv-0es2k971ck-image.image?rcl=202609240247184651974C1893822DA5C7&rk3s=8e244e95&rrcfp=935dee89&x-expires=1790794039&x-signature=CNjmqAzc0rP2t6PzpuA9Xa2Qioc%3D') right -10% bottom -10% / 60% 60% no-repeat fixed,
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(255,255,255,0.07) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 0% 100%, rgba(255,255,255,0.03) 0%, transparent 60%),
         linear-gradient(180deg, #050505 0%, #0d0d0d 50%, #050505 100%);
       min-height: 100vh;
       position: relative;
@@ -43,38 +45,62 @@
       right: 0;
       bottom: 0;
       background-image: 
-        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
-      background-size: 50px 50px;
-      mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
-      -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+        linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+      background-size: 60px 60px;
+      mask-image: radial-gradient(ellipse at center, black 25%, transparent 85%);
+      -webkit-mask-image: radial-gradient(ellipse at center, black 25%, transparent 85%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    body::after {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: url('https://p16-flow-image-sign.ibyteimg.com/tos-mya-i-uo7y4d541q/a3ab12918aba45a2a2329845f6dcc9e9.jpg~tplv-0es2k971ck-image.image?rcl=202609240247184651974C1893822DA5C7&rk3s=8e244e95&rrcfp=935dee89&x-expires=1790794039&x-signature=CNjmqAzc0rP2t6PzpuA9Xa2Qioc%3D') center center / 30% 30% no-repeat fixed;
+      opacity: 0.02;
       pointer-events: none;
       z-index: 0;
     }
     .mouse-glow {
       position: fixed;
-      width: 600px;
-      height: 600px;
+      width: 700px;
+      height: 700px;
       border-radius: 50%;
-      background: radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 70%);
+      background: radial-gradient(circle, rgba(255,255,255,0.07) 0%, transparent 70%);
       pointer-events: none;
       z-index: 1;
       transform: translate(-50%, -50%);
       transition: opacity 0.3s ease;
     }
 
+    /* ===== ロゴスタイル ===== */
+    .logo-main {
+      filter: 
+        drop-shadow(0 0 30px rgba(255,255,255,0.15))
+        drop-shadow(0 0 60px rgba(255,255,255,0.05));
+      animation: logo-float 5s ease-in-out infinite;
+    }
+    .logo-small {
+      filter: drop-shadow(0 0 8px rgba(255,255,255,0.1));
+    }
+
     /* ===== カウントダウンカード ===== */
     .countdown-card {
       background: 
-        linear-gradient(145deg, rgba(35,35,35,0.85), rgba(15,15,15,0.95));
+        linear-gradient(145deg, rgba(32,32,32,0.85), rgba(12,12,12,0.95));
       border: 1px solid rgba(255,255,255,0.1);
       backdrop-filter: blur(30px);
       box-shadow: 
-        0 30px 100px rgba(0,0,0,0.8),
+        0 30px 100px rgba(0,0,0,0.85),
         0 0 150px rgba(255,255,255,0.02),
         inset 0 1px 0 rgba(255,255,255,0.08),
         inset 0 -1px 0 rgba(0,0,0,0.5);
       position: relative;
+      overflow: hidden;
     }
     .countdown-card::before {
       content: '';
@@ -82,34 +108,46 @@
       inset: -1px;
       border-radius: inherit;
       padding: 1px;
-      background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent 30%, transparent 70%, rgba(251,191,36,0.1));
+      background: linear-gradient(135deg, rgba(255,255,255,0.18), transparent 25%, transparent 75%, rgba(255,255,255,0.08));
       -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
       mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
       -webkit-mask-composite: xor;
       mask-composite: exclude;
       pointer-events: none;
     }
+    .countdown-card::after {
+      content: '';
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      width: 40px;
+      height: 40px;
+      background: url('https://p16-flow-image-sign.ibyteimg.com/tos-mya-i-uo7y4d541q/a3ab12918aba45a2a2329845f6dcc9e9.jpg~tplv-0es2k971ck-image.image?rcl=202609240247184651974C1893822DA5C7&rk3s=8e244e95&rrcfp=935dee89&x-expires=1790794039&x-signature=CNjmqAzc0rP2t6PzpuA9Xa2Qioc%3D') center/contain no-repeat;
+      opacity: 0.15;
+      pointer-events: none;
+    }
 
     /* ===== タイムブロック ===== */
     .time-block {
       background: 
-        linear-gradient(180deg, rgba(50,50,50,0.9), rgba(20,20,20,0.95));
+        linear-gradient(180deg, rgba(48,48,48,0.9), rgba(18,18,18,0.95));
       border: 1px solid rgba(255,255,255,0.12);
       box-shadow: 
-        inset 0 2px 8px rgba(0,0,0,0.7),
-        0 12px 32px rgba(0,0,0,0.5),
+        inset 0 2px 8px rgba(0,0,0,0.75),
+        0 12px 32px rgba(0,0,0,0.55),
         0 0 0 1px rgba(255,255,255,0.02),
         0 0 40px rgba(255,255,255,0.02);
       position: relative;
       overflow: hidden;
-      transition: all 0.3s ease;
+      transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     }
     .time-block:hover {
-      transform: translateY(-2px);
+      transform: translateY(-4px) scale(1.02);
       box-shadow: 
-        inset 0 2px 8px rgba(0,0,0,0.7),
-        0 16px 40px rgba(0,0,0,0.6),
-        0 0 60px rgba(255,255,255,0.05);
+        inset 0 2px 8px rgba(0,0,0,0.75),
+        0 20px 45px rgba(0,0,0,0.7),
+        0 0 70px rgba(255,255,255,0.06);
+      border-color: rgba(255,255,255,0.2);
     }
     .time-block::before {
       content: '';
@@ -118,7 +156,7 @@
       left: 0;
       right: 0;
       height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.22), transparent);
     }
     .time-block::after {
       content: '';
@@ -127,26 +165,26 @@
       left: 0;
       right: 0;
       height: 1px;
-      background: rgba(0,0,0,0.3);
+      background: rgba(0,0,0,0.35);
       pointer-events: none;
     }
     .ms-block {
       background: 
-        linear-gradient(180deg, rgba(70,55,25,0.95), rgba(40,28,10,0.98));
-      border: 1px solid rgba(251,191,36,0.3);
+        linear-gradient(180deg, rgba(55,55,55,0.95), rgba(22,22,22,0.98));
+      border: 1px solid rgba(255,255,255,0.18);
       box-shadow: 
-        inset 0 2px 8px rgba(0,0,0,0.6),
-        0 12px 32px rgba(0,0,0,0.5),
-        0 0 50px rgba(251,191,36,0.12);
+        inset 0 2px 8px rgba(0,0,0,0.7),
+        0 12px 32px rgba(0,0,0,0.55),
+        0 0 50px rgba(255,255,255,0.05);
     }
     .ms-block::after {
-      background: rgba(0,0,0,0.2);
+      background: rgba(0,0,0,0.25);
     }
 
     /* ===== 機能カード ===== */
     .func-card {
       background: 
-        linear-gradient(145deg, rgba(35,35,35,0.8), rgba(18,18,18,0.95));
+        linear-gradient(145deg, rgba(32,32,32,0.8), rgba(15,15,15,0.95));
       border: 1px solid rgba(255,255,255,0.1);
       backdrop-filter: blur(15px);
       transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
@@ -160,8 +198,8 @@
       left: -100%;
       width: 100%;
       height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
-      transition: left 0.8s ease;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+      transition: left 0.9s ease;
     }
     .func-card:hover::before {
       left: 100%;
@@ -181,103 +219,115 @@
       pointer-events: none;
     }
     .func-card:hover::after {
-      background: linear-gradient(135deg, rgba(255,255,255,0.2), transparent 40%, transparent 60%, rgba(255,255,255,0.1));
+      background: linear-gradient(135deg, rgba(255,255,255,0.22), transparent 35%, transparent 65%, rgba(255,255,255,0.12));
     }
     .func-card:hover {
-      transform: translateY(-10px) scale(1.02);
-      border-color: rgba(255,255,255,0.2);
+      transform: translateY(-12px) scale(1.025);
+      border-color: rgba(255,255,255,0.22);
       box-shadow: 
-        0 40px 80px rgba(0,0,0,0.6),
+        0 45px 90px rgba(0,0,0,0.7),
         0 0 0 1px rgba(255,255,255,0.05),
-        0 0 100px rgba(255,255,255,0.03);
+        0 0 100px rgba(255,255,255,0.04);
     }
     .func-card-blue:hover {
       box-shadow: 
-        0 40px 80px rgba(0,0,0,0.6),
-        0 0 0 1px rgba(59,130,246,0.1),
-        0 0 80px rgba(59,130,246,0.08);
+        0 45px 90px rgba(0,0,0,0.7),
+        0 0 0 1px rgba(59,130,246,0.12),
+        0 0 90px rgba(59,130,246,0.1);
     }
     .func-card-emerald:hover {
       box-shadow: 
-        0 40px 80px rgba(0,0,0,0.6),
-        0 0 0 1px rgba(16,185,129,0.1),
-        0 0 80px rgba(16,185,129,0.08);
+        0 45px 90px rgba(0,0,0,0.7),
+        0 0 0 1px rgba(16,185,129,0.12),
+        0 0 90px rgba(16,185,129,0.1);
     }
 
     /* ===== アイコンボックス ===== */
     .icon-box {
-      transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: all 0.55s cubic-bezier(0.4, 0, 0.2, 1);
       position: relative;
     }
     .icon-box::before {
       content: '';
       position: absolute;
-      inset: -2px;
+      inset: -3px;
       border-radius: inherit;
       background: inherit;
-      filter: blur(15px);
+      filter: blur(18px);
       opacity: 0;
-      transition: opacity 0.5s ease;
+      transition: opacity 0.55s ease;
       z-index: -1;
     }
     .func-card:hover .icon-box::before {
-      opacity: 0.6;
+      opacity: 0.7;
     }
     .func-card:hover .icon-box {
-      transform: scale(1.15) rotate(-5deg);
+      transform: scale(1.18) rotate(-6deg);
     }
 
     /* ===== テキストスタイル ===== */
     .gradient-text {
-      background: linear-gradient(135deg, #ffffff 0%, #e5e5e5 40%, #a3a3a3 70%, #ffffff 100%);
+      background: linear-gradient(135deg, #ffffff 0%, #f0f0f0 30%, #c8c8c8 55%, #f0f0f0 80%, #ffffff 100%);
       -webkit-background-clip: text;
       background-clip: text;
       -webkit-text-fill-color: transparent;
       background-size: 200% 200%;
-      animation: gradient-shift 8s ease infinite;
+      animation: gradient-shift 10s ease infinite;
     }
     .glow-text {
       text-shadow: 
-        0 0 40px rgba(255,255,255,0.15),
-        0 0 80px rgba(255,255,255,0.08),
-        0 0 120px rgba(255,255,255,0.03);
-    }
-    .trophy-glow {
-      filter: 
-        drop-shadow(0 0 20px rgba(251,191,36,0.4))
-        drop-shadow(0 0 40px rgba(251,191,36,0.2));
-      animation: trophy-pulse 3s ease-in-out infinite;
+        0 0 50px rgba(255,255,255,0.18),
+        0 0 100px rgba(255,255,255,0.08);
     }
 
     /* ===== ディバイダー ===== */
     .divider {
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), rgba(251,191,36,0.3), rgba(255,255,255,0.2), transparent);
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), rgba(255,255,255,0.25), rgba(255,255,255,0.15), transparent);
       height: 1px;
     }
     .divider-thin {
       background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
       height: 1px;
     }
+    .section-divider {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .section-divider::before,
+    .section-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15));
+    }
+    .section-divider::after {
+      background: linear-gradient(90deg, rgba(255,255,255,0.15), transparent);
+    }
 
     /* ===== アニメーション ===== */
     @keyframes pulse-soft {
       0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.4; transform: scale(0.85); }
+      50% { opacity: 0.35; transform: scale(0.8); }
     }
     .pulse-dot {
       animation: pulse-soft 1.2s ease-in-out infinite;
     }
     @keyframes float {
       0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-8px); }
+      50% { transform: translateY(-10px); }
     }
     .float-num {
-      animation: float 4.5s ease-in-out infinite;
+      animation: float 5s ease-in-out infinite;
+    }
+    @keyframes logo-float {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      50% { transform: translateY(-8px) rotate(1deg); }
     }
     @keyframes fadeInUp {
       from {
         opacity: 0;
-        transform: translateY(30px);
+        transform: translateY(40px);
       }
       to {
         opacity: 1;
@@ -285,38 +335,33 @@
       }
     }
     .fade-in-up {
-      animation: fadeInUp 1s ease-out forwards;
+      animation: fadeInUp 1.1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
     }
-    .delay-1 { animation-delay: 0.15s; opacity: 0; }
-    .delay-2 { animation-delay: 0.3s; opacity: 0; }
-    .delay-3 { animation-delay: 0.45s; opacity: 0; }
+    .delay-1 { animation-delay: 0.2s; opacity: 0; }
+    .delay-2 { animation-delay: 0.4s; opacity: 0; }
+    .delay-3 { animation-delay: 0.6s; opacity: 0; }
     @keyframes gradient-shift {
       0%, 100% { background-position: 0% 50%; }
       50% { background-position: 100% 50%; }
     }
-    @keyframes trophy-pulse {
-      0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.05); }
-    }
-    @keyframes number-flip {
-      0% { transform: translateY(0); opacity: 1; }
-      50% { transform: translateY(-10px); opacity: 0.5; }
-      100% { transform: translateY(0); opacity: 1; }
-    }
 
     /* ===== ステータスドット ===== */
     .status-dot {
-      box-shadow: 0 0 10px rgba(34,197,94,0.6);
+      box-shadow: 0 0 12px rgba(34,197,94,0.7);
     }
 
     /* ===== レスポンシブ調整 ===== */
     @media (max-width: 640px) {
       .time-block {
-        min-width: 65px !important;
-        padding: 12px 8px !important;
+        min-width: 60px !important;
+        padding: 10px 6px !important;
       }
       .ms-block {
-        min-width: 55px !important;
+        min-width: 50px !important;
+      }
+      body {
+        background-position: right -30% bottom -5%, center center, center center, center center;
+        background-size: 80% 80%, 100% 100%, 100% 100%, 100% 100%;
       }
     }
   </style>
@@ -327,15 +372,26 @@
 
   <!-- ヘッダー -->
   <header class="text-center mb-16 fade-in-up relative z-10">
-    <p class="text-gray-500 text-[10px] md:text-xs tracking-[0.4em] uppercase mb-6">78th Annual Event</p>
-    <div class="flex items-center justify-center gap-4 mb-6">
-      <i data-lucide="trophy" class="w-12 h-12 md:w-16 md:h-16 text-amber-400 trophy-glow"></i>
+    <p class="text-gray-500 text-[10px] md:text-xs tracking-[0.45em] uppercase mb-8">78th Annual Sports Festival</p>
+    
+    <!-- メインロゴ -->
+    <div class="flex items-center justify-center mb-8">
+      <div class="relative">
+        <img 
+          src="https://p16-flow-image-sign.ibyteimg.com/tos-mya-i-uo7y4d541q/a3ab12918aba45a2a2329845f6dcc9e9.jpg~tplv-0es2k971ck-image.image?rcl=202609240247184651974C1893822DA5C7&rk3s=8e244e95&rrcfp=935dee89&x-expires=1790794039&x-signature=CNjmqAzc0rP2t6PzpuA9Xa2Qioc%3D" 
+          alt="78th Logo" 
+          class="logo-main w-24 h-24 md:w-32 md:h-32 lg:w-40 lg:h-40"
+        >
+        <!-- ロゴの背後の光 -->
+        <div class="absolute inset-0 bg-white/5 rounded-full blur-3xl -z-10 scale-150"></div>
+      </div>
     </div>
-    <h1 class="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight gradient-text glow-text leading-tight">
-      Sports Festival
+
+    <h1 class="text-3xl md:text-5xl lg:text-6xl font-bold tracking-[0.15em] gradient-text glow-text leading-tight">
+      SPORTS FESTIVAL
     </h1>
-    <p class="text-gray-400 mt-5 text-base md:text-lg tracking-[0.15em]">Portal System</p>
-    <div class="divider w-40 mx-auto mt-10 rounded-full"></div>
+    <p class="text-gray-400 mt-5 text-sm md:text-base tracking-[0.3em] uppercase">Portal System</p>
+    <div class="divider w-48 mx-auto mt-10 rounded-full"></div>
   </header>
 
   <!-- カウントダウン -->
@@ -351,25 +407,21 @@
     
     <div class="flex items-center justify-center gap-4 mt-12">
       <div class="divider-thin flex-1 max-w-[120px]"></div>
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2.5">
         <i data-lucide="calendar" class="w-3.5 h-3.5 text-gray-500"></i>
-        <p class="text-gray-500 text-[10px] md:text-xs tracking-[0.25em] uppercase">2026.10.01</p>
+        <p class="text-gray-500 text-[10px] md:text-xs tracking-[0.3em] uppercase">2026.10.01</p>
       </div>
       <div class="divider-thin flex-1 max-w-[120px]"></div>
     </div>
   </div>
 
   <!-- 機能メニュー -->
-  <h2 class="text-base md:text-lg font-semibold mb-10 text-center text-gray-400 tracking-[0.2em] uppercase fade-in-up delay-2 relative z-10">
-    <span class="inline-flex items-center gap-3">
-      <span class="w-8 h-px bg-gray-600"></span>
-      <span class="inline-flex items-center gap-2">
-        <i data-lucide="layout-grid" class="w-4 h-4 md:w-5 md:h-5"></i>
-        Features
-      </span>
-      <span class="w-8 h-px bg-gray-600"></span>
+  <div class="section-divider mb-10 fade-in-up delay-2 relative z-10">
+    <span class="inline-flex items-center gap-3 text-gray-400 text-xs md:text-sm tracking-[0.25em] uppercase font-medium px-4">
+      <i data-lucide="layout-grid" class="w-4 h-4 md:w-5 md:h-5"></i>
+      Features
     </span>
-  </h2>
+  </div>
   <div class="grid gap-6 md:gap-8 sm:grid-cols-2 fade-in-up delay-3 relative z-10">
     <a href="lend.html" class="func-card func-card-blue p-8 md:p-10 rounded-2xl block group">
       <div class="icon-box w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500/25 to-blue-700/10 border border-blue-500/25 flex items-center justify-center mb-7">
@@ -396,8 +448,15 @@
   </div>
 
   <!-- フッター -->
-  <footer class="mt-20 text-center fade-in-up delay-3 relative z-10">
-    <p class="text-gray-600 text-[10px] tracking-[0.3em] uppercase">© 78th Sports Festival Executive Committee</p>
+  <footer class="mt-24 text-center fade-in-up delay-3 relative z-10 pb-8">
+    <div class="flex items-center justify-center gap-3 mb-6 opacity-40">
+      <img 
+        src="https://p16-flow-image-sign.ibyteimg.com/tos-mya-i-uo7y4d541q/a3ab12918aba45a2a2329845f6dcc9e9.jpg~tplv-0es2k971ck-image.image?rcl=202609240247184651974C1893822DA5C7&rk3s=8e244e95&rrcfp=935dee89&x-expires=1790794039&x-signature=CNjmqAzc0rP2t6PzpuA9Xa2Qioc%3D" 
+        alt="78th Logo" 
+        class="logo-small w-8 h-8"
+      >
+    </div>
+    <p class="text-gray-600 text-[10px] tracking-[0.35em] uppercase">© 78th Sports Festival Executive Committee</p>
   </footer>
 
   <script>
@@ -426,10 +485,14 @@
         container.innerHTML = `
           <div class="w-full py-12">
             <div class="flex items-center justify-center gap-3 mb-6">
-              <i data-lucide="party-popper" class="w-12 h-12 text-amber-400 trophy-glow"></i>
+              <img 
+                src="https://p16-flow-image-sign.ibyteimg.com/tos-mya-i-uo7y4d541q/a3ab12918aba45a2a2329845f6dcc9e9.jpg~tplv-0es2k971ck-image.image?rcl=202609240247184651974C1893822DA5C7&rk3s=8e244e95&rrcfp=935dee89&x-expires=1790794039&x-signature=CNjmqAzc0rP2t6PzpuA9Xa2Qioc%3D" 
+                alt="78th Logo" 
+                class="w-16 h-16 trophy-glow"
+              >
             </div>
-            <p class="text-3xl md:text-5xl lg:text-6xl font-bold gradient-text glow-text tracking-tight">体育祭当日！</p>
-            <p class="text-gray-400 mt-6 tracking-[0.15em]">Let's make it unforgettable!</p>
+            <p class="text-3xl md:text-5xl lg:text-6xl font-bold gradient-text glow-text tracking-[0.1em]">体育祭当日！</p>
+            <p class="text-gray-400 mt-6 tracking-[0.2em] uppercase text-sm">Let's make it unforgettable!</p>
           </div>
         `;
         lucide.createIcons();
@@ -445,26 +508,26 @@
       container.innerHTML = `
         <div class="time-block rounded-2xl px-5 py-5 md:px-8 md:py-8 lg:px-10 lg:py-9 min-w-[90px] md:min-w-[120px] lg:min-w-[140px] float-num">
           <div class="font-mono-num text-3xl md:text-5xl lg:text-7xl font-extrabold text-white leading-none tracking-tight">${days}</div>
-          <div class="text-[9px] md:text-[10px] text-gray-500 mt-4 tracking-[0.25em] uppercase font-medium">Days</div>
+          <div class="text-[9px] md:text-[10px] text-gray-500 mt-4 tracking-[0.3em] uppercase font-semibold">Days</div>
         </div>
         <div class="text-gray-600 text-2xl md:text-3xl lg:text-4xl font-light hidden sm:inline pb-8 pulse-dot">:</div>
-        <div class="time-block rounded-2xl px-5 py-5 md:px-8 md:py-8 lg:px-10 lg:py-9 min-w-[75px] md:min-w-[100px] lg:min-w-[120px] float-num" style="animation-delay: 0.4s">
+        <div class="time-block rounded-2xl px-5 py-5 md:px-8 md:py-8 lg:px-10 lg:py-9 min-w-[75px] md:min-w-[100px] lg:min-w-[120px] float-num" style="animation-delay: 0.5s">
           <div class="font-mono-num text-3xl md:text-5xl lg:text-7xl font-extrabold text-white leading-none tracking-tight">${pad(hours)}</div>
-          <div class="text-[9px] md:text-[10px] text-gray-500 mt-4 tracking-[0.25em] uppercase font-medium">Hours</div>
+          <div class="text-[9px] md:text-[10px] text-gray-500 mt-4 tracking-[0.3em] uppercase font-semibold">Hours</div>
         </div>
         <div class="text-gray-600 text-2xl md:text-3xl lg:text-4xl font-light hidden sm:inline pb-8 pulse-dot">:</div>
-        <div class="time-block rounded-2xl px-5 py-5 md:px-8 md:py-8 lg:px-10 lg:py-9 min-w-[75px] md:min-w-[100px] lg:min-w-[120px] float-num" style="animation-delay: 0.8s">
+        <div class="time-block rounded-2xl px-5 py-5 md:px-8 md:py-8 lg:px-10 lg:py-9 min-w-[75px] md:min-w-[100px] lg:min-w-[120px] float-num" style="animation-delay: 1s">
           <div class="font-mono-num text-3xl md:text-5xl lg:text-7xl font-extrabold text-white leading-none tracking-tight">${pad(mins)}</div>
-          <div class="text-[9px] md:text-[10px] text-gray-500 mt-4 tracking-[0.25em] uppercase font-medium">Mins</div>
+          <div class="text-[9px] md:text-[10px] text-gray-500 mt-4 tracking-[0.3em] uppercase font-semibold">Mins</div>
         </div>
         <div class="text-gray-600 text-2xl md:text-3xl lg:text-4xl font-light hidden sm:inline pb-8 pulse-dot">:</div>
-        <div class="time-block rounded-2xl px-5 py-5 md:px-8 md:py-8 lg:px-10 lg:py-9 min-w-[75px] md:min-w-[100px] lg:min-w-[120px] float-num" style="animation-delay: 1.2s">
+        <div class="time-block rounded-2xl px-5 py-5 md:px-8 md:py-8 lg:px-10 lg:py-9 min-w-[75px] md:min-w-[100px] lg:min-w-[120px] float-num" style="animation-delay: 1.5s">
           <div class="font-mono-num text-3xl md:text-5xl lg:text-7xl font-extrabold text-white leading-none tracking-tight">${pad(secs)}</div>
-          <div class="text-[9px] md:text-[10px] text-gray-500 mt-4 tracking-[0.25em] uppercase font-medium">Secs</div>
+          <div class="text-[9px] md:text-[10px] text-gray-500 mt-4 tracking-[0.3em] uppercase font-semibold">Secs</div>
         </div>
-        <div class="ms-block rounded-2xl px-4 py-5 md:px-6 md:py-8 lg:px-8 lg:py-9 min-w-[65px] md:min-w-[85px] lg:min-w-[100px] float-num" style="animation-delay: 1.6s">
-          <div class="font-mono-num text-2xl md:text-4xl lg:text-6xl font-extrabold text-amber-400 leading-none tracking-tight" style="text-shadow: 0 0 25px rgba(251,191,36,0.4);">${pad(ms)}</div>
-          <div class="text-[9px] md:text-[10px] text-amber-400/60 mt-4 tracking-[0.25em] uppercase font-medium">MS</div>
+        <div class="ms-block rounded-2xl px-4 py-5 md:px-6 md:py-8 lg:px-8 lg:py-9 min-w-[65px] md:min-w-[85px] lg:min-w-[100px] float-num" style="animation-delay: 2s">
+          <div class="font-mono-num text-2xl md:text-4xl lg:text-6xl font-extrabold text-white leading-none tracking-tight" style="text-shadow: 0 0 20px rgba(255,255,255,0.2);">${pad(ms)}</div>
+          <div class="text-[9px] md:text-[10px] text-gray-400 mt-4 tracking-[0.3em] uppercase font-semibold">MS</div>
         </div>
       `;
     }
