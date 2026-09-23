@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>体育祭ポータル</title>
+  <title>スポーツフェスタ・ポータル</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     body {
@@ -27,7 +27,7 @@
 </head>
 <body class="text-white max-w-4xl mx-auto px-4 py-8">
   <header class="text-center mb-10">
-    <h1 class="text-3xl md:text-4xl font-bold mb-2">体育祭ポータル</h1>
+    <h1 class="text-3xl md:text-4xl font-bold mb-2">🏆 スポーツフェスタ・ポータル</h1>
     <p class="text-blue-100">体育祭進行管理システム</p>
   </header>
 
@@ -49,9 +49,9 @@
       <p class="text-sm text-gray-500">機器の貸出・返却・在庫管理</p>
     </a>
     <a href="timetable.html" class="func-card bg-white/95 text-gray-800 p-6 rounded-xl shadow-lg block">
-      <div class="text-3xl mb-2">🏃</div>
+      <div class="text-3xl mb-2">📋</div>
       <h3 class="font-bold text-lg mb-1">進行管理</h3>
-      <p class="text-sm text-gray-500">種目スケジュール・状況管理</p>
+      <p class="text-sm text-gray-500">球技日・団体競技日のスケジュール</p>
     </a>
   </div>
 
@@ -72,7 +72,7 @@
       const hours = Math.floor((diff / (1000*60*60)) % 24);
       const mins = Math.floor((diff / (1000*60)) % 60);
       const secs = Math.floor((diff / 1000) % 60);
-      const ms = Math.floor((diff % 1000) / 10); // 1/100単位
+      const ms = Math.floor((diff % 1000) / 10);
       
       document.getElementById('countdown').innerHTML = `
         <span class="inline-block min-w-[60px]">${days}</span>日
@@ -84,7 +84,7 @@
     }
     
     updateCountdown();
-    setInterval(updateCountdown, 10); // 10msごとに更新
+    setInterval(updateCountdown, 10);
   </script>
 </body>
 </html>
