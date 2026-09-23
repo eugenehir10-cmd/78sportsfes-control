@@ -9,6 +9,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
   <style>
     * { font-family: 'Space Grotesk', system-ui, sans-serif; }
     .font-mono-num { font-family: 'JetBrains Mono', monospace; }
@@ -220,6 +222,16 @@
   </div>
 
   <script>
+    const FIREBASE_CONFIG = {
+      apiKey: "AIzaSyAWVUxoXbvTraGUDozLztqcJx2f2fIHQntc",
+      authDomain: "thsportsfes.firebaseapp.com",
+      projectId: "thsportsfes",
+      storageBucket: "thsportsfes.appspot.com",
+      messagingSenderId: "96596815858",
+      appId: "1:96596815858:web:5f85526bf785ccc5d8056b"
+    };
+    firebase.initializeApp(FIREBASE_CONFIG);
+    const db = firebase.firestore();
     lucide.createIcons();
 
     const GRADES = ['中学1年', '中学2年', '中学3年', '高校1年', '高校2年', '高校3年'];
