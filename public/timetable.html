@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>団体競技日 進行管理｜スポーツフェスタ</title>
+  <title>進行管理｜スポーツフェスタ</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -24,272 +24,284 @@
       backdrop-filter: blur(20px);
       box-shadow: 0 25px 80px rgba(0,0,0,0.6), 0 0 120px rgba(255,255,255,0.02), inset 0 1px 0 rgba(255,255,255,0.06);
     }
-    .event-card {
-      background: linear-gradient(145deg, rgba(40,40,40,0.7), rgba(25,25,25,0.9));
-      border: 1px solid rgba(255,255,255,0.06);
-      transition: all 0.3s ease;
+    .hub-card {
+      background: linear-gradient(145deg, rgba(30,30,30,0.85), rgba(22,22,22,0.95));
+      border: 1px solid rgba(255,255,255,0.08);
+      backdrop-filter: blur(10px);
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
     }
-    .event-card:hover { border-color: rgba(255,255,255,0.15); transform: translateY(-2px); }
-    .status-wait { border-left: 4px solid #6b7280; }
-    .status-ready { border-left: 4px solid #3b82f6; background: linear-gradient(135deg, rgba(59,130,246,0.1), rgba(37,99,235,0.05)); }
-    .status-running { border-left: 4px solid #10b981; background: linear-gradient(135deg, rgba(16,185,129,0.15), rgba(5,150,105,0.08)); }
-    .status-delay { border-left: 4px solid #f59e0b; background: linear-gradient(135deg, rgba(245,158,11,0.15), rgba(217,119,6,0.08)); }
-    .status-early { border-left: 4px solid #06b6d4; background: linear-gradient(135deg, rgba(6,182,212,0.15), rgba(8,145,178,0.08)); }
-    .status-done { border-left: 4px solid #6b7280; opacity: 0.8; }
-    .btn-primary { background: linear-gradient(135deg, #10b981, #059669); transition: all 0.3s ease; }
-    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(16,185,129,0.25); }
+    .hub-card:hover {
+      transform: translateY(-8px) scale(1.02);
+      border-color: rgba(255,255,255,0.18);
+      box-shadow: 0 30px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05), 0 0 60px rgba(255,255,255,0.03);
+    }
+    .hub-card.ball:hover { border-color: rgba(59, 130, 246, 0.3); box-shadow: 0 30px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(59, 130, 246, 0.1), 0 0 80px rgba(59, 130, 246, 0.08); }
+    .hub-card.team:hover { border-color: rgba(16, 185, 129, 0.3); box-shadow: 0 30px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(16, 185, 129, 0.1), 0 0 80px rgba(16, 185, 129, 0.08); }
+    .settings-btn {
+      background: linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.05));
+      border: 2px solid rgba(255,255,255,0.15);
+      transition: all 0.3s ease;
+      animation: pulse-border 2s ease-in-out infinite;
+    }
+    .settings-btn:hover {
+      background: linear-gradient(135deg, rgba(255,255,255,0.2), rgba(255,255,255,0.08));
+      border-color: rgba(255,255,255,0.3);
+      transform: translateY(-2px);
+    }
+    @keyframes pulse-border {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(255,255,255,0.1); }
+      50% { box-shadow: 0 0 0 8px rgba(255,255,255,0); }
+    }
     .glow-text { text-shadow: 0 0 40px rgba(255,255,255,0.12), 0 0 80px rgba(255,255,255,0.05); }
     .divider { background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent); height: 1px; }
-    input, select, textarea { background: rgba(255,255,255,0.05) !important; border: 1px solid rgba(255,255,255,0.1) !important; color: white !important; font-size: 16px !important; }
-    input::placeholder, textarea::placeholder { color: rgba(255,255,255,0.3); }
-    select option { background: #1a1a1a; color: white; }
-    .fade-in-up { animation: fadeInUp 0.8s ease-out forwards; opacity: 0; transform: translateY(20px); }
-    @keyframes fadeInUp { to { opacity: 1; transform: translateY(0); } }
-    .delay-1 { animation-delay: 0.1s; }
-    .delay-2 { animation-delay: 0.2s; }
-    .delay-3 { animation-delay: 0.3s; }
     .rank-1 { background: linear-gradient(135deg, rgba(251,191,36,0.2), rgba(217,119,6,0.1)); border-left: 3px solid #fbbf24; }
     .rank-2 { background: linear-gradient(135deg, rgba(156,163,175,0.2), rgba(107,114,128,0.1)); border-left: 3px solid #9ca3af; }
     .rank-3 { background: linear-gradient(135deg, rgba(180,83,9,0.2), rgba(146,64,14,0.1)); border-left: 3px solid #b45309; }
-    .progress-bar { transition: width 0.5s ease; }
-    .scoring-badge { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); }
     @keyframes pulse-soft { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
     .pulse-dot { animation: pulse-soft 1.2s ease-in-out infinite; }
-    .group-select {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 8px;
-    }
-    .group-btn {
-      padding: 10px;
-      border-radius: 10px;
-      border: 2px solid rgba(255,255,255,0.1);
-      background: rgba(255,255,255,0.05);
-      cursor: pointer;
-      transition: all 0.2s ease;
-      font-weight: 600;
-      text-align: center;
-    }
-    .group-btn:hover { border-color: rgba(255,255,255,0.3); background: rgba(255,255,255,0.1); }
-    .group-btn.selected-1 { border-color: #fbbf24; background: rgba(251,191,36,0.2); color: #fbbf24; }
-    .group-btn.selected-2 { border-color: #9ca3af; background: rgba(156,163,175,0.2); color: #d1d5db; }
-    .group-btn.selected-3 { border-color: #b45309; background: rgba(180,83,9,0.2); color: #fbbf24; }
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    .fade-in-up { animation: fadeInUp 0.8s ease-out forwards; }
+    .delay-1 { animation-delay: 0.1s; opacity: 0; }
+    .delay-2 { animation-delay: 0.2s; opacity: 0; }
+    .delay-3 { animation-delay: 0.3s; opacity: 0; }
+    input, select, textarea { background: rgba(255,255,255,0.05) !important; border: 1px solid rgba(255,255,255,0.1) !important; color: white !important; font-size: 16px !important; }
+    input::placeholder, textarea::placeholder { color: rgba(255,255,255,0.3); }
+    select option { background: #1a1a1a; color: white; }
   </style>
 </head>
-<body class="text-white max-w-4xl mx-auto px-4 py-10 md:py-14">
-  <header class="mb-10 fade-in-up">
-    <a href="timetable.html" class="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-4">
+<body class="text-white max-w-5xl mx-auto px-4 py-12 md:py-16">
+  <header class="mb-14 fade-in-up">
+    <a href="index.html" class="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-4">
       <i data-lucide="arrow-left" class="w-4 h-4"></i>
-      <span>進行管理に戻る</span>
+      <span>ホームに戻る</span>
     </a>
     <div class="flex items-center justify-between flex-wrap gap-4">
       <div>
-        <p class="text-gray-500 text-xs tracking-[0.25em] uppercase mb-2">Team Events Management</p>
-        <h1 class="text-3xl md:text-4xl font-bold tracking-tight glow-text flex items-center gap-3">
-          <i data-lucide="users" class="w-8 h-8 md:w-10 md:h-10 text-emerald-400" style="filter: drop-shadow(0 0 15px rgba(16,185,129,0.3));"></i>
-          🏃 団体競技日 進行管理
+        <p class="text-gray-500 text-xs tracking-[0.25em] uppercase mb-2">Schedule Management</p>
+        <h1 class="text-4xl md:text-5xl font-bold tracking-tight glow-text flex items-center gap-3">
+          <i data-lucide="clipboard-list" class="w-10 h-10 md:w-12 md:h-12 text-emerald-400" style="filter: drop-shadow(0 0 20px rgba(16,185,129,0.3));"></i>
+          進行管理
         </h1>
+        <p class="text-gray-400 mt-3 text-sm md:text-base tracking-wide">第78回体育祭 球技日・団体競技日 スケジュール</p>
       </div>
-      <div class="flex gap-2">
-        <button id="exportBtn" class="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/15 transition-colors text-sm flex items-center gap-1.5">
-          <i data-lucide="download" class="w-4 h-4"></i>
-          <span class="hidden sm:inline">出力</span>
-        </button>
-      </div>
+      <!-- 🔴 設定ボタンを目立つように強調 -->
+      <button id="openSettingsBtn" class="settings-btn px-5 py-3 rounded-xl font-medium flex items-center gap-2 text-base">
+        <i data-lucide="settings" class="w-5 h-5"></i>
+        <span>⚙️ 設定</span>
+        <span class="text-xs bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full">要パスワード</span>
+      </button>
     </div>
-    <div class="divider w-full mt-6 rounded-full"></div>
+    <div class="divider w-full mt-8 rounded-full"></div>
   </header>
 
-  <!-- 全体状況 -->
-  <div class="card rounded-3xl p-6 md:p-8 mb-8 fade-in-up delay-1">
-    <div class="flex items-center gap-2 mb-6">
-      <div class="w-2 h-2 rounded-full bg-emerald-500 pulse-dot"></div>
-      <p class="text-gray-400 text-xs tracking-[0.25em] uppercase">現在の状況</p>
+  <!-- 総合得点ランキング -->
+  <div class="card rounded-3xl p-6 md:p-8 mb-12 fade-in-up delay-1">
+    <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
+      <div class="flex items-center gap-2">
+        <i data-lucide="trophy" class="w-5 h-5 text-amber-400"></i>
+        <h2 class="text-lg font-semibold">🏆 総合得点ランキング</h2>
+      </div>
+      <button id="refreshTotalBtn" class="text-xs px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 transition-colors flex items-center gap-1.5">
+        <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+        更新
+      </button>
     </div>
-    <div class="grid gap-4 md:grid-cols-3 mb-6">
-      <div class="bg-white/5 rounded-2xl p-5 border border-white/5">
-        <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">進行中</p>
-        <p id="nowRunning" class="text-xl md:text-2xl font-bold text-emerald-400">なし</p>
-      </div>
-      <div class="bg-white/5 rounded-2xl p-5 border border-white/5">
-        <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">次の種目</p>
-        <p id="nextUp" class="text-xl md:text-2xl font-bold text-amber-400">-</p>
-      </div>
-      <div class="bg-white/5 rounded-2xl p-5 border border-white/5">
-        <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">累積時間差</p>
-        <p id="totalDelay" class="text-xl md:text-2xl font-bold font-mono-num">±0分</p>
-      </div>
-    </div>
-    <div class="mb-2">
-      <div class="flex justify-between text-sm mb-2">
-        <span class="text-gray-400">全体進捗</span>
-        <span id="progressText" class="font-medium">0 / 0 終了</span>
-      </div>
-      <div class="w-full bg-white/10 rounded-full h-3 overflow-hidden">
-        <div id="progressBar" class="progress-bar bg-gradient-to-r from-emerald-500 to-emerald-400 h-3 rounded-full" style="width:0%"></div>
-      </div>
-    </div>
+    <div id="totalRanking" class="space-y-2"></div>
+    <p class="text-xs text-gray-500 mt-4 text-center">※ 球技日（勝ち点） + 団体競技日（PDF得点割）の合計</p>
   </div>
 
-  <!-- 得点割早見表 -->
-  <div class="card rounded-2xl p-5 mb-6 fade-in-up delay-1">
-    <details class="group">
-      <summary class="cursor-pointer flex items-center justify-between text-sm font-semibold text-gray-300">
-        <span class="flex items-center gap-2">
-          <i data-lucide="info" class="w-4 h-4"></i>
-          📊 種目別得点割 早見表
-        </span>
-        <i data-lucide="chevron-down" class="w-4 h-4 transition-transform group-open:rotate-180"></i>
-      </summary>
-      <div class="mt-4 grid gap-3 md:grid-cols-2 text-sm">
-        <div class="scoring-badge rounded-xl p-3">
-          <p class="font-semibold mb-1 text-amber-400">🏅 高得点種目</p>
-          <p class="text-gray-400 text-xs">選抜リレー：1位634 / 2位434 / 3位334 / 4位234</p>
-          <p class="text-gray-400 text-xs">団長騎馬戦：1位376 / 2位276 / 3位176 / 4位76</p>
+  <!-- 日程選択カード -->
+  <h2 class="text-lg md:text-xl font-semibold mb-8 text-center text-gray-300 tracking-wide fade-in-up delay-2">
+    <span class="inline-flex items-center gap-2">
+      <i data-lucide="layout-grid" class="w-5 h-5"></i>
+      日程を選択
+    </span>
+  </h2>
+
+  <div class="grid gap-6 md:grid-cols-2 mb-12 fade-in-up delay-3">
+    <a href="ball_sports.html" class="hub-card ball p-8 rounded-2xl block group">
+      <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500/20 to-blue-600/10 border border-blue-500/20 flex items-center justify-center mb-6 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
+        <i data-lucide="trophy" class="w-8 h-8 text-blue-400"></i>
+      </div>
+      <h3 class="font-bold text-2xl md:text-3xl mb-2 text-white tracking-tight">⚽ 球技日</h3>
+      <p class="text-sm text-gray-400 leading-relaxed mb-4">6会場並行 タイムテーブル</p>
+      <div class="text-xs text-gray-500 space-y-1 mb-6">
+        <p>📅 全日程：8:10 〜 15:00</p>
+        <p>🏟️ 会場：上グラ・下グラ・体育館・ハード・オムニ・卓球場</p>
+        <p>👥 対象：中1〜高3 全学年</p>
+      </div>
+      <div class="flex items-center justify-between pt-4 border-t border-white/5">
+        <div>
+          <p class="text-xs text-gray-500 mb-1">消化状況</p>
+          <p id="ballProgress" class="text-sm font-medium text-white">-</p>
         </div>
-        <div class="scoring-badge rounded-xl p-3">
-          <p class="font-semibold mb-1 text-blue-400">⚔️ 標準種目（同率3位あり）</p>
-          <p class="text-gray-400 text-xs">大玉送り・しっぽとり・台風の目・綱引き・100人FB・竹取物語・騎馬戦</p>
-          <p class="text-gray-400 text-xs">1位200 / 2位150 / 3位100</p>
-        </div>
-        <div class="scoring-badge rounded-xl p-3">
-          <p class="font-semibold mb-1 text-emerald-400">🏃 その他種目</p>
-          <p class="text-gray-400 text-xs">二人三脚：1位200 / 2位150 / 3位100 / 4位50</p>
-          <p class="text-gray-400 text-xs">借り人競争：1位100 / 2位90 / 3位80 / 4位70</p>
-        </div>
-        <div class="scoring-badge rounded-xl p-3">
-          <p class="font-semibold mb-1 text-gray-400">📌 備考</p>
-          <p class="text-gray-400 text-xs">部対抗リレー：得点なし</p>
-          <p class="text-gray-400 text-xs">最終順位は組（A/B/C/D）ごとに決定</p>
+        <div class="flex items-center text-sm text-gray-500 group-hover:text-blue-400 transition-colors">
+          <span>開く</span>
+          <i data-lucide="arrow-right" class="w-4 h-4 ml-1.5 group-hover:translate-x-1 transition-transform"></i>
         </div>
       </div>
-    </details>
+    </a>
+
+    <a href="team_events.html" class="hub-card team p-8 rounded-2xl block group">
+      <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border border-emerald-500/20 flex items-center justify-center mb-6 group-hover:scale-110 group-hover:-rotate-3 transition-all duration-500">
+        <i data-lucide="users" class="w-8 h-8 text-emerald-400"></i>
+      </div>
+      <h3 class="font-bold text-2xl md:text-3xl mb-2 text-white tracking-tight">🏃 団体競技日</h3>
+      <p class="text-sm text-gray-400 leading-relaxed mb-4">種目別進行 タイムテーブル</p>
+      <div class="text-xs text-gray-500 space-y-1 mb-6">
+        <p>📅 全日程：8:20 〜 15:27</p>
+        <p>🎯 種目：開会式 → 団長騎馬戦 → 閉会式 全15種目</p>
+        <p>👥 対象：中1〜高3 全学年 + 教師</p>
+      </div>
+      <div class="flex items-center justify-between pt-4 border-t border-white/5">
+        <div>
+          <p class="text-xs text-gray-500 mb-1">消化状況</p>
+          <p id="teamProgress" class="text-sm font-medium text-white">-</p>
+        </div>
+        <div class="flex items-center text-sm text-gray-500 group-hover:text-emerald-400 transition-colors">
+          <span>開く</span>
+          <i data-lucide="arrow-right" class="w-4 h-4 ml-1.5 group-hover:translate-x-1 transition-transform"></i>
+        </div>
+      </div>
+    </a>
   </div>
 
-  <!-- 操作バー -->
-  <div class="flex flex-wrap gap-3 justify-between items-center mb-6 fade-in-up delay-2">
-    <div class="flex gap-2 flex-wrap">
-      <select id="filterStatus" class="rounded-lg px-3 py-2 text-sm bg-white/5 border border-white/10">
-        <option value="all">全て表示</option>
-        <option value="active">進行中/未開始のみ</option>
-        <option value="notstarted">未開始のみ</option>
-      </select>
-      <select id="filterGrade" class="rounded-lg px-3 py-2 text-sm bg-white/5 border border-white/10">
-        <option value="">全学年</option>
-      </select>
-    </div>
-    <p class="text-sm text-gray-500">登録：<span id="eventCount">0</span>件</p>
-  </div>
-
-  <!-- 種目一覧 -->
-  <div id="eventList" class="space-y-4 fade-in-up delay-3"></div>
-
-  <!-- 組別合計得点 -->
-  <div class="card rounded-3xl p-6 md:p-8 mt-10 fade-in-up delay-3">
-    <h2 class="text-lg font-semibold mb-5 flex items-center gap-2">
-      <i data-lucide="trophy" class="w-5 h-5 text-amber-400"></i>
-      🏆 組別 合計得点ランキング
-    </h2>
-    <div id="groupRanking" class="space-y-2"></div>
-    <p class="text-xs text-gray-500 mt-4 text-center">※ 各学年のA組・B組・C組・D組ごとに合計した順位</p>
-  </div>
-
-  <!-- 編集モーダル -->
-  <div id="editModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
-    <div class="card rounded-3xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-      <h3 id="modalTitle" class="text-xl font-bold mb-6 flex items-center gap-2">
-        <i data-lucide="edit-3" class="w-5 h-5 text-emerald-400"></i>
-        種目情報
+  <!-- 設定モーダル -->
+  <div id="settingsModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+    <div class="card rounded-3xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+      <h3 class="text-xl font-bold mb-6 flex items-center gap-2">
+        <i data-lucide="settings" class="w-5 h-5 text-gray-400"></i>
+        ⚙️ 設定管理
       </h3>
-      <form id="eventForm" class="space-y-4">
-        <input type="hidden" id="editEventId">
-        <div>
-          <label class="block text-sm text-gray-400 mb-1.5">種目名</label>
-          <input type="text" id="editName" class="w-full rounded-xl px-4 py-3" readonly>
+      
+      <div id="passwordArea" class="space-y-4">
+        <div class="p-3 bg-amber-500/10 rounded-xl border border-amber-500/20">
+          <p class="text-amber-400 text-sm">🔐 管理者パスワードが必要です</p>
         </div>
+        <input type="password" id="settingsPassword" placeholder="パスワードを入力" class="w-full rounded-xl px-4 py-3">
+        <button id="authBtn" class="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 transition-all font-medium">認証</button>
+      </div>
+
+      <div id="settingsContent" class="hidden space-y-6">
+        <div class="p-3 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
+          <p class="text-emerald-400 text-sm font-medium">✅ 管理者モード — データ編集が可能です</p>
+        </div>
+
+        <!-- クラス管理 -->
+        <div>
+          <h4 class="text-sm font-semibold text-gray-300 mb-3 flex items-center gap-2">
+            <i data-lucide="users" class="w-4 h-4"></i>
+            クラス / チーム 管理
+          </h4>
+          <div class="flex gap-2 mb-3">
+            <input type="text" id="newClassName" placeholder="クラス名（例：中1A組）" class="flex-1 rounded-xl px-4 py-2.5">
+            <button id="addClassBtn" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 text-sm font-medium">追加</button>
+          </div>
+          <div id="classList" class="space-y-2 text-sm max-h-40 overflow-y-auto"></div>
+        </div>
+
+        <!-- 学年管理 -->
+        <div>
+          <h4 class="text-sm font-semibold text-gray-300 mb-3 flex items-center gap-2">
+            <i data-lucide="graduation-cap" class="w-4 h-4"></i>
+            対象学年 管理
+          </h4>
+          <div class="flex gap-2 mb-3">
+            <input type="text" id="newGradeName" placeholder="学年（例：中学1年）" class="flex-1 rounded-xl px-4 py-2.5">
+            <button id="addGradeBtn" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 text-sm font-medium">追加</button>
+          </div>
+          <div id="gradeList" class="space-y-2 text-sm max-h-40 overflow-y-auto"></div>
+        </div>
+
+        <!-- 操作 -->
+        <div class="pt-4 border-t border-white/5 space-y-3">
+          <button id="addBallMatchBtn" class="w-full py-3 rounded-xl bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 transition-colors text-sm flex items-center justify-center gap-2">
+            <i data-lucide="plus-circle" class="w-4 h-4"></i>
+            ⚽ 球技日 試合を追加
+          </button>
+          <button id="addTeamEventBtn" class="w-full py-3 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 transition-colors text-sm flex items-center justify-center gap-2">
+            <i data-lucide="plus-circle" class="w-4 h-4"></i>
+            🏃 団体競技日 種目を追加
+          </button>
+          <button id="recalcAllBtn" class="w-full py-3 rounded-xl bg-white/10 hover:bg-white/15 transition-colors text-sm flex items-center justify-center gap-2">
+            <i data-lucide="calculator" class="w-4 h-4"></i>
+            全得点を再計算
+          </button>
+          <button id="resetAllBtn" class="w-full py-3 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-400 transition-colors text-sm flex items-center justify-center gap-2">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+            全データを初期化
+          </button>
+        </div>
+      </div>
+
+      <button id="closeSettingsBtn" class="w-full mt-6 py-3 rounded-xl bg-white/10 hover:bg-white/15 transition-colors font-medium">閉じる</button>
+    </div>
+  </div>
+
+  <!-- 球技日 試合追加モーダル -->
+  <div id="ballModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+    <div class="card rounded-3xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+      <h3 class="text-xl font-bold mb-6">⚽ 球技日 試合追加</h3>
+      <form id="ballForm" class="space-y-4">
+        <div><label class="block text-sm text-gray-400 mb-1.5">会場</label><select id="ballVenue" class="w-full rounded-xl px-4 py-3"></select></div>
+        <div><label class="block text-sm text-gray-400 mb-1.5">開始時刻</label><input type="time" id="ballTime" class="w-full rounded-xl px-4 py-3" required></div>
+        <div><label class="block text-sm text-gray-400 mb-1.5">競技種別</label>
+          <select id="ballSport" class="w-full rounded-xl px-4 py-3">
+            <option value="サッカー">サッカー</option><option value="野球">野球</option><option value="バスケットボール">バスケットボール</option>
+            <option value="バレーボール">バレーボール</option><option value="ドッジボール">ドッジボール</option>
+            <option value="アルティメット">アルティメット</option><option value="卓球">卓球</option>
+          </select>
+        </div>
+        <div><label class="block text-sm text-gray-400 mb-1.5">対象学年</label><select id="ballGrade" class="w-full rounded-xl px-4 py-3"></select></div>
         <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block text-sm text-gray-400 mb-1.5">開始時刻</label>
-            <input type="time" id="editTime" class="w-full rounded-xl px-4 py-3" required>
-          </div>
-          <div>
-            <label class="block text-sm text-gray-400 mb-1.5">⏱️ 所要時間（分）</label>
-            <input type="number" id="editDuration" value="15" min="1" class="w-full rounded-xl px-4 py-3 text-center">
-          </div>
+          <div><label class="block text-sm text-gray-400 mb-1.5">チームA</label><select id="ballTeamA" class="w-full rounded-xl px-4 py-3"></select></div>
+          <div><label class="block text-sm text-gray-400 mb-1.5">チームB</label><select id="ballTeamB" class="w-full rounded-xl px-4 py-3"></select></div>
         </div>
-        <!-- 🔴 対象学年：選択制 -->
-        <div>
-          <label class="block text-sm text-gray-400 mb-1.5">👥 対象学年</label>
-          <select id="editGrade" class="w-full rounded-xl px-4 py-3">
-            <option value="">指定なし</option>
+        <div><label class="block text-sm text-gray-400 mb-1.5">ステータス</label>
+          <select id="ballStatus" class="w-full rounded-xl px-4 py-3">
+            <option value="future">まもなく</option><option value="pending">準備中</option>
+            <option value="running">🔥 進行中</option><option value="done">✅ 終了</option>
           </select>
-        </div>
-        <!-- 🔴 時間調整：プラス・マイナス両対応 -->
-        <div>
-          <label class="block text-sm text-gray-400 mb-1.5">⏱️ 時間調整（分）</label>
-          <div class="flex items-center gap-2">
-            <button type="button" class="adjust-btn px-3 py-2 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 font-bold" data-adjust="-5">-5</button>
-            <button type="button" class="adjust-btn px-3 py-2 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 font-bold" data-adjust="-1">-1</button>
-            <input type="number" id="editDelay" value="0" class="flex-1 rounded-xl px-4 py-3 text-center font-mono-num text-lg" placeholder="0">
-            <button type="button" class="adjust-btn px-3 py-2 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 font-bold" data-adjust="1">+1</button>
-            <button type="button" class="adjust-btn px-3 py-2 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 font-bold" data-adjust="5">+5</button>
-          </div>
-          <p class="text-xs text-gray-500 mt-1">マイナス：巻いている / プラス：遅れている</p>
-        </div>
-        <div>
-          <label class="block text-sm text-gray-400 mb-1.5">ステータス</label>
-          <select id="editStatus" class="w-full rounded-xl px-4 py-3">
-            <option value="wait">未開始</option>
-            <option value="ready">準備中</option>
-            <option value="running">🔥 進行中</option>
-            <option value="delay">⚠️ 遅延</option>
-            <option value="early">⚡ 早まり</option>
-            <option value="done">✅ 終了</option>
-          </select>
-        </div>
-        <!-- 🔴 勝った組：ABCDから選択 -->
-        <div class="pt-3 border-t border-white/5">
-          <p class="text-sm font-medium text-gray-300 mb-3">🏆 結果入力（組で選択）</p>
-          <div class="space-y-3">
-            <div>
-              <label class="block text-xs text-gray-500 mb-2">🥇 1位の組</label>
-              <div class="group-select" data-rank="1">
-                <button type="button" class="group-btn" data-group="A">A組</button>
-                <button type="button" class="group-btn" data-group="B">B組</button>
-                <button type="button" class="group-btn" data-group="C">C組</button>
-                <button type="button" class="group-btn" data-group="D">D組</button>
-              </div>
-            </div>
-            <div>
-              <label class="block text-xs text-gray-500 mb-2">🥈 2位の組</label>
-              <div class="group-select" data-rank="2">
-                <button type="button" class="group-btn" data-group="A">A組</button>
-                <button type="button" class="group-btn" data-group="B">B組</button>
-                <button type="button" class="group-btn" data-group="C">C組</button>
-                <button type="button" class="group-btn" data-group="D">D組</button>
-              </div>
-            </div>
-            <div>
-              <label class="block text-xs text-gray-500 mb-2">🥉 3位の組</label>
-              <div class="group-select" data-rank="3">
-                <button type="button" class="group-btn" data-group="A">A組</button>
-                <button type="button" class="group-btn" data-group="B">B組</button>
-                <button type="button" class="group-btn" data-group="C">C組</button>
-                <button type="button" class="group-btn" data-group="D">D組</button>
-              </div>
-            </div>
-          </div>
-          <input type="hidden" id="editRank1" value="">
-          <input type="hidden" id="editRank2" value="">
-          <input type="hidden" id="editRank3" value="">
-        </div>
-        <div>
-          <label class="block text-sm text-gray-400 mb-1.5">備考</label>
-          <textarea id="editNote" rows="2" placeholder="連絡事項など" class="w-full rounded-xl px-4 py-3"></textarea>
         </div>
         <div class="flex gap-3 pt-2">
-          <button type="button" id="modalClose" class="flex-1 py-3 rounded-xl bg-white/10 hover:bg-white/15 transition-colors font-medium">キャンセル</button>
-          <button type="submit" class="flex-1 py-3 rounded-xl btn-primary font-medium">保存</button>
+          <button type="button" id="ballModalClose" class="flex-1 py-3 rounded-xl bg-white/10 hover:bg-white/15 transition-colors font-medium">キャンセル</button>
+          <button type="submit" class="flex-1 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 font-medium">追加</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 団体競技日 種目追加モーダル -->
+  <div id="teamModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+    <div class="card rounded-3xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+      <h3 class="text-xl font-bold mb-6">🏃 団体競技日 種目追加</h3>
+      <form id="teamForm" class="space-y-4">
+        <div><label class="block text-sm text-gray-400 mb-1.5">種目名</label>
+          <select id="teamName" class="w-full rounded-xl px-4 py-3">
+            <option value="大玉送り">大玉送り</option><option value="竹取物語">竹取物語</option><option value="台風の目">台風の目</option>
+            <option value="しっぽとり">しっぽとり</option><option value="借り人競争">借り人競争</option><option value="部対抗リレー">部対抗リレー</option>
+            <option value="綱引き">綱引き</option><option value="二人三脚">二人三脚</option><option value="100人フットボール">100人フットボール</option>
+            <option value="選抜リレー">選抜リレー</option><option value="騎馬戦">騎馬戦</option><option value="団長騎馬戦">団長騎馬戦</option>
+            <option value="開会式">開会式</option><option value="閉会式">閉会式</option>
+          </select>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="block text-sm text-gray-400 mb-1.5">開始時刻</label><input type="time" id="teamTime" class="w-full rounded-xl px-4 py-3" required></div>
+          <div><label class="block text-sm text-gray-400 mb-1.5">所要時間（分）</label><input type="number" id="teamDuration" value="15" min="1" class="w-full rounded-xl px-4 py-3 text-center"></div>
+        </div>
+        <div><label class="block text-sm text-gray-400 mb-1.5">対象学年</label><select id="teamGrade" class="w-full rounded-xl px-4 py-3"></select></div>
+        <div><label class="block text-sm text-gray-400 mb-1.5">場所</label><input type="text" id="teamPlace" placeholder="グラウンド" class="w-full rounded-xl px-4 py-3"></div>
+        <div><label class="block text-sm text-gray-400 mb-1.5">ステータス</label>
+          <select id="teamStatus" class="w-full rounded-xl px-4 py-3">
+            <option value="wait">未開始</option><option value="ready">準備中</option>
+            <option value="running">🔥 進行中</option><option value="delay">⚠️ 遅延</option><option value="done">✅ 終了</option>
+          </select>
+        </div>
+        <div class="flex gap-3 pt-2">
+          <button type="button" id="teamModalClose" class="flex-1 py-3 rounded-xl bg-white/10 hover:bg-white/15 transition-colors font-medium">キャンセル</button>
+          <button type="submit" class="flex-1 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 font-medium">追加</button>
         </div>
       </form>
     </div>
@@ -297,171 +309,202 @@
 
   <script>
     lucide.createIcons();
-
-    // PDF得点割
-    const SCORING_TABLE = {
-      '大玉送り': [200, 150, 100, 50], '竹取物語': [200, 150, 100, 50], '台風の目': [200, 150, 100, 100],
-      'しっぽとり': [200, 150, 100, 100], '借り人競争': [100, 90, 80, 70], '部対抗リレー': [0, 0, 0, 0],
-      '綱引き': [200, 150, 100, 100], '二人三脚': [200, 150, 100, 50], '100人フットボール': [200, 150, 100, 100],
-      '選抜リレー': [634, 434, 334, 234], '騎馬戦': [200, 150, 100, 100], '団長騎馬戦': [376, 276, 176, 76],
-      '開会式': [0, 0, 0, 0], '閉会式': [0, 0, 0, 0]
-    };
-
-    const STATUS_LABEL = { wait: '未開始', ready: '準備中', running: '🔥 進行中', delay: '⚠️ 遅延', early: '⚡ 早まり', done: '✅ 終了' };
-    const STATUS_CLASS = { wait: 'status-wait', ready: 'status-ready', running: 'status-running', delay: 'status-delay', early: 'status-early', done: 'status-done' };
+    const SETTINGS_PASSWORD = 'admin123';
 
     function loadCommon() {
       try { const s = localStorage.getItem('common_settings');
-        return s ? JSON.parse(s) : { classes: [], grades: ['中学1年','中学2年','中学3年','高校1年','高校2年','高校3年'] }; }
+        return s ? JSON.parse(s) : { classes: ['中1A組','中1B組','中1C組','中1D組','中2A組','中2B組','中2C組','中2D組','中3A組','中3B組','中3C組','中3D組','高1A組','高1B組','高1C組','高1D組','高2A組','高2B組','高2C組','高2D組','高3A組','高3B組','高3C組','高3D組'], grades: ['中学1年','中学2年','中学3年','高校1年','高校2年','高校3年'] }; }
       catch { return { classes: [], grades: ['中学1年','中学2年','中学3年','高校1年','高校2年','高校3年'] }; }
     }
-    const common = loadCommon();
+    let common = loadCommon();
+    function saveCommon() { localStorage.setItem('common_settings', JSON.stringify(common)); }
 
-    function getDefaultData() {
-      return {
-        events: [
-          { id: 1, name: '開会式', time: '08:20', duration: 30, place: 'グラウンド', status: 'wait', delay: 0, category: 'general', grade: '', rank1: '', rank2: '', rank3: '', note: '校長挨拶・選手宣誓・団長挨拶' },
-          { id: 2, name: '大玉送り', time: '08:50', duration: 18, place: 'グラウンド', status: 'wait', delay: 0, category: 'general', grade: '高校1年', rank1: '', rank2: '', rank3: '', note: '' },
-          { id: 3, name: '竹取物語', time: '09:08', duration: 45, place: 'グラウンド', status: 'wait', delay: 0, category: 'general', grade: '', rank1: '', rank2: '', rank3: '', note: '前半・後半 各15分' },
-          { id: 4, name: '台風の目', time: '09:53', duration: 31, place: 'グラウンド', status: 'wait', delay: 0, category: 'general', grade: '', rank1: '', rank2: '', rank3: '', note: '前半・後半・勝者戦' },
-          { id: 5, name: 'しっぽとり', time: '10:24', duration: 17, place: 'グラウンド', status: 'wait', delay: 0, category: 'general', grade: '中学2年', rank1: '', rank2: '', rank3: '', note: '' },
-          { id: 6, name: '借り人競争', time: '10:41', duration: 12, place: 'トラック', status: 'wait', delay: 0, category: 'mixed', grade: '', rank1: '', rank2: '', rank3: '', note: '応援団員・先生方参加' },
-          { id: 7, name: '部対抗リレー', time: '10:53', duration: 37, place: 'トラック', status: 'wait', delay: 0, category: 'mixed', grade: '', rank1: '', rank2: '', rank3: '', note: '運動部・文化部 得点なし' },
-          { id: 8, name: '昼休み', time: '11:30', duration: 45, place: '', status: 'wait', delay: 0, category: 'general', grade: '', rank1: '', rank2: '', rank3: '', note: '' },
-          { id: 9, name: '綱引き', time: '12:15', duration: 45, place: 'グラウンド', status: 'wait', delay: 0, category: 'general', grade: '', rank1: '', rank2: '', rank3: '', note: '前半・後半' },
-          { id: 10, name: '二人三脚', time: '13:00', duration: 21, place: 'トラック', status: 'wait', delay: 0, category: 'general', grade: '', rank1: '', rank2: '', rank3: '', note: '' },
-          { id: 11, name: '100人フットボール', time: '13:21', duration: 45, place: 'グラウンド', status: 'wait', delay: 0, category: 'general', grade: '', rank1: '', rank2: '', rank3: '', note: '中2・中3・高1 各15分' },
-          { id: 12, name: '選抜リレー', time: '14:06', duration: 16, place: 'トラック', status: 'wait', delay: 0, category: 'mixed', grade: '', rank1: '', rank2: '', rank3: '', note: '生徒選抜者・教師' },
-          { id: 13, name: '騎馬戦', time: '14:22', duration: 44, place: 'グラウンド', status: 'wait', delay: 0, category: 'general', grade: '', rank1: '', rank2: '', rank3: '', note: '高2・高3 各22分' },
-          { id: 14, name: '団長騎馬戦', time: '15:06', duration: 9, place: 'グラウンド', status: 'wait', delay: 0, category: 'general', grade: '', rank1: '', rank2: '', rank3: '', note: '応援団長' },
-          { id: 15, name: '閉会式', time: '15:15', duration: 12, place: 'グラウンド', status: 'wait', delay: 0, category: 'general', grade: '', rank1: '', rank2: '', rank3: '', note: '15:27 終了予定' },
-        ]
-      };
-    }
+    function calcTotalRanking() {
+      const ballData = loadData('ball_sports_data_v3', null);
+      const teamData = loadData('team_events_data_v3', null);
+      const classes = {};
+      common.classes.forEach(c => classes[c] = { name: c, ball: 0, team: 0, total: 0 });
 
-    let scheduleData = getDefaultData();
-    function saveSchedule() { localStorage.setItem('team_events_data_v3', JSON.stringify(scheduleData)); }
-    function loadSchedule() {
-      const saved = localStorage.getItem('team_events_data_v3');
-      if (saved) try { scheduleData = Object.assign(getDefaultData(), JSON.parse(saved)); } catch {}
-    }
-
-    function calcActualTime(event) {
-      const sorted = [...scheduleData.events].sort((a, b) => a.time.localeCompare(b.time));
-      let delayBefore = 0;
-      for (const e of sorted) { if (e.id === event.id) break; delayBefore += e.delay || 0; }
-      const [h, m] = event.time.split(':').map(Number);
-      const totalMin = h * 60 + m + delayBefore + (event.delay || 0);
-      const nh = Math.floor((totalMin % 1440 + 1440) % 1440 / 60);
-      const nm = ((totalMin % 60) + 60) % 60;
-      return `${String(nh).padStart(2, '0')}:${String(nm).padStart(2, '0')}`;
-    }
-
-    function calcEndTime(event) {
-      const actual = calcActualTime(event);
-      const [h, m] = actual.split(':').map(Number);
-      const totalMin = h * 60 + m + (event.duration || 15);
-      const nh = Math.floor((totalMin % 1440 + 1440) % 1440 / 60);
-      const nm = ((totalMin % 60) + 60) % 60;
-      return `${String(nh).padStart(2, '0')}:${String(nm).padStart(2, '0')}`;
-    }
-
-    function calcTotalDelay() { return scheduleData.events.reduce((sum, e) => sum + (e.delay || 0), 0); }
-
-    // 🔴 組別ランキング計算
-    function calcGroupRanking() {
-      const groups = { A: { name: 'A組', total: 0, details: {} }, B: { name: 'B組', total: 0, details: {} }, C: { name: 'C組', total: 0, details: {} }, D: { name: 'D組', total: 0, details: {} } };
-      
-      scheduleData.events.filter(e => e.status === 'done').forEach(e => {
-        const table = SCORING_TABLE[e.name] || [200, 150, 100, 50];
-        [e.rank1, e.rank2, e.rank3].forEach((group, i) => {
-          if (group && groups[group] && table[i]) {
-            groups[group].total += table[i];
-            groups[group].details[e.name] = (groups[group].details[e.name] || 0) + table[i];
-          }
+      if (ballData && ballData.matches) {
+        const pts = ballData.points || { win: 3, draw: 1, lose: 0 };
+        ballData.matches.filter(m => m.status === 'done').forEach(m => {
+          [m.teamA, m.teamB].forEach(t => { if (!classes[t]) classes[t] = { name: t, ball: 0, team: 0, total: 0 }; });
+          const ta = classes[m.teamA], tb = classes[m.teamB];
+          if (!ta || !tb) return;
+          if (m.scoreA > m.scoreB) { ta.ball += pts.win; tb.ball += pts.lose; }
+          else if (m.scoreA < m.scoreB) { tb.ball += pts.win; ta.ball += pts.lose; }
+          else { ta.ball += pts.draw; tb.ball += pts.draw; }
         });
-      });
-      
-      const ranking = Object.values(groups).sort((a, b) => b.total - a.total);
-      const listEl = document.getElementById('groupRanking');
-      
-      if (!ranking.some(r => r.total > 0)) { listEl.innerHTML = '<p class="text-gray-500 text-sm text-center py-6">終了した種目がありません</p>'; return; }
-      
-      listEl.innerHTML = ranking.map((t, i) => {
+      }
+
+      const SCORING = {
+        '大玉送り': [200, 150, 100, 50], 'しっぽとり': [200, 150, 100, 100], '台風の目': [200, 150, 100, 100],
+        '綱引き': [200, 150, 100, 100], '100人フットボール': [200, 150, 100, 100], '竹取物語': [200, 150, 100, 100],
+        '騎馬戦': [200, 150, 100, 100], '団長騎馬戦': [376, 276, 176, 76], '選抜リレー': [634, 434, 334, 234],
+        '二人三脚': [200, 150, 100, 50], '借り人競争': [100, 90, 80, 70], '部対抗リレー': [0, 0, 0, 0]
+      };
+      if (teamData && teamData.events) {
+        teamData.events.filter(e => e.status === 'done').forEach(e => {
+          const table = SCORING[e.name] || [200, 150, 100, 50];
+          [e.rank1, e.rank2, e.rank3].forEach((name, i) => {
+            if (name && table[i]) {
+              if (!classes[name]) classes[name] = { name, ball: 0, team: 0, total: 0 };
+              classes[name].team += table[i];
+            }
+          });
+        });
+      }
+
+      Object.values(classes).forEach(c => c.total = c.ball + c.team);
+      return Object.values(classes).sort((a, b) => b.total - a.total);
+    }
+
+    function renderTotalRanking() {
+      const ranking = calcTotalRanking();
+      document.getElementById('totalRanking').innerHTML = ranking.slice(0, 6).map((t, i) => {
         const rc = i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : 'bg-white/5 border border-white/5';
         const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}位`;
         return `
-          <div class="event-card ${rc} rounded-xl p-4 flex items-center gap-4">
+          <div class="rounded-xl p-4 flex items-center gap-4 ${rc}">
             <div class="w-12 text-center font-bold text-lg">${medal}</div>
             <div class="flex-1 min-w-0">
-              <p class="font-semibold text-lg">${t.name}</p>
-              ${Object.keys(t.details).length ? `<p class="text-xs text-gray-400 truncate">${Object.entries(t.details).map(([k,v]) => `${k}:${v}`).join(' / ')}</p>` : ''}
+              <p class="font-semibold truncate">${t.name}</p>
+              <p class="text-xs text-gray-400">球技 ${t.ball}pt + 団体 ${t.team}pt</p>
             </div>
             <div class="text-right">
-              <p class="font-mono-num font-bold text-3xl">${t.total}</p>
+              <p class="font-mono-num font-bold text-2xl">${t.total}</p>
               <p class="text-xs text-gray-500">合計pt</p>
             </div>
           </div>
         `;
-      }).join('');
-      saveSchedule();
+      }).join('') || '<p class="text-gray-500 text-sm text-center py-6">まだデータがありません</p>';
+
+      const bd = loadData('ball_sports_data_v3', null);
+      const td = loadData('team_events_data_v3', null);
+      if (bd?.matches) { const done = bd.matches.filter(m => m.status === 'done').length; document.getElementById('ballProgress').textContent = `${done} / ${bd.matches.length} 試合`; }
+      if (td?.events) { const done = td.events.filter(e => e.status === 'done').length; document.getElementById('teamProgress').textContent = `${done} / ${td.events.length} 種目`; }
+      lucide.createIcons();
     }
 
-    function updateSelectOptions() {
-      document.getElementById('filterGrade').innerHTML = '<option value="">全学年</option>' + common.grades.map(g => `<option value="${g}">${g}</option>`).join('');
-      document.getElementById('editGrade').innerHTML = '<option value="">指定なし</option>' + common.grades.map(g => `<option value="${g}">${g}</option>`).join('');
+    function loadData(key, def) { try { const s = localStorage.getItem(key); return s ? JSON.parse(s) : def; } catch { return def; } }
+
+    function renderLists() {
+      document.getElementById('classList').innerHTML = common.classes.map(c => `
+        <div class="flex items-center justify-between bg-white/5 rounded-lg px-3 py-2">
+          <span>${c}</span>
+          <button data-del-class="${c}" class="text-red-400 hover:text-red-600 text-sm px-2 py-0.5 rounded hover:bg-red-500/10">×</button>
+        </div>
+      `).join('');
+      document.getElementById('gradeList').innerHTML = common.grades.map(g => `
+        <div class="flex items-center justify-between bg-white/5 rounded-lg px-3 py-2">
+          <span>${g}</span>
+          <button data-del-grade="${g}" class="text-red-400 hover:text-red-600 text-sm px-2 py-0.5 rounded hover:bg-red-500/10">×</button>
+        </div>
+      `).join('');
     }
 
-    function renderTimetable() {
-      updateSelectOptions();
-      const listEl = document.getElementById('eventList');
-      if (!listEl) return;
-      
-      const running = scheduleData.events.find(e => e.status === 'running' || e.status === 'delay' || e.status === 'early');
-      const nextUp = scheduleData.events.find(e => ['wait', 'ready'].includes(e.status));
-      const doneCount = scheduleData.events.filter(e => e.status === 'done').length;
-      const total = scheduleData.events.length;
-      const totalDelay = calcTotalDelay();
-      
-      document.getElementById('nowRunning').textContent = running ? running.name : 'なし';
-      document.getElementById('nextUp').textContent = nextUp ? `${nextUp.name}（${calcActualTime(nextUp)}）` : '予定なし';
-      document.getElementById('totalDelay').textContent = `${totalDelay >= 0 ? '+' : ''}${totalDelay}分`;
-      document.getElementById('totalDelay').className = `text-xl md:text-2xl font-bold font-mono-num ${totalDelay > 0 ? 'text-amber-400' : totalDelay < 0 ? 'text-cyan-400' : 'text-white'}`;
-      document.getElementById('eventCount').textContent = total;
-      document.getElementById('progressText').textContent = `${doneCount} / ${total} 終了`;
-      document.getElementById('progressBar').style.width = `${total ? doneCount/total*100 : 0}%`;
-      
-      let events = [...scheduleData.events].sort((a, b) => a.time.localeCompare(b.time));
-      const fStatus = document.getElementById('filterStatus')?.value;
-      const fGrade = document.getElementById('filterGrade')?.value;
-      if (fStatus === 'active') events = events.filter(e => !['done'].includes(e.status));
-      if (fStatus === 'notstarted') events = events.filter(e => ['wait'].includes(e.status));
-      if (fGrade) events = events.filter(e => e.grade === fGrade);
-      
-      listEl.innerHTML = '';
-      events.forEach(event => {
-        const actualTime = calcActualTime(event);
-        const endTime = calcEndTime(event);
-        const delay = event.delay || 0;
-        let delayBadge = '';
-        if (delay > 0) delayBadge = `<span class="text-amber-400 text-xs ml-2 bg-amber-400/10 px-2 py-0.5 rounded-full">+${delay}分 遅延</span>`;
-        else if (delay < 0) delayBadge = `<span class="text-cyan-400 text-xs ml-2 bg-cyan-400/10 px-2 py-0.5 rounded-full">${delay}分 巻き</span>`;
-        
-        const scoring = SCORING_TABLE[event.name];
-        const scoringText = scoring && scoring[0] > 0 ? `<span class="text-xs text-gray-500 ml-2">得点: ${scoring.slice(0,3).join('/')}</span>` : '';
-        
-        const rankText = event.rank1 ? `
-          <div class="flex flex-wrap gap-2 mt-2 text-xs">
-            ${event.rank1 ? `<span class="bg-amber-400/10 text-amber-400 px-2 py-1 rounded-full">🥇 ${event.rank1}組${scoring ? `(${scoring[0]}pt)` : ''}</span>` : ''}
-            ${event.rank2 ? `<span class="bg-gray-400/10 text-gray-300 px-2 py-1 rounded-full">🥈 ${event.rank2}組${scoring ? `(${scoring[1]}pt)` : ''}</span>` : ''}
-            ${event.rank3 ? `<span class="bg-amber-700/10 text-amber-700 px-2 py-1 rounded-full">🥉 ${event.rank3}組${scoring ? `(${scoring[2]}pt)` : ''}</span>` : ''}
-          </div>
-        ` : '';
-        
-        listEl.innerHTML += `
-          <div class="event-card ${STATUS_CLASS[event.status]} rounded-2xl p-5">
-            <div class="flex justify-between items-start mb-3 flex-wrap gap-3">
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2 mb-1 flex-wrap">
-                  <h3 class="font-bold text-lg">${event.name}</h3>
-                  ${event.grade ? `<span class="text-xs px-2 py-0.5 rounded-full bg-white/10">${event.grade}</span>` : ''
+    function updateSelects() {
+      const classOpt = '<option value="">-</option>' + common.classes.map(c => `<option value="${c}">${c}</option>`).join('');
+      const gradeOpt = '<option value="">指定なし</option>' + common.grades.map(g => `<option value="${g}">${g}</option>`).join('');
+      const venueOpt = ['上グラウンド','下グラウンド','体育館','ハードコート','オムニコート','卓球場'].map(v => `<option value="${v}">${v}</option>`).join('');
+      document.getElementById('ballTeamA').innerHTML = classOpt;
+      document.getElementById('ballTeamB').innerHTML = classOpt;
+      document.getElementById('ballGrade').innerHTML = gradeOpt;
+      document.getElementById('ballVenue').innerHTML = venueOpt;
+      document.getElementById('teamGrade').innerHTML = gradeOpt;
+    }
+
+    document.getElementById('openSettingsBtn').addEventListener('click', () => {
+      document.getElementById('settingsModal').classList.remove('hidden');
+      document.getElementById('settingsModal').classList.add('flex');
+      renderLists();
+    });
+    document.getElementById('closeSettingsBtn').addEventListener('click', () => {
+      document.getElementById('settingsModal').classList.add('hidden');
+      document.getElementById('settingsModal').classList.remove('flex');
+      document.getElementById('passwordArea').classList.remove('hidden');
+      document.getElementById('settingsContent').classList.add('hidden');
+      document.getElementById('settingsPassword').value = '';
+    });
+    document.getElementById('settingsModal').addEventListener('click', e => { if (e.target.id === 'settingsModal') document.getElementById('closeSettingsBtn').click(); });
+    document.getElementById('authBtn').addEventListener('click', () => {
+      if (document.getElementById('settingsPassword').value === SETTINGS_PASSWORD) {
+        document.getElementById('passwordArea').classList.add('hidden');
+        document.getElementById('settingsContent').classList.remove('hidden');
+      } else { alert('パスワードが違います'); }
+    });
+    document.getElementById('addClassBtn').addEventListener('click', () => {
+      const v = document.getElementById('newClassName').value.trim();
+      if (!v || common.classes.includes(v)) return alert('無効または既存です');
+      common.classes.push(v); saveCommon(); renderLists(); updateSelects();
+      document.getElementById('newClassName').value = '';
+    });
+    document.getElementById('addGradeBtn').addEventListener('click', () => {
+      const v = document.getElementById('newGradeName').value.trim();
+      if (!v || common.grades.includes(v)) return alert('無効または既存です');
+      common.grades.push(v); saveCommon(); renderLists(); updateSelects();
+      document.getElementById('newGradeName').value = '';
+    });
+    document.addEventListener('click', e => {
+      const dc = e.target.closest('[data-del-class]')?.dataset.delClass;
+      if (dc && confirm(`「${dc}」を削除しますか？`)) { common.classes = common.classes.filter(c => c !== dc); saveCommon(); renderLists(); updateSelects(); }
+      const dg = e.target.closest('[data-del-grade]')?.dataset.delGrade;
+      if (dg && confirm(`「${dg}」を削除しますか？`)) { common.grades = common.grades.filter(g => g !== dg); saveCommon(); renderLists(); updateSelects(); }
+    });
+    document.getElementById('recalcAllBtn').addEventListener('click', () => { renderTotalRanking(); alert('再計算しました'); });
+    document.getElementById('resetAllBtn').addEventListener('click', () => {
+      if (!confirm('⚠️ 本当に全データを初期化しますか？')) return;
+      if (!confirm('もう一度確認：全て消去されます')) return;
+      ['ball_sports_data_v3', 'team_events_data_v3', 'common_settings'].forEach(k => localStorage.removeItem(k));
+      location.reload();
+    });
+    document.getElementById('refreshTotalBtn').addEventListener('click', renderTotalRanking);
+
+    document.getElementById('addBallMatchBtn').addEventListener('click', () => { updateSelects(); document.getElementById('ballModal').classList.remove('hidden'); });
+    document.getElementById('ballModalClose').addEventListener('click', () => document.getElementById('ballModal').classList.add('hidden'));
+    document.getElementById('ballForm').addEventListener('submit', e => {
+      e.preventDefault();
+      const data = loadData('ball_sports_data_v3', getDefaultBallData());
+      const newId = data.matches.length ? Math.max(...data.matches.map(m => m.id)) + 1 : 1;
+      data.matches.push({
+        id: newId, venue: document.getElementById('ballVenue').value,
+        time: document.getElementById('ballTime').value, sport: document.getElementById('ballSport').value,
+        grade: document.getElementById('ballGrade').value, teamA: document.getElementById('ballTeamA').value,
+        teamB: document.getElementById('ballTeamB').value, scoreA: 0, scoreB: 0,
+        status: document.getElementById('ballStatus').value, note: '', delay: 0, duration: 15
+      });
+      localStorage.setItem('ball_sports_data_v3', JSON.stringify(data));
+      document.getElementById('ballModal').classList.add('hidden');
+      document.getElementById('ballForm').reset();
+      renderTotalRanking();
+      alert('追加しました');
+    });
+
+    document.getElementById('addTeamEventBtn').addEventListener('click', () => { updateSelects(); document.getElementById('teamModal').classList.remove('hidden'); });
+    document.getElementById('teamModalClose').addEventListener('click', () => document.getElementById('teamModal').classList.add('hidden'));
+    document.getElementById('teamForm').addEventListener('submit', e => {
+      e.preventDefault();
+      const data = loadData('team_events_data_v3', getDefaultTeamData());
+      const newId = data.events.length ? Math.max(...data.events.map(ev => ev.id)) + 1 : 1;
+      data.events.push({
+        id: newId, name: document.getElementById('teamName').value, time: document.getElementById('teamTime').value,
+        duration: Number(document.getElementById('teamDuration').value) || 15,
+        category: 'general', grade: document.getElementById('teamGrade').value, place: document.getElementById('teamPlace').value.trim(),
+        status: document.getElementById('teamStatus').value, delay: 0, matchCount: 1,
+        rank1: '', rank2: '', rank3: '', note: ''
+      });
+      localStorage.setItem('team_events_data_v3', JSON.stringify(data));
+      document.getElementById('teamModal').classList.add('hidden');
+      document.getElementById('teamForm').reset();
+      renderTotalRanking();
+      alert('追加しました');
+    });
+
+    function getDefaultBallData() { return { venues: ['上グラウンド','下グラウンド','体育館','ハードコート','オムニコート','卓球場'], matches: [], points: { win: 3, draw: 1, lose: 0 } }; }
+    function getDefaultTeamData() { return { events: [] }; }
+
+    renderTotalRanking();
+    setInterval(renderTotalRanking, 30000);
+  </script>
+</body>
+</html>
