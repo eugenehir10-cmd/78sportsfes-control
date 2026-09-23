@@ -477,15 +477,17 @@
       }).join('');
       lucide.createIcons();
       
-      document.querySelectorAll('.remove-email-btn').forEach(btn => {
-        btn.addEventListener('click', async () => {
-          const email = btn.dataset.email;
-          if (!confirm(`このアカウントを許可リストから削除しますか？\n${email}`)) return;
-          const newList = AUTHORIZED_EMAILS.filter(e => e !== email);
-          await saveAuthorizedUsers(newList);
-        });
+    // タブ切り替え
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+        btn.classList.add('active');
+        document.getElementById('tab-' + btn.dataset.tab).classList.remove('hidden');
+        // ✅ タブ切り替え時に学年選択肢を再更新
+        updateGradeSelects();
       });
-    }
+    });
 
     async function saveAuthorizedUsers(list) {
       try {
