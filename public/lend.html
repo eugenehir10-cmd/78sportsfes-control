@@ -757,46 +757,7 @@
     });
 
     // ===== 削除系 =====
-      // ===== 一括選択・一括削除 =====
-    document.addEventListener('change', e => {
-      if (e.target.id === 'checkAllDevices') {
-        document.querySelectorAll('input[name="selectDevice"]:not(:disabled)').forEach(cb => {
-          cb.checked = e.target.checked;
-        });
-      }
-    });
-
-    document.addEventListener('click', async e => {
-      if (e.target.id === 'deleteSelectedBtn') {
-        const selectedIds = Array.from(
-          document.querySelectorAll('input[name="selectDevice"]:checked')
-        ).map(cb => cb.value);
-        
-        if (!selectedIds.length) {
-          return showPopup('削除する機器を選択してください', 'warning');
-        }
-        
-        if (!confirm(
-          `⚠️ ${selectedIds.length}台 を一括削除します\n` +
-          `データは復元できません。よろしいですか？`
-        )) return;
-        
-        if (!db) return showPopup('未接続です', 'warning');
-        
-        let successCount = 0;
-        let failCount = 0;
-        
-        for (const id of selectedIds) {
-          const ok = await deleteDeviceWithHistory(id);
-          ok ? successCount++ : failCount++;
-        }
-        
-        let msg = `✅ ${successCount}台 削除完了`;
-        if (failCount > 0) msg += `\n⚠️ ${failCount}台 失敗`;
-        showPopup(msg);
-        return;
-      }
-    });
+      
     document.addEventListener('click', async e => {
       const delCat = e.target.getAttribute('data-del-cat');
       if (delCat && !e.target.disabled) {
