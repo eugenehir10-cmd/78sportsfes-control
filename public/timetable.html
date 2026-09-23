@@ -497,6 +497,19 @@
           teamGrade.innerHTML = '<option value="">対象学年（任意）</option>' + gradeOpts;
           if (currentVal && grades.includes(currentVal)) teamGrade.value = currentVal;
         }
+        // --- 団体競技日 種目選択肢 ---
+        const teamSports = [
+          '開会式', '大玉送り', '竹取物語', '台風の目', 'しっぽとり',
+          '借り人競争', '部対抗リレー', '昼休み', '綱引き', '二人三脚',
+          '100人フットボール', '選抜リレー', '騎馬戦', '団長騎馬戦', '閉会式', 'その他'
+        ];
+        const teamSportSelect = document.getElementById('teamSportSelect');
+        if (teamSportSelect) {
+          const currentVal = teamSportSelect.value;
+          teamSportSelect.innerHTML = '<option value="">種目を選択</option>' + 
+            teamSports.map(s => `<option value="${s}">${s}</option>`).join('');
+          if (currentVal && teamSports.includes(currentVal)) teamSportSelect.value = currentVal;
+        }
       } catch (e) {
         console.warn('選択肢初期化エラー:', e);
       }
