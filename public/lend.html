@@ -689,16 +689,32 @@
       const pre = document.getElementById('bulkPrefix')?.value.trim();
       const s = parseInt(document.getElementById('bulkStart')?.value);
       const e = parseInt(document.getElementById('bulkEnd')?.value);
-      if (!cat || !pre || !s || !e || s > e) return showPopup('入力値が不正です', 'warning');
+      
+      if (!cat || !pre || !s || !e || s > e) {
+        return showPopup('入力値が不正です', 'warning');
+      }
+      
       let added = 0;
+      let skipped = 0;
+      
       for (let i = s; i <= e; i++) {
         const id = pre + String(i).padStart(3, '0');
-        if (!items.some(x => x.id === id)) {
-          await addEquipment(cat, id);
-          added++;
+        
+        // ✅ 既存IDと重複する場合はスキップ（削除済み番号も新規扱いで登録可）
+        if (items.some(x => x.id === id)) {
+          skipped++;
+          continue;
         }
+        
+        await addEquipment(cat, id);
+        added++;
       }
-      showPopup(`✅ ${added}台 登録完了`);
+      
+      let msg = `✅ ${added}台 新規登録完了`;
+      if (skipped > 0) {
+        msg += `\n⚠️ ${skipped}件 既存番号のためスキップ`;
+      }
+      showPopup(msg);
     });
 
     document.getElementById('editFilterCategory')?.addEventListener('change', renderSettings);
@@ -731,10 +747,18 @@
       }
       const delDevice = e.target.getAttribute('data-del-device');
       if (delDevice && !e.target.disabled) {
-        if (!confirm(`機器「${delDevice}」を削除します。関連する履歴も削除されます。よろしいですか？`)) return;
+        if (!confirm(
+          `⚠️ 機器を完全削除します\n` +
+          `管理番号：${delDevice}\n` +
+          `この機器のデータ（ラベル・詳細情報）は\n` +
+          `完全に消去され、他の備品に引き継がれることは\n` +
+          `一切ありません。復元できません。\n\n` +
+          `よろしいですか？`
+        )) return;
+        
         if (!db) return showPopup('未接続です', 'warning');
         await deleteDeviceWithHistory(delDevice);
-        showPopup(`✅ ${delDevice} を削除しました（関連履歴含む）`);
+        renderSettings(); // 画面を更新
         return;
       }
     });
