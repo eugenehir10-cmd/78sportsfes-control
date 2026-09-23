@@ -7,84 +7,162 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     body {
-      background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #60a5fa 100%);
+      background: linear-gradient(180deg, #0f0f0f 0%, #1a1a1a 50%, #0f0f0f 100%);
       min-height: 100vh;
-      font-family: system-ui, sans-serif;
+      font-family: system-ui, -apple-system, sans-serif;
     }
-    .countdown-box {
-      background: rgba(255,255,255,0.1);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(255,255,255,0.2);
+    .countdown-card {
+      background: linear-gradient(145deg, #1f1f1f, #2a2a2a);
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: 
+        0 0 60px rgba(255,255,255,0.03),
+        inset 0 1px 0 rgba(255,255,255,0.05);
+    }
+    .time-block {
+      background: linear-gradient(180deg, #2c2c2c, #1f1f1f);
+      border: 1px solid rgba(255,255,255,0.1);
+      box-shadow: 
+        inset 0 2px 4px rgba(0,0,0,0.5),
+        0 4px 12px rgba(0,0,0,0.3);
+    }
+    .ms-block {
+      background: linear-gradient(180deg, #333, #252525);
+      border: 1px solid rgba(255,255,255,0.15);
+      min-width: 70px;
     }
     .func-card {
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      background: linear-gradient(145deg, #1f1f1f, #252525);
+      border: 1px solid rgba(255,255,255,0.08);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
     .func-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+      transform: translateY(-6px) scale(1.01);
+      border-color: rgba(255,255,255,0.15);
+      box-shadow: 
+        0 20px 40px rgba(0,0,0,0.4),
+        0 0 0 1px rgba(255,255,255,0.05);
+    }
+    .glow-text {
+      text-shadow: 0 0 30px rgba(255,255,255,0.15);
+    }
+    @keyframes pulse-soft {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+    .pulse-dot {
+      animation: pulse-soft 1.5s ease-in-out infinite;
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-4px); }
+    }
+    .float-num {
+      animation: float 3s ease-in-out infinite;
     }
   </style>
 </head>
-<body class="text-white max-w-4xl mx-auto px-4 py-8">
-  <header class="text-center mb-10">
-    <h1 class="text-3xl md:text-4xl font-bold mb-2">🏆 スポーツフェスタ・ポータル</h1>
-    <p class="text-blue-100">体育祭進行管理システム</p>
+<body class="text-white max-w-5xl mx-auto px-4 py-10">
+  <!-- ヘッダー -->
+  <header class="text-center mb-12">
+    <p class="text-gray-400 text-sm tracking-widest uppercase mb-3">Sports Festival Portal</p>
+    <h1 class="text-4xl md:text-6xl font-bold tracking-tight glow-text">
+      🏆 スポーツフェスタ
+    </h1>
+    <p class="text-gray-400 mt-3 text-lg">体育祭進行管理システム</p>
+    <div class="w-24 h-0.5 bg-white/20 mx-auto mt-6 rounded-full"></div>
   </header>
 
   <!-- カウントダウン -->
-  <div class="countdown-box rounded-2xl p-6 md:p-8 mb-10 text-center">
-    <p class="text-blue-100 mb-3">体育祭まであと</p>
-    <div id="countdown" class="text-4xl md:text-5xl font-mono font-bold tracking-wider">
-      読み込み中...
+  <div class="countdown-card rounded-3xl p-8 md:p-10 mb-12 text-center">
+    <p class="text-gray-400 mb-6 text-sm tracking-wider">開催まで</p>
+    
+    <div id="countdown" class="flex justify-center gap-2 md:gap-3 flex-wrap items-center">
+      <!-- 動的に挿入 -->
     </div>
-    <p class="text-sm text-blue-200 mt-2">～ 10月1日</p>
+    
+    <p class="text-gray-500 mt-6 text-sm">～ 2026.10.01</p>
   </div>
 
   <!-- 機能メニュー -->
-  <h2 class="text-xl font-bold mb-4 text-center">📂 機能メニュー</h2>
-  <div class="grid gap-4 sm:grid-cols-2">
-    <a href="lend.html" class="func-card bg-white/95 text-gray-800 p-6 rounded-xl shadow-lg block">
-      <div class="text-3xl mb-2">📻</div>
-      <h3 class="font-bold text-lg mb-1">備品貸出管理</h3>
-      <p class="text-sm text-gray-500">機器の貸出・返却・在庫管理</p>
+  <h2 class="text-xl font-bold mb-6 text-center text-gray-300">📂 機能メニュー</h2>
+  <div class="grid gap-5 sm:grid-cols-2">
+    <a href="lend.html" class="func-card p-8 rounded-2xl block group">
+      <div class="text-4xl mb-4 group-hover:scale-110 transition-transform duration-300">📻</div>
+      <h3 class="font-bold text-xl mb-2 text-white">備品貸出管理</h3>
+      <p class="text-sm text-gray-400">機器の貸出・返却・在庫管理</p>
+      <div class="mt-4 flex items-center text-sm text-gray-500 group-hover:text-white transition-colors">
+        開く
+        <span class="ml-1 group-hover:translate-x-1 transition-transform">→</span>
+      </div>
     </a>
-    <a href="timetable.html" class="func-card bg-white/95 text-gray-800 p-6 rounded-xl shadow-lg block">
-      <div class="text-3xl mb-2">📋</div>
-      <h3 class="font-bold text-lg mb-1">進行管理</h3>
-      <p class="text-sm text-gray-500">球技日・団体競技日のスケジュール</p>
+    <a href="timetable.html" class="func-card p-8 rounded-2xl block group">
+      <div class="text-4xl mb-4 group-hover:scale-110 transition-transform duration-300">📋</div>
+      <h3 class="font-bold text-xl mb-2 text-white">進行管理</h3>
+      <p class="text-sm text-gray-400">球技日・団体競技日のスケジュール</p>
+      <div class="mt-4 flex items-center text-sm text-gray-500 group-hover:text-white transition-colors">
+        開く
+        <span class="ml-1 group-hover:translate-x-1 transition-transform">→</span>
+      </div>
     </a>
   </div>
 
   <script>
     const TARGET = new Date('2026-10-01T00:00:00');
-    function pad(n, d=2) { return String(n).padStart(d, '0'); }
     
+    function pad(n, d = 2) {
+      return String(n).padStart(d, '0');
+    }
+
     function updateCountdown() {
       const now = new Date();
       const diff = TARGET - now;
-      
+      const container = document.getElementById('countdown');
+
       if (diff <= 0) {
-        document.getElementById('countdown').innerHTML = '🎉 体育祭当日！';
+        container.innerHTML = `
+          <div class="w-full py-6">
+            <p class="text-3xl md:text-4xl font-bold text-white glow-text">🎉 体育祭当日！</p>
+            <p class="text-gray-400 mt-2">Let's make it memorable!</p>
+          </div>
+        `;
         return;
       }
-      
-      const days = Math.floor(diff / (1000*60*60*24));
-      const hours = Math.floor((diff / (1000*60*60)) % 24);
-      const mins = Math.floor((diff / (1000*60)) % 60);
+
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+      const mins = Math.floor((diff / (1000 * 60)) % 60);
       const secs = Math.floor((diff / 1000) % 60);
       const ms = Math.floor((diff % 1000) / 10);
-      
-      document.getElementById('countdown').innerHTML = `
-        <span class="inline-block min-w-[60px]">${days}</span>日
-        <span class="inline-block min-w-[50px]">${pad(hours)}</span>:
-        <span class="inline-block min-w-[50px]">${pad(mins)}</span>:
-        <span class="inline-block min-w-[50px]">${pad(secs)}</span>.
-        <span class="inline-block min-w-[40px] text-yellow-300">${pad(ms)}</span>
+
+      container.innerHTML = `
+        <div class="time-block rounded-2xl px-4 py-4 md:px-6 md:py-5 min-w-[80px] md:min-w-[100px] float-num">
+          <div class="text-2xl md:text-4xl font-bold text-white">${days}</div>
+          <div class="text-xs text-gray-400 mt-1 tracking-wider">DAYS</div>
+        </div>
+        <div class="text-gray-500 text-lg hidden sm:inline">：</div>
+        <div class="time-block rounded-2xl px-4 py-4 md:px-6 md:py-5 min-w-[70px] md:min-w-[90px] float-num" style="animation-delay: 0.2s">
+          <div class="text-2xl md:text-4xl font-bold text-white">${pad(hours)}</div>
+          <div class="text-xs text-gray-400 mt-1 tracking-wider">H</div>
+        </div>
+        <div class="text-gray-500 text-lg hidden sm:inline">：</div>
+        <div class="time-block rounded-2xl px-4 py-4 md:px-6 md:py-5 min-w-[70px] md:min-w-[90px] float-num" style="animation-delay: 0.4s">
+          <div class="text-2xl md:text-4xl font-bold text-white">${pad(mins)}</div>
+          <div class="text-xs text-gray-400 mt-1 tracking-wider">M</div>
+        </div>
+        <div class="text-gray-500 text-lg hidden sm:inline">：</div>
+        <div class="time-block rounded-2xl px-4 py-4 md:px-6 md:py-5 min-w-[70px] md:min-w-[90px] float-num" style="animation-delay: 0.6s">
+          <div class="text-2xl md:text-4xl font-bold text-white">${pad(secs)}</div>
+          <div class="text-xs text-gray-400 mt-1 tracking-wider">S</div>
+        </div>
+        <div class="ms-block rounded-2xl px-3 py-4 md:px-4 md:py-5 float-num" style="animation-delay: 0.8s">
+          <div class="text-xl md:text-3xl font-bold text-amber-400">${pad(ms)}</div>
+          <div class="text-xs text-gray-400 mt-1 tracking-wider">MS</div>
+        </div>
       `;
     }
-    
+
     updateCountdown();
-    setInterval(updateCountdown, 10);
+    setInterval(updateCountdown, 10); // 10msごとに更新
   </script>
 </body>
 </html>
