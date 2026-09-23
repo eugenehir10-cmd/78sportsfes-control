@@ -5,108 +5,200 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>スポーツフェスタ・ポータル</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide アイコン -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
+    * {
+      font-family: 'Space Grotesk', system-ui, sans-serif;
+    }
+    .font-mono-num {
+      font-family: 'JetBrains Mono', monospace;
+    }
     body {
-      background: linear-gradient(180deg, #0f0f0f 0%, #1a1a1a 50%, #0f0f0f 100%);
+      background: 
+        radial-gradient(ellipse at top, rgba(255,255,255,0.05) 0%, transparent 50%),
+        radial-gradient(ellipse at bottom, rgba(255,255,255,0.03) 0%, transparent 50%),
+        linear-gradient(180deg, #0a0a0a 0%, #141414 50%, #0a0a0a 100%);
       min-height: 100vh;
-      font-family: system-ui, -apple-system, sans-serif;
     }
     .countdown-card {
-      background: linear-gradient(145deg, #1f1f1f, #2a2a2a);
+      background: linear-gradient(145deg, rgba(30,30,30,0.9), rgba(20,20,20,0.95));
       border: 1px solid rgba(255,255,255,0.08);
+      backdrop-filter: blur(20px);
       box-shadow: 
-        0 0 60px rgba(255,255,255,0.03),
-        inset 0 1px 0 rgba(255,255,255,0.05);
+        0 25px 80px rgba(0,0,0,0.6),
+        0 0 120px rgba(255,255,255,0.02),
+        inset 0 1px 0 rgba(255,255,255,0.06);
     }
     .time-block {
-      background: linear-gradient(180deg, #2c2c2c, #1f1f1f);
+      background: linear-gradient(180deg, rgba(45,45,45,0.9), rgba(25,25,25,0.95));
       border: 1px solid rgba(255,255,255,0.1);
       box-shadow: 
-        inset 0 2px 4px rgba(0,0,0,0.5),
-        0 4px 12px rgba(0,0,0,0.3);
+        inset 0 2px 6px rgba(0,0,0,0.6),
+        0 8px 24px rgba(0,0,0,0.4),
+        0 0 0 1px rgba(255,255,255,0.02);
+      position: relative;
+      overflow: hidden;
+    }
+    .time-block::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
     }
     .ms-block {
-      background: linear-gradient(180deg, #333, #252525);
-      border: 1px solid rgba(255,255,255,0.15);
-      min-width: 70px;
+      background: linear-gradient(180deg, rgba(60,50,30,0.9), rgba(40,30,15,0.95));
+      border: 1px solid rgba(251,191,36,0.2);
+      box-shadow: 
+        inset 0 2px 6px rgba(0,0,0,0.5),
+        0 8px 24px rgba(0,0,0,0.4),
+        0 0 30px rgba(251,191,36,0.08);
     }
     .func-card {
-      background: linear-gradient(145deg, #1f1f1f, #252525);
+      background: linear-gradient(145deg, rgba(30,30,30,0.85), rgba(22,22,22,0.95));
       border: 1px solid rgba(255,255,255,0.08);
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      backdrop-filter: blur(10px);
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+    .func-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.03), transparent);
+      transition: left 0.6s ease;
+    }
+    .func-card:hover::before {
+      left: 100%;
     }
     .func-card:hover {
-      transform: translateY(-6px) scale(1.01);
-      border-color: rgba(255,255,255,0.15);
+      transform: translateY(-8px) scale(1.02);
+      border-color: rgba(255,255,255,0.18);
       box-shadow: 
-        0 20px 40px rgba(0,0,0,0.4),
-        0 0 0 1px rgba(255,255,255,0.05);
+        0 30px 60px rgba(0,0,0,0.5),
+        0 0 0 1px rgba(255,255,255,0.05),
+        0 0 60px rgba(255,255,255,0.03);
     }
     .glow-text {
-      text-shadow: 0 0 30px rgba(255,255,255,0.15);
+      text-shadow: 
+        0 0 40px rgba(255,255,255,0.12),
+        0 0 80px rgba(255,255,255,0.05);
+    }
+    .divider {
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+      height: 1px;
     }
     @keyframes pulse-soft {
       0%, 100% { opacity: 1; }
-      50% { opacity: 0.6; }
+      50% { opacity: 0.5; }
     }
     .pulse-dot {
-      animation: pulse-soft 1.5s ease-in-out infinite;
+      animation: pulse-soft 1.2s ease-in-out infinite;
     }
     @keyframes float {
       0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-4px); }
+      50% { transform: translateY(-6px); }
     }
     .float-num {
-      animation: float 3s ease-in-out infinite;
+      animation: float 4s ease-in-out infinite;
     }
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    .fade-in-up {
+      animation: fadeInUp 0.8s ease-out forwards;
+    }
+    .delay-1 { animation-delay: 0.1s; opacity: 0; }
+    .delay-2 { animation-delay: 0.2s; opacity: 0; }
+    .delay-3 { animation-delay: 0.3s; opacity: 0; }
   </style>
 </head>
-<body class="text-white max-w-5xl mx-auto px-4 py-10">
+<body class="text-white max-w-5xl mx-auto px-4 py-12 md:py-16">
   <!-- ヘッダー -->
-  <header class="text-center mb-12">
-    <p class="text-gray-400 text-sm tracking-widest uppercase mb-3">Sports Festival Portal</p>
-    <h1 class="text-4xl md:text-6xl font-bold tracking-tight glow-text">
-      🏆 スポーツフェスタ
+  <header class="text-center mb-14 fade-in-up">
+    <p class="text-gray-500 text-xs tracking-[0.3em] uppercase mb-4">Sports Festival Portal</p>
+    <div class="flex items-center justify-center gap-4 mb-4">
+      <i data-lucide="trophy" class="w-10 h-10 md:w-14 md:h-14 text-amber-400" style="filter: drop-shadow(0 0 20px rgba(251,191,36,0.3));"></i>
+    </div>
+    <h1 class="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight glow-text">
+      スポーツフェスタ
     </h1>
-    <p class="text-gray-400 mt-3 text-lg">体育祭進行管理システム</p>
-    <div class="w-24 h-0.5 bg-white/20 mx-auto mt-6 rounded-full"></div>
+    <p class="text-gray-400 mt-4 text-base md:text-lg tracking-wide">体育祭進行管理システム</p>
+    <div class="divider w-32 mx-auto mt-8 rounded-full"></div>
   </header>
 
   <!-- カウントダウン -->
-  <div class="countdown-card rounded-3xl p-8 md:p-10 mb-12 text-center">
-    <p class="text-gray-400 mb-6 text-sm tracking-wider">開催まで</p>
+  <div class="countdown-card rounded-3xl p-8 md:p-12 mb-14 text-center fade-in-up delay-1">
+    <div class="flex items-center justify-center gap-2 mb-8">
+      <div class="w-2 h-2 rounded-full bg-green-500 pulse-dot"></div>
+      <p class="text-gray-400 text-xs tracking-[0.25em] uppercase">Countdown to Event</p>
+    </div>
     
-    <div id="countdown" class="flex justify-center gap-2 md:gap-3 flex-wrap items-center">
+    <div id="countdown" class="flex justify-center gap-2 md:gap-4 lg:gap-5 flex-wrap items-end">
       <!-- 動的に挿入 -->
     </div>
     
-    <p class="text-gray-500 mt-6 text-sm">～ 2026.10.01</p>
+    <div class="flex items-center justify-center gap-3 mt-10">
+      <div class="divider flex-1 max-w-[100px]"></div>
+      <p class="text-gray-500 text-xs tracking-widest">2026.10.01</p>
+      <div class="divider flex-1 max-w-[100px]"></div>
+    </div>
   </div>
 
   <!-- 機能メニュー -->
-  <h2 class="text-xl font-bold mb-6 text-center text-gray-300">📂 機能メニュー</h2>
-  <div class="grid gap-5 sm:grid-cols-2">
+  <h2 class="text-lg md:text-xl font-semibold mb-8 text-center text-gray-300 tracking-wide fade-in-up delay-2">
+    <span class="inline-flex items-center gap-2">
+      <i data-lucide="layout-grid" class="w-5 h-5"></i>
+      機能メニュー
+    </span>
+  </h2>
+  <div class="grid gap-6 sm:grid-cols-2 fade-in-up delay-3">
     <a href="lend.html" class="func-card p-8 rounded-2xl block group">
-      <div class="text-4xl mb-4 group-hover:scale-110 transition-transform duration-300">📻</div>
-      <h3 class="font-bold text-xl mb-2 text-white">備品貸出管理</h3>
-      <p class="text-sm text-gray-400">機器の貸出・返却・在庫管理</p>
-      <div class="mt-4 flex items-center text-sm text-gray-500 group-hover:text-white transition-colors">
-        開く
-        <span class="ml-1 group-hover:translate-x-1 transition-transform">→</span>
+      <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-600/10 border border-blue-500/20 flex items-center justify-center mb-6 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
+        <i data-lucide="radio" class="w-7 h-7 text-blue-400"></i>
+      </div>
+      <h3 class="font-bold text-xl md:text-2xl mb-2 text-white tracking-tight">備品貸出管理</h3>
+      <p class="text-sm text-gray-400 leading-relaxed">機器の貸出・返却・在庫管理</p>
+      <div class="mt-6 flex items-center text-sm text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all duration-300">
+        <span>開く</span>
+        <i data-lucide="arrow-right" class="w-4 h-4 ml-1.5"></i>
       </div>
     </a>
     <a href="timetable.html" class="func-card p-8 rounded-2xl block group">
-      <div class="text-4xl mb-4 group-hover:scale-110 transition-transform duration-300">📋</div>
-      <h3 class="font-bold text-xl mb-2 text-white">進行管理</h3>
-      <p class="text-sm text-gray-400">球技日・団体競技日のスケジュール</p>
-      <div class="mt-4 flex items-center text-sm text-gray-500 group-hover:text-white transition-colors">
-        開く
-        <span class="ml-1 group-hover:translate-x-1 transition-transform">→</span>
+      <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border border-emerald-500/20 flex items-center justify-center mb-6 group-hover:scale-110 group-hover:-rotate-3 transition-all duration-500">
+        <i data-lucide="clipboard-list" class="w-7 h-7 text-emerald-400"></i>
+      </div>
+      <h3 class="font-bold text-xl md:text-2xl mb-2 text-white tracking-tight">進行管理</h3>
+      <p class="text-sm text-gray-400 leading-relaxed">球技日・団体競技日のスケジュール</p>
+      <div class="mt-6 flex items-center text-sm text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all duration-300">
+        <span>開く</span>
+        <i data-lucide="arrow-right" class="w-4 h-4 ml-1.5"></i>
       </div>
     </a>
   </div>
 
   <script>
+    // Lucide アイコン初期化
+    lucide.createIcons();
+
     const TARGET = new Date('2026-10-01T00:00:00');
     
     function pad(n, d = 2) {
@@ -120,11 +212,15 @@
 
       if (diff <= 0) {
         container.innerHTML = `
-          <div class="w-full py-6">
-            <p class="text-3xl md:text-4xl font-bold text-white glow-text">🎉 体育祭当日！</p>
-            <p class="text-gray-400 mt-2">Let's make it memorable!</p>
+          <div class="w-full py-10">
+            <div class="flex items-center justify-center gap-3 mb-4">
+              <i data-lucide="party-popper" class="w-10 h-10 text-amber-400"></i>
+            </div>
+            <p class="text-3xl md:text-5xl font-bold text-white glow-text tracking-tight">体育祭当日！</p>
+            <p class="text-gray-400 mt-4 tracking-wide">Let's make it memorable!</p>
           </div>
         `;
+        lucide.createIcons();
         return;
       }
 
@@ -135,34 +231,34 @@
       const ms = Math.floor((diff % 1000) / 10);
 
       container.innerHTML = `
-        <div class="time-block rounded-2xl px-4 py-4 md:px-6 md:py-5 min-w-[80px] md:min-w-[100px] float-num">
-          <div class="text-2xl md:text-4xl font-bold text-white">${days}</div>
-          <div class="text-xs text-gray-400 mt-1 tracking-wider">DAYS</div>
+        <div class="time-block rounded-2xl px-5 py-5 md:px-8 md:py-7 min-w-[85px] md:min-w-[110px] lg:min-w-[130px] float-num">
+          <div class="font-mono-num text-3xl md:text-5xl lg:text-6xl font-bold text-white leading-none">${days}</div>
+          <div class="text-[10px] md:text-xs text-gray-500 mt-3 tracking-[0.2em] uppercase">Days</div>
         </div>
-        <div class="text-gray-500 text-lg hidden sm:inline">：</div>
-        <div class="time-block rounded-2xl px-4 py-4 md:px-6 md:py-5 min-w-[70px] md:min-w-[90px] float-num" style="animation-delay: 0.2s">
-          <div class="text-2xl md:text-4xl font-bold text-white">${pad(hours)}</div>
-          <div class="text-xs text-gray-400 mt-1 tracking-wider">H</div>
+        <div class="text-gray-600 text-2xl md:text-3xl font-light hidden sm:inline pb-6 pulse-dot">:</div>
+        <div class="time-block rounded-2xl px-5 py-5 md:px-8 md:py-7 min-w-[75px] md:min-w-[95px] lg:min-w-[110px] float-num" style="animation-delay: 0.3s">
+          <div class="font-mono-num text-3xl md:text-5xl lg:text-6xl font-bold text-white leading-none">${pad(hours)}</div>
+          <div class="text-[10px] md:text-xs text-gray-500 mt-3 tracking-[0.2em] uppercase">Hours</div>
         </div>
-        <div class="text-gray-500 text-lg hidden sm:inline">：</div>
-        <div class="time-block rounded-2xl px-4 py-4 md:px-6 md:py-5 min-w-[70px] md:min-w-[90px] float-num" style="animation-delay: 0.4s">
-          <div class="text-2xl md:text-4xl font-bold text-white">${pad(mins)}</div>
-          <div class="text-xs text-gray-400 mt-1 tracking-wider">M</div>
+        <div class="text-gray-600 text-2xl md:text-3xl font-light hidden sm:inline pb-6 pulse-dot">:</div>
+        <div class="time-block rounded-2xl px-5 py-5 md:px-8 md:py-7 min-w-[75px] md:min-w-[95px] lg:min-w-[110px] float-num" style="animation-delay: 0.6s">
+          <div class="font-mono-num text-3xl md:text-5xl lg:text-6xl font-bold text-white leading-none">${pad(mins)}</div>
+          <div class="text-[10px] md:text-xs text-gray-500 mt-3 tracking-[0.2em] uppercase">Mins</div>
         </div>
-        <div class="text-gray-500 text-lg hidden sm:inline">：</div>
-        <div class="time-block rounded-2xl px-4 py-4 md:px-6 md:py-5 min-w-[70px] md:min-w-[90px] float-num" style="animation-delay: 0.6s">
-          <div class="text-2xl md:text-4xl font-bold text-white">${pad(secs)}</div>
-          <div class="text-xs text-gray-400 mt-1 tracking-wider">S</div>
+        <div class="text-gray-600 text-2xl md:text-3xl font-light hidden sm:inline pb-6 pulse-dot">:</div>
+        <div class="time-block rounded-2xl px-5 py-5 md:px-8 md:py-7 min-w-[75px] md:min-w-[95px] lg:min-w-[110px] float-num" style="animation-delay: 0.9s">
+          <div class="font-mono-num text-3xl md:text-5xl lg:text-6xl font-bold text-white leading-none">${pad(secs)}</div>
+          <div class="text-[10px] md:text-xs text-gray-500 mt-3 tracking-[0.2em] uppercase">Secs</div>
         </div>
-        <div class="ms-block rounded-2xl px-3 py-4 md:px-4 md:py-5 float-num" style="animation-delay: 0.8s">
-          <div class="text-xl md:text-3xl font-bold text-amber-400">${pad(ms)}</div>
-          <div class="text-xs text-gray-400 mt-1 tracking-wider">MS</div>
+        <div class="ms-block rounded-2xl px-4 py-5 md:px-6 md:py-7 min-w-[65px] md:min-w-[80px] lg:min-w-[95px] float-num" style="animation-delay: 1.2s">
+          <div class="font-mono-num text-2xl md:text-4xl lg:text-5xl font-bold text-amber-400 leading-none" style="text-shadow: 0 0 20px rgba(251,191,36,0.3);">${pad(ms)}</div>
+          <div class="text-[10px] md:text-xs text-amber-400/60 mt-3 tracking-[0.2em] uppercase">MS</div>
         </div>
       `;
     }
 
     updateCountdown();
-    setInterval(updateCountdown, 10); // 10msごとに更新
+    setInterval(updateCountdown, 10);
   </script>
 </body>
 </html>
