@@ -920,6 +920,22 @@
         if (txt) txt.textContent = text;
       }
     };
+        // 団体種目選択で「その他」を選んだら自由入力欄表示
+    document.addEventListener('change', (e) => {
+      if (e.target.id === 'teamSportSelect') {
+        const customGroup = document.getElementById('teamCustomNameGroup');
+        const nameInput = document.getElementById('teamName');
+        if (!customGroup || !nameInput) return;
+        if (e.target.value === 'その他') {
+          customGroup.style.display = 'block';
+          nameInput.value = '';
+          setTimeout(() => nameInput.focus(), 50);
+        } else {
+          customGroup.style.display = 'none';
+          nameInput.value = e.target.value;
+        }
+      }
+    });
 
     // ========== ✅ 修正済み init() 関数 ==========
     async function init() {
