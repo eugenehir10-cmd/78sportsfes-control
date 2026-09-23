@@ -6,13 +6,15 @@
   <title>球技日 タイムテーブル｜スポーツフェスタ</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
-  <!-- 🔥 Firebase SDK -->
+  <!-- 🔥 Firebase SDK（Google Auth追加） -->
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
+    /* スタイルは前回と全く同じなので省略 */
     * { font-family: 'Space Grotesk', system-ui, sans-serif; }
     .font-mono-num { font-family: 'JetBrains Mono', monospace; }
     body {
@@ -39,11 +41,13 @@
     .status-future { background: linear-gradient(135deg, rgba(59,130,246,0.12), rgba(37,99,235,0.06)); border-left: 4px solid #3b82f6; }
     .btn-primary { background: linear-gradient(135deg, #3b82f6, #2563eb); transition: all 0.3s ease; }
     .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(59,130,246,0.25); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
     .glow-text { text-shadow: 0 0 40px rgba(255,255,255,0.12), 0 0 80px rgba(255,255,255,0.05); }
     .scroll-h { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: thin; }
     .scroll-h::-webkit-scrollbar { height: 8px; }
     .scroll-h::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 4px; }
     input, select, textarea { background: rgba(255,255,255,0.05) !important; border: 1px solid rgba(255,255,255,0.1) !important; color: white !important; font-size: 16px !important; }
+    input:disabled, select:disabled { opacity: 0.5; cursor: not-allowed; }
     select option { background: #1a1a1a; color: white; }
     .fade-in-up { animation: fadeInUp 0.8s ease-out forwards; opacity: 0; transform: translateY(20px); }
     @keyframes fadeInUp { to { opacity: 1; transform: translateY(0); } }
@@ -63,7 +67,8 @@
       background: rgba(255,255,255,0.05); cursor: pointer; transition: all 0.2s ease;
       font-weight: 700; text-align: center; font-size: 18px;
     }
-    .group-btn:hover { border-color: rgba(255,255,255,0.3); background: rgba(255,255,255,0.1); }
+    .group-btn:hover:not(:disabled) { border-color: rgba(255,255,255,0.3); background: rgba(255,255,255,0.1); }
+    .group-btn:disabled { opacity: 0.4; cursor: not-allowed; }
     .group-btn.sel-1 { border-color: #fbbf24; background: rgba(251,191,36,0.2); color: #fbbf24; }
     .group-btn.sel-2 { border-color: #9ca3af; background: rgba(156,163,175,0.2); color: #e5e7eb; }
     .group-btn.sel-3 { border-color: #b45309; background: rgba(180,83,9,0.2); color: #fbbf24; }
@@ -72,6 +77,25 @@
     .sync-online { background: rgba(16,185,129,0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.3); }
     .sync-offline { background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); }
     .sync-syncing { background: rgba(59,130,246,0.15); color: #3b82f6; border: 1px solid rgba(59,130,246,0.3); }
+    .auth-badge-authed { background: rgba(16,185,129,0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.3); }
+    .auth-badge-guest { background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); }
+    .locked-overlay {
+      position: absolute; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+      border-radius: 10px; display: flex; align-items: center; justify-content: center;
+      flex-direction: column; gap: 8px; color: #ef4444;
+    }
+    .delay-chain-badge {
+      font-size: 11px; padding: 2px 8px; border-radius: 9999px; font-weight: 600;
+    }
+    .delay-chain-plus { background: rgba(245,158,11,0.2); color: #f59e0b; border: 1px solid rgba(245,158,11,0.3); }
+    .delay-chain-minus { background: rgba(6,182,212,0.2); color: #06b6d4; border: 1px solid rgba(6,182,212,0.3); }
+    .delay-chain-zero { background: rgba(255,255,255,0.08); color: #9ca3af; border: 1px solid rgba(255,255,255,0.15); }
+    .google-btn {
+      background: white !important; color: #444 !important;
+      display: inline-flex; align-items: center; gap: 10px;
+      font-weight: 500; border: 1px solid rgba(0,0,0,0.1) !important;
+    }
+    .google-btn:hover { background: #f8f8f8 !important; }
   </style>
 </head>
 <body class="text-white min-h-screen">
@@ -80,16 +104,24 @@
       <a href="timetable.html" class="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors">
         <i data-lucide="arrow-left" class="w-4 h-4"></i><span class="hidden sm:inline">進行管理に戻る</span><span class="sm:hidden">戻る</span>
       </a>
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-3 flex-wrap">
         <span id="syncStatus" class="sync-status sync-syncing">
           <span class="w-2 h-2 rounded-full bg-current pulse-dot"></span>
           <span id="syncStatusText">接続中...</span>
+        </span>
+        <span id="authBadge" class="sync-status auth-badge-guest">
+          <i data-lucide="lock" class="w-3 h-3"></i>
+          <span id="authStatusText">未認証</span>
         </span>
         <h1 class="text-lg md:text-xl font-bold flex items-center gap-2">
           <i data-lucide="trophy" class="w-5 h-5 text-blue-400"></i>⚽ 球技日
         </h1>
       </div>
       <div class="flex gap-2">
+        <button id="authBtn" class="px-3 py-2 rounded-lg bg-white hover:bg-gray-100 text-gray-800 transition-colors text-sm flex items-center gap-1.5 google-btn">
+          <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.5 29.3 35.5 24 35.5c-6.4 0-11.5-5.1-11.5-11.5S17.6 12.5 24 12.5c2.9 0 5.6 1.1 7.6 2.9l5.7-5.7C33.9 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c10 0 18.4-7.4 19.6-17.1.3-.9.4-1.8.4-2.7 0-.9-.1-1.8-.4-2.7z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.8 16 19 12.5 24 12.5c2.9 0 5.6 1.1 7.6 2.9l5.7-5.7C33.9 6.1 29.3 4 24 4 16.3 4 9.6 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2c-2 1.4-4.5 2.3-7.2 2.3-5.3 0-9.7-3-11.3-7.3l-6.5 5C9.5 38.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.2 5.7l6.2 5.2c.4-.4 7.7-5.6 7.7-14.9 0-.9-.1-1.8-.4-2.7z"/></svg>
+          <span id="authBtnText">Googleでログイン</span>
+        </button>
         <button id="manualSyncBtn" class="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/15 transition-colors text-sm flex items-center gap-1.5">
           <i data-lucide="refresh-cw" class="w-4 h-4"></i><span class="hidden sm:inline">同期</span>
         </button>
@@ -158,11 +190,14 @@
       <form id="matchForm" class="space-y-4">
         <input type="hidden" id="editMatchId">
         <div class="grid grid-cols-2 gap-3">
-          <div><label class="block text-sm text-gray-400 mb-1.5">開始時刻</label><input type="time" id="editTime" class="w-full rounded-xl px-4 py-3" required></div>
+          <div>
+            <label class="block text-sm text-gray-400 mb-1.5">開始時刻（直接編集可）</label>
+            <input type="time" id="editTime" class="w-full rounded-xl px-4 py-3" required>
+          </div>
           <div><label class="block text-sm text-gray-400 mb-1.5">所要時間</label><input type="number" id="editDuration" value="30" min="1" class="w-full rounded-xl px-4 py-3 text-center"></div>
         </div>
         <div>
-          <label class="block text-sm text-gray-400 mb-1.5">⏱️ 時間調整（分）</label>
+          <label class="block text-sm text-gray-400 mb-1.5">⏱️ この試合の遅延時間（後ろに伝播）</label>
           <div class="flex items-center gap-2">
             <button type="button" class="adj-btn px-3 py-2 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 font-bold" data-adj="-5">-5</button>
             <button type="button" class="adj-btn px-3 py-2 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 font-bold" data-adj="-1">-1</button>
@@ -170,7 +205,7 @@
             <button type="button" class="adj-btn px-3 py-2 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 font-bold" data-adj="1">+1</button>
             <button type="button" class="adj-btn px-3 py-2 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 font-bold" data-adj="5">+5</button>
           </div>
-          <p class="text-xs text-gray-500 mt-1">マイナス：巻き / プラス：遅延</p>
+          <p class="text-xs text-gray-500 mt-1">マイナス：巻き / プラス：遅延 → この会場の後続試合に自動反映</p>
         </div>
         <div>
           <label class="block text-sm text-gray-400 mb-1.5">ステータス</label>
@@ -179,45 +214,56 @@
             <option value="running">🔥 進行中</option><option value="done">✅ 終了</option>
           </select>
         </div>
-        <!-- 4クラス順位入力 -->
-        <div class="pt-3 border-t border-white/5">
-          <p class="text-sm font-medium text-gray-300 mb-3">🏆 4クラス 順位入力</p>
-          <div class="space-y-3">
+        <!-- 🔐 結果入力欄：Google認証必須 -->
+        <div class="pt-3 border-t border-white/5 relative" id="resultSection">
+          <p class="text-sm font-medium text-gray-300 mb-3 flex items-center gap-2">
+            🏆 4クラス 順位入力
+            <span id="resultLockBadge" class="text-xs px-2 py-0.5 rounded-full bg-red-500/20 text-red-400">🔒 Googleログインが必要</span>
+          </p>
+          <div id="resultInputArea" class="space-y-3 relative">
             <div>
               <label class="block text-xs text-gray-500 mb-2">🥇 1位（150pt）</label>
               <div class="group-select" data-rank="1">
-                <button type="button" class="group-btn" data-g="A">A組</button>
-                <button type="button" class="group-btn" data-g="B">B組</button>
-                <button type="button" class="group-btn" data-g="C">C組</button>
-                <button type="button" class="group-btn" data-g="D">D組</button>
+                <button type="button" class="group-btn" data-g="A" disabled>A組</button>
+                <button type="button" class="group-btn" data-g="B" disabled>B組</button>
+                <button type="button" class="group-btn" data-g="C" disabled>C組</button>
+                <button type="button" class="group-btn" data-g="D" disabled>D組</button>
               </div>
             </div>
             <div>
               <label class="block text-xs text-gray-500 mb-2">🥈 2位（100pt）</label>
               <div class="group-select" data-rank="2">
-                <button type="button" class="group-btn" data-g="A">A組</button>
-                <button type="button" class="group-btn" data-g="B">B組</button>
-                <button type="button" class="group-btn" data-g="C">C組</button>
-                <button type="button" class="group-btn" data-g="D">D組</button>
+                <button type="button" class="group-btn" data-g="A" disabled>A組</button>
+                <button type="button" class="group-btn" data-g="B" disabled>B組</button>
+                <button type="button" class="group-btn" data-g="C" disabled>C組</button>
+                <button type="button" class="group-btn" data-g="D" disabled>D組</button>
               </div>
             </div>
             <div>
               <label class="block text-xs text-gray-500 mb-2">🥉 3位（50pt）</label>
               <div class="group-select" data-rank="3">
-                <button type="button" class="group-btn" data-g="A">A組</button>
-                <button type="button" class="group-btn" data-g="B">B組</button>
-                <button type="button" class="group-btn" data-g="C">C組</button>
-                <button type="button" class="group-btn" data-g="D">D組</button>
+                <button type="button" class="group-btn" data-g="A" disabled>A組</button>
+                <button type="button" class="group-btn" data-g="B" disabled>B組</button>
+                <button type="button" class="group-btn" data-g="C" disabled>C組</button>
+                <button type="button" class="group-btn" data-g="D" disabled>D組</button>
               </div>
             </div>
             <div>
               <label class="block text-xs text-gray-500 mb-2">4位（0pt）</label>
               <div class="group-select" data-rank="4">
-                <button type="button" class="group-btn" data-g="A">A組</button>
-                <button type="button" class="group-btn" data-g="B">B組</button>
-                <button type="button" class="group-btn" data-g="C">C組</button>
-                <button type="button" class="group-btn" data-g="D">D組</button>
+                <button type="button" class="group-btn" data-g="A" disabled>A組</button>
+                <button type="button" class="group-btn" data-g="B" disabled>B組</button>
+                <button type="button" class="group-btn" data-g="C" disabled>C組</button>
+                <button type="button" class="group-btn" data-g="D" disabled>D組</button>
               </div>
+            </div>
+            <div id="lockedOverlay" class="locked-overlay">
+              <i data-lucide="lock" class="w-8 h-8"></i>
+              <p class="text-sm font-medium">Googleログインして順位を入力</p>
+              <button type="button" id="openLoginFromResult" class="mt-1 px-4 py-1.5 rounded-lg google-btn text-xs font-medium">
+                <svg width="14" height="14" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.5 29.3 35.5 24 35.5c-6.4 0-11.5-5.1-11.5-11.5S17.6 12.5 24 12.5c2.9 0 5.6 1.1 7.6 2.9l5.7-5.7C33.9 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c10 0 18.4-7.4 19.6-17.1.3-.9.4-1.8.4-2.7 0-.9-.1-1.8-.4-2.7z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.8 16 19 12.5 24 12.5c2.9 0 5.6 1.1 7.6 2.9l5.7-5.7C33.9 6.1 29.3 4 24 4 16.3 4 9.6 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2c-2 1.4-4.5 2.3-7.2 2.3-5.3 0-9.7-3-11.3-7.3l-6.5 5C9.5 38.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.2 5.7l6.2 5.2c.4-.4 7.7-5.6 7.7-14.9 0-.9-.1-1.8-.4-2.7z"/></svg>
+                Googleログイン
+              </button>
             </div>
           </div>
           <input type="hidden" id="editRank1" value="">
@@ -251,6 +297,126 @@
     };
     firebase.initializeApp(FIREBASE_CONFIG);
     const db = firebase.firestore();
+    const auth = firebase.auth();
+
+    // ✅ 許可するGoogleアカウント
+    // 個別指定：['tanaka@school.jp', 'sato@school.jp']
+    // ドメイン指定：AUTHORIZED_DOMAIN = 'school.jp'
+    const AUTHORIZED_EMAILS = [
+      // 'teacher@school.jp',  ← ここに先生のGoogleアカウントを追加
+    ];
+    const AUTHORIZED_DOMAIN = null; // 例: 'school.jp' ドメイン全体許可する場合
+
+    let isAuthed = false;
+    let currentUser = null;
+
+    // 認証状態監視
+    auth.onAuthStateChanged(user => {
+      currentUser = user;
+      isAuthed = checkAuthorized(user);
+      updateAuthUI();
+    });
+
+    function checkAuthorized(user) {
+      if (!user) return false;
+      const email = user.email;
+      if (!email) return false;
+      // 個別メール許可
+      if (AUTHORIZED_EMAILS.includes(email)) return true;
+      // ドメイン許可
+      if (AUTHORIZED_DOMAIN && email.endsWith('@' + AUTHORIZED_DOMAIN)) return true;
+      // 許可リストが空の場合はGoogleログインできれば誰でもOK
+      if (AUTHORIZED_EMAILS.length === 0 && !AUTHORIZED_DOMAIN) return true;
+      return false;
+    }
+
+    function updateAuthUI() {
+      const badge = document.getElementById('authBadge');
+      const txt = document.getElementById('authStatusText');
+      const btn = document.getElementById('authBtn');
+      const btnText = document.getElementById('authBtnText');
+      if (isAuthed) {
+        badge.className = 'sync-status auth-badge-authed';
+        txt.textContent = currentUser.displayName || currentUser.email;
+        btnText.textContent = 'ログアウト';
+        btn.className = 'px-3 py-2 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400 transition-colors text-sm flex items-center gap-1.5';
+        btn.innerHTML = `<i data-lucide="log-out" class="w-4 h-4"></i><span id="authBtnText">ログアウト</span>`;
+      } else {
+        badge.className = 'sync-status auth-badge-guest';
+        txt.textContent = '未認証';
+        btnText.textContent = 'Googleでログイン';
+        btn.className = 'px-3 py-2 rounded-lg bg-white hover:bg-gray-100 text-gray-800 transition-colors text-sm flex items-center gap-1.5 google-btn';
+        btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.5 29.3 35.5 24 35.5c-6.4 0-11.5-5.1-11.5-11.5S17.6 12.5 24 12.5c2.9 0 5.6 1.1 7.6 2.9l5.7-5.7C33.9 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c10 0 18.4-7.4 19.6-17.1.3-.9.4-1.8.4-2.7 0-.9-.1-1.8-.4-2.7z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.8 16 19 12.5 24 12.5c2.9 0 5.6 1.1 7.6 2.9l5.7-5.7C33.9 6.1 29.3 4 24 4 16.3 4 9.6 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2c-2 1.4-4.5 2.3-7.2 2.3-5.3 0-9.7-3-11.3-7.3l-6.5 5C9.5 38.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.2 5.7l6.2 5.2c.4-.4 7.7-5.6 7.7-14.9 0-.9-.1-1.8-.4-2.7z"/></svg><span id="authBtnText">Googleでログイン</span>`;
+      }
+      updateResultInputLock();
+      lucide.createIcons();
+    }
+
+    function updateResultInputLock() {
+      const overlay = document.getElementById('lockedOverlay');
+      const lockBadge = document.getElementById('resultLockBadge');
+      const btns = document.querySelectorAll('#resultInputArea .group-btn');
+      if (isAuthed) {
+        if (overlay) overlay.style.display = 'none';
+        if (lockBadge) {
+          lockBadge.textContent = '✅ Google認証済み';
+          lockBadge.className = 'text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400';
+        }
+        btns.forEach(b => b.disabled = false);
+      } else {
+        if (overlay) overlay.style.display = 'flex';
+        if (lockBadge) {
+          lockBadge.textContent = '🔒 Googleログインが必要';
+          lockBadge.className = 'text-xs px-2 py-0.5 rounded-full bg-red-500/20 text-red-400';
+        }
+        btns.forEach(b => b.disabled = true);
+      }
+    }
+
+    // 🔥 Googleログイン
+    document.getElementById('authBtn').addEventListener('click', async () => {
+      if (isAuthed) {
+        if (confirm('ログアウトしますか？')) {
+          await auth.signOut();
+          alert('ログアウトしました');
+        }
+        return;
+      }
+      try {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        await auth.signInWithPopup(provider);
+        // 認証状態は onAuthStateChanged で自動処理
+      } catch (err) {
+        if (err.code === 'auth/popup-closed-by-user') return;
+        if (err.code === 'auth/unauthorized-domain') {
+          alert('⚠️ このドメインはGoogleログインが許可されていません。\nFirebaseコンソール → Authentication → Settings → Authorized domains に追加してください。');
+        } else if (err.code === 'auth/cancelled-popup-request') {
+          return;
+        } else {
+          alert('Googleログインに失敗しました: ' + err.message);
+        }
+      }
+    });
+
+    document.getElementById('openLoginFromResult').addEventListener('click', async () => {
+      document.getElementById('editModal').classList.add('hidden');
+      try {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        await auth.signInWithPopup(provider);
+        // 認証成功後、自動的に編集モーダルを再表示
+        setTimeout(() => {
+          const matchId = document.getElementById('editMatchId').value;
+          if (matchId && isAuthed) {
+            document.getElementById('editModal').classList.remove('hidden');
+            updateResultInputLock();
+          }
+        }, 300);
+      } catch (err) {
+        if (err.code !== 'auth/popup-closed-by-user' && err.code !== 'auth/cancelled-popup-request') {
+          alert('Googleログインに失敗しました');
+        }
+      }
+    });
 
     // 🔥 同期ユーティリティ
     const Sync = {
@@ -288,7 +454,6 @@
             this.setStatus('online', 'オンライン');
             return remote;
           } else if (local) {
-            // 🔥 ローカル優先でFirestoreにアップロード
             await db.collection('app_data').doc(key).set({
               data: JSON.parse(JSON.stringify(localData)),
               updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -317,12 +482,14 @@
       },
       async addHistory(entry) {
         const hist = JSON.parse(localStorage.getItem('input_history_v4') || '[]');
-        hist.unshift(entry);
+        hist.unshift({ ...entry, user: currentUser?.email || 'guest', userName: currentUser?.displayName || '' });
         const trimmed = hist.slice(0, 500);
         localStorage.setItem('input_history_v4', JSON.stringify(trimmed));
         try {
           await db.collection('input_history').add({
             ...entry,
+            user: currentUser?.email || 'guest',
+            userName: currentUser?.displayName || '',
             timestamp: firebase.firestore.FieldValue.serverTimestamp()
           });
         } catch (e) { console.warn('履歴保存失敗:', e); }
@@ -385,6 +552,20 @@
 
     let data = getDefaultData();
 
+    function calcVenueCumulativeDelays() {
+      const result = {};
+      data.venues.forEach(venue => {
+        const matches = data.matches.filter(m => m.venue === venue).sort((a, b) => a.time.localeCompare(b.time));
+        let cumDelay = 0;
+        result[venue] = {};
+        matches.forEach(m => {
+          result[venue][m.id] = cumDelay;
+          cumDelay += m.delay || 0;
+        });
+      });
+      return result;
+    }
+
     function applyDelay(time, delay) {
       if (!delay) return time;
       const [h, m] = time.split(':').map(Number);
@@ -393,6 +574,7 @@
       const nm = ((total % 60) + 60) % 60;
       return `${String(nh).padStart(2,'0')}:${String(nm).padStart(2,'0')}`;
     }
+
     function calcEndTime(time, duration, delay) { return applyDelay(time, (duration || 30) + (delay || 0)); }
     function getStatusStyle(s) { return { running: 'status-running', pending: 'status-pending', done: 'status-done', future: 'status-future' }[s] || 'status-future'; }
     function getStatusLabel(s) { return { future: 'まもなく', pending: '準備中', running: '🔥 進行中', done: '✅ 終了' }[s] || s; }
@@ -400,12 +582,14 @@
     function calcVenueStatus() {
       const now = new Date();
       const curHM = now.getHours() * 60 + now.getMinutes();
+      const cumDelays = calcVenueCumulativeDelays();
       return data.venues.map(venue => {
         const matches = data.matches.filter(m => m.venue === venue).sort((a,b) => a.time.localeCompare(b.time));
         if (!matches.length) return { venue, status: 'empty', current: null, next: null, totalDelay: 0, done: 0, total: 0 };
         let totalDelay = 0, current = null, next = null, done = 0;
         matches.forEach(m => {
-          const startHM = parseInt(m.time.split(':')[0]) * 60 + parseInt(m.time.split(':')[1]) + totalDelay;
+          const cumDelay = cumDelays[venue][m.id] || 0;
+          const startHM = parseInt(m.time.split(':')[0]) * 60 + parseInt(m.time.split(':')[1]) + cumDelay;
           const endHM = startHM + (m.duration || 30);
           if (m.status === 'done') done++;
           else if (curHM >= startHM && curHM < endHM && !current) current = m;
@@ -446,6 +630,7 @@
       const fGrade = document.getElementById('filterGrade')?.value;
       const fSport = document.getElementById('filterSport')?.value;
       const grid = document.getElementById('timetableGrid');
+      const cumDelays = calcVenueCumulativeDelays();
       grid.innerHTML = '';
 
       data.venues.forEach(venue => {
@@ -460,8 +645,22 @@
             </div>
             <div class="space-y-3">
               ${matches.length ? matches.map(m => {
-                const delay = m.delay || 0;
-                const db = delay > 0 ? `<span class="text-xs px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-400">+${delay}分 遅延</span>` : delay < 0 ? `<span class="text-xs px-2 py-0.5 rounded-full bg-cyan-400/20 text-cyan-400">${delay}分 巻き</span>` : '';
+                const cumDelay = cumDelays[venue][m.id] || 0;
+                const actualStart = applyDelay(m.time, cumDelay);
+                const actualEnd = calcEndTime(m.time, m.duration, cumDelay);
+                const ownDelay = m.delay || 0;
+                
+                let delayBadge = '';
+                if (cumDelay > 0) delayBadge = `<span class="delay-chain-badge delay-chain-plus">定刻 +${cumDelay}分</span>`;
+                else if (cumDelay < 0) delayBadge = `<span class="delay-chain-badge delay-chain-minus">定刻 ${cumDelay}分</span>`;
+                else delayBadge = `<span class="delay-chain-badge delay-chain-zero">定刻通り</span>`;
+
+                const ownDelayBadge = ownDelay !== 0 ? `
+                  <span class="text-xs ${ownDelay > 0 ? 'text-amber-400' : 'text-cyan-400'} ml-1">
+                    (この試合${ownDelay > 0 ? '+' : ''}${ownDelay}分)
+                  </span>
+                ` : '';
+
                 const ranks = m.rank1 ? `
                   <div class="flex flex-wrap gap-1.5 mt-2 text-xs">
                     ${m.rank1 ? `<span class="bg-amber-400/10 text-amber-400 px-2 py-1 rounded-full">🥇${m.rank1}</span>` : ''}
@@ -474,15 +673,15 @@
                 <div class="sub-card rounded-2xl p-4 cursor-pointer ${getStatusStyle(m.status)}" data-edit-id="${m.id}">
                   <div class="flex justify-between items-start mb-2">
                     <div class="flex items-center gap-2 flex-wrap">
-                      <span class="font-mono-num font-bold text-lg">${applyDelay(m.time, delay)}</span>
-                      <span class="font-mono-num text-xs text-gray-500">→${calcEndTime(m.time, m.duration, delay)}</span>
+                      <span class="font-mono-num font-bold text-lg">${actualStart}</span>
+                      <span class="font-mono-num text-xs text-gray-500">→${actualEnd}</span>
                       <span class="text-xs px-2 py-0.5 rounded-full bg-white/10">${m.grade}</span>
                       <span class="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300">${m.sport}</span>
-                      ${db}
+                      ${delayBadge}${ownDelayBadge}
                     </div>
                     <span class="text-xs font-medium px-2.5 py-1 rounded-full bg-white/10">${getStatusLabel(m.status)}</span>
                   </div>
-                  <p class="text-xs text-gray-500">⏱️ 所要 ${m.duration || 30}分</p>
+                  <p class="text-xs text-gray-500">📅 定刻 ${m.time} | ⏱️ 所要 ${m.duration || 30}分</p>
                   ${ranks}
                   ${m.note?`<p class="text-xs text-gray-400 mt-1">📝 ${m.note}</p>`:''}
                 </div>
@@ -543,6 +742,7 @@
       document.getElementById('editRank3').value = m.rank3 || '';
       document.getElementById('editRank4').value = m.rank4 || '';
       updateGroupButtons();
+      updateResultInputLock();
       document.getElementById('editModal').classList.remove('hidden');
     }
 
@@ -558,7 +758,7 @@
 
     document.addEventListener('click', e => {
       const btn = e.target.closest('.group-btn');
-      if (!btn) return;
+      if (!btn || btn.disabled) return;
       const rank = btn.closest('.group-select').dataset.rank;
       const g = btn.dataset.g;
       [1,2,3,4].forEach(r => { if (r != rank && document.getElementById(`editRank${r}`).value === g) document.getElementById(`editRank${r}`).value = ''; });
@@ -597,16 +797,19 @@
       m.duration = Number(document.getElementById('editDuration').value) || 30;
       m.delay = Number(document.getElementById('editDelay').value) || 0;
       m.status = document.getElementById('editStatus').value;
-      m.rank1 = document.getElementById('editRank1').value;
-      m.rank2 = document.getElementById('editRank2').value;
-      m.rank3 = document.getElementById('editRank3').value;
-      m.rank4 = document.getElementById('editRank4').value;
+      
+      if (isAuthed) {
+        m.rank1 = document.getElementById('editRank1').value;
+        m.rank2 = document.getElementById('editRank2').value;
+        m.rank3 = document.getElementById('editRank3').value;
+        m.rank4 = document.getElementById('editRank4').value;
+      }
       m.note = document.getElementById('editNote').value.trim();
       
-      if (m.rank1 || m.rank2 || m.rank3 || before.status !== m.status || before.delay !== m.delay) {
+      if (isAuthed && (m.rank1 || m.rank2 || m.rank3 || before.rank1 !== m.rank1)) {
         await Sync.addHistory({
           timestamp: new Date().toISOString(),
-          type: (m.rank1 && before.rank1 !== m.rank1) ? 'result' : (before.status !== m.status ? 'status' : 'delay'),
+          type: 'result',
           page: 'ball',
           matchId: id,
           matchName: `${m.grade} ${m.sport}`,
@@ -616,13 +819,25 @@
           userAgent: navigator.userAgent,
           device: getDeviceInfo()
         });
+      } else if (before.status !== m.status || before.delay !== m.delay) {
+        await Sync.addHistory({
+          timestamp: new Date().toISOString(),
+          type: before.status !== m.status ? 'status' : 'delay',
+          page: 'ball',
+          matchId: id,
+          matchName: `${m.grade} ${m.sport}`,
+          venue: m.venue,
+          before: { status: before.status, delay: before.delay },
+          after: { status: m.status, delay: m.delay },
+          userAgent: navigator.userAgent,
+          device: getDeviceInfo()
+        });
       }
       
       await Sync.save('ball_sports_data_v4', data);
       render(); closeModal();
     });
 
-    // 🔥 初期化 + リアルタイム同期
     async function init() {
       Sync.setStatus('syncing', '接続中...');
       data = await Sync.load('ball_sports_data_v4', getDefaultData());
