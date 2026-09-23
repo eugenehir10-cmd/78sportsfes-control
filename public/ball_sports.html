@@ -300,12 +300,12 @@
     const auth = firebase.auth();
 
     // ✅ 許可するGoogleアカウント
-    // 個別指定：['jh62231310@s.musashi.ed.jp', 'jh62220120@s.musashi.ed.jp','eugene.hir.10@gmail.com']
-    // ドメイン指定：AUTHORIZED_DOMAIN = 'school.jp'
     const AUTHORIZED_EMAILS = [
-      // 'teacher@school.jp',  ← ここに先生のGoogleアカウントを追加
+      'jh62231310@s.musashi.ed.jp',
+      'jh62220120@s.musashi.ed.jp',
+      'eugene.hir.10@gmail.com'
     ];
-    const AUTHORIZED_DOMAIN = null; // 例: 'school.jp' ドメイン全体許可する場合
+    const AUTHORIZED_DOMAIN = null;
 
     let isAuthed = false;
     let currentUser = null;
