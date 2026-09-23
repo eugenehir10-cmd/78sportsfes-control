@@ -3,154 +3,346 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>進行管理</title>
+  <title>進行管理｜スポーツフェスタ</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide アイコン -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    .card { 
-      background: #fff; 
-      border-radius: 12px; 
-      padding: 1.25rem; 
-      margin-bottom: 1rem; 
-      box-shadow: 0 2px 8px rgba(0,0,0,.12); 
+    * {
+      font-family: 'Space Grotesk', system-ui, sans-serif;
     }
-    .menu-card {
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    .font-mono-num {
+      font-family: 'JetBrains Mono', monospace;
     }
-    .menu-card:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 12px 24px rgba(0,0,0,.15);
+    body {
+      background: 
+        radial-gradient(ellipse at top, rgba(255,255,255,0.05) 0%, transparent 50%),
+        radial-gradient(ellipse at bottom, rgba(255,255,255,0.03) 0%, transparent 50%),
+        linear-gradient(180deg, #0a0a0a 0%, #141414 50%, #0a0a0a 100%);
+      min-height: 100vh;
     }
-    .progress-bar {
-      height: 8px;
-      border-radius: 4px;
-      background: #e5e7eb;
-      overflow: hidden;
+    .card {
+      background: linear-gradient(145deg, rgba(30,30,30,0.9), rgba(20,20,20,0.95));
+      border: 1px solid rgba(255,255,255,0.08);
+      backdrop-filter: blur(20px);
+      box-shadow: 
+        0 25px 80px rgba(0,0,0,0.6),
+        0 0 120px rgba(255,255,255,0.02),
+        inset 0 1px 0 rgba(255,255,255,0.06);
     }
-    .progress-fill {
-      height: 100%;
-      border-radius: 4px;
-      transition: width 0.3s ease;
+    .sub-card {
+      background: linear-gradient(145deg, rgba(40,40,40,0.7), rgba(25,25,25,0.9));
+      border: 1px solid rgba(255,255,255,0.06);
+      transition: all 0.3s ease;
     }
+    .sub-card:hover {
+      border-color: rgba(255,255,255,0.12);
+      transform: translateY(-2px);
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #10b981, #059669);
+      transition: all 0.3s ease;
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(16, 185, 129, 0.25);
+    }
+    .status-running {
+      background: linear-gradient(135deg, #10b981, #059669);
+      box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+    }
+    .status-next {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      box-shadow: 0 0 20px rgba(245, 158, 11, 0.25);
+    }
+    .status-upcoming {
+      background: rgba(75,85,99,0.5);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .status-done {
+      background: rgba(31,41,55,0.5);
+      border: 1px solid rgba(255,255,255,0.05);
+      opacity: 0.7;
+    }
+    .glow-text {
+      text-shadow: 
+        0 0 40px rgba(255,255,255,0.12),
+        0 0 80px rgba(255,255,255,0.05);
+    }
+    .divider {
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+      height: 1px;
+    }
+    .fade-in-up {
+      animation: fadeInUp 0.8s ease-out forwards;
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .delay-1 { animation-delay: 0.1s; }
+    .delay-2 { animation-delay: 0.2s; }
+    .delay-3 { animation-delay: 0.3s; }
+    .delay-4 { animation-delay: 0.4s; }
   </style>
 </head>
-<body class="bg-gray-50 text-gray-800 max-w-3xl mx-auto p-3 md:p-6 pb-8">
-  <!-- ヘッダー -->
-  <header class="mb-6 mt-2">
-    <a href="index.html" class="inline-flex items-center gap-2 text-lg font-bold hover:opacity-70 transition-opacity mb-2">
-      ← ホームに戻る
+<body class="text-white max-w-5xl mx-auto px-4 py-12 md:py-16">
+  <!-- 戻るヘッダー -->
+  <header class="mb-10 fade-in-up">
+    <a href="index.html" class="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-4">
+      <i data-lucide="arrow-left" class="w-4 h-4"></i>
+      <span>ホームに戻る</span>
     </a>
-    <h1 class="text-2xl font-bold">📋 進行管理</h1>
+    <div class="flex items-center justify-between">
+      <div>
+        <p class="text-gray-500 text-xs tracking-[0.25em] uppercase mb-2">Schedule Management</p>
+        <h1 class="text-3xl md:text-4xl font-bold tracking-tight glow-text flex items-center gap-3">
+          <i data-lucide="clipboard-list" class="w-8 h-8 text-emerald-400" style="filter: drop-shadow(0 0 15px rgba(16,185,129,0.3));"></i>
+          進行管理
+        </h1>
+      </div>
+      <button id="addEventBtn" class="btn-primary px-5 py-2.5 rounded-xl text-white font-medium flex items-center gap-2">
+        <i data-lucide="plus" class="w-4 h-4"></i>
+        <span class="hidden sm:inline">種目追加</span>
+        <span class="sm:hidden">追加</span>
+      </button>
+    </div>
+    <div class="divider w-full mt-6 rounded-full"></div>
   </header>
 
-  <!-- 全体概要 -->
-  <div class="card bg-gradient-to-r from-indigo-50 to-blue-50 border border-blue-100 mb-6">
-    <h2 class="font-bold text-lg mb-4">📊 全体の状況</h2>
-    <div class="grid grid-cols-2 gap-4">
-      <div>
-        <p class="text-sm text-gray-500 mb-1">球技日</p>
-        <p class="font-bold text-xl" id="ballProgress">読込中...</p>
-        <div class="progress-bar mt-2">
-          <div id="ballBar" class="progress-fill bg-blue-500" style="width:0%"></div>
-        </div>
+  <!-- 状況カード -->
+  <div class="card rounded-3xl p-6 md:p-8 mb-8 fade-in-up delay-1">
+    <h2 class="text-sm text-gray-400 tracking-widest uppercase mb-5">現在の状況</h2>
+    <div class="grid gap-4 md:grid-cols-2">
+      <div class="sub-card rounded-2xl p-5">
+        <p class="text-xs text-gray-500 uppercase tracking-wider mb-2">進行中</p>
+        <p id="nowRunning" class="text-xl md:text-2xl font-bold text-emerald-400">なし</p>
       </div>
-      <div>
-        <p class="text-sm text-gray-500 mb-1">団体競技日</p>
-        <p class="font-bold text-xl" id="teamProgress">読込中...</p>
-        <div class="progress-bar mt-2">
-          <div id="teamBar" class="progress-fill bg-green-500" style="width:0%"></div>
-        </div>
+      <div class="sub-card rounded-2xl p-5">
+        <p class="text-xs text-gray-500 uppercase tracking-wider mb-2">次の種目</p>
+        <p id="nextUp" class="text-xl md:text-2xl font-bold text-amber-400">-</p>
       </div>
     </div>
   </div>
 
-  <!-- ページ分岐メニュー -->
-  <h2 class="text-lg font-bold mb-3">📂 日程を選択</h2>
-  <div class="grid gap-4 md:grid-cols-2">
-    <a href="ball-sports.html" class="menu-card card block">
-      <div class="text-3xl mb-2">⚽</div>
-      <h3 class="font-bold text-lg mb-1">球技日 タイムテーブル</h3>
-      <p class="text-sm text-gray-500 mb-3">複数会場で同時進行される試合を見やすく管理</p>
-      <div class="flex items-center text-sm font-medium text-blue-600">
-        開く →
-      </div>
-    </a>
-
-    <a href="team-events.html" class="menu-card card block">
-      <div class="text-3xl mb-2">🏃</div>
-      <h3 class="font-bold text-lg mb-1">団体競技日 進行管理</h3>
-      <p class="text-sm text-gray-500 mb-3">種目別のスケジュール・遅延管理・全体の進捗を把握</p>
-      <div class="flex items-center text-sm font-medium text-green-600">
-        開く →
-      </div>
-    </a>
+  <!-- 種目一覧 -->
+  <div class="fade-in-up delay-2">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-lg font-semibold">種目スケジュール</h2>
+      <span id="eventCount" class="text-sm text-gray-500">0 件</span>
+    </div>
+    <div id="eventList" class="space-y-4">
+      <!-- 動的に挿入 -->
+    </div>
   </div>
 
-  <!-- 最新の状況サマリー -->
-  <div class="card mt-8">
-    <h2 class="font-bold text-lg mb-3">📌 最新の状況</h2>
-    <div id="summary" class="space-y-4 text-sm">
-      <p class="text-gray-400">データを読み込んでいます...</p>
+  <!-- 追加・編集モーダル -->
+  <div id="eventModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="card rounded-3xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+      <h3 id="modalTitle" class="text-xl font-bold mb-6">種目追加</h3>
+      <form id="eventForm" class="space-y-4">
+        <input type="hidden" id="editIndex">
+        <div>
+          <label class="block text-sm text-gray-400 mb-1.5">種目名 *</label>
+          <input type="text" id="eventName" required class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-emerald-500">
+        </div>
+        <div>
+          <label class="block text-sm text-gray-400 mb-1.5">開始時間 *</label>
+          <input type="time" id="eventTime" required class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-emerald-500">
+        </div>
+        <div>
+          <label class="block text-sm text-gray-400 mb-1.5">場所/エリア</label>
+          <input type="text" id="eventPlace" placeholder="例: グラウンド・体育館" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-emerald-500">
+        </div>
+        <div>
+          <label class="block text-sm text-gray-400 mb-1.5">備考</label>
+          <textarea id="eventNote" rows="3" placeholder="連絡事項・注意点など" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-emerald-500"></textarea>
+        </div>
+        <div class="flex gap-3 pt-2">
+          <button type="button" id="closeModal" class="flex-1 py-3 rounded-xl bg-white/10 hover:bg-white/15 transition-colors">キャンセル</button>
+          <button type="submit" class="flex-1 py-3 rounded-xl btn-primary font-medium">保存</button>
+        </div>
+      </form>
     </div>
   </div>
 
   <script>
-    function loadBallData() {
-      try { return JSON.parse(localStorage.getItem('ball_sports_data') || '{"venues":[],"matches":[]}'); }
-      catch { return { venues:[], matches:[] }; }
+    // Lucide アイコン初期化
+    lucide.createIcons();
+
+    // データ保存用
+    let events = JSON.parse(localStorage.getItem('sportEvents') || '[]');
+
+    // 要素
+    const eventListEl = document.getElementById('eventList');
+    const nowRunningEl = document.getElementById('nowRunning');
+    const nextUpEl = document.getElementById('nextUp');
+    const eventCountEl = document.getElementById('eventCount');
+    const eventModal = document.getElementById('eventModal');
+    const eventForm = document.getElementById('eventForm');
+
+    // 時間比較用
+    function timeToMinutes(t) {
+      const [h, m] = t.split(':').map(Number);
+      return h * 60 + m;
     }
-    function loadTeamData() {
-      try { return JSON.parse(localStorage.getItem('team_events_data') || '{"events":[]}'); }
-      catch { return { events:[] }; }
+
+    // ステータス判定
+    function getStatus(eventTime) {
+      const now = new Date();
+      const nowMin = now.getHours() * 60 + now.getMinutes();
+      const eventMin = timeToMinutes(eventTime);
+      const diff = eventMin - nowMin;
+      
+      if (diff < -15) return 'done';
+      if (diff <= 10 && diff >= -15) return 'running';
+      if (diff <= 60) return 'next';
+      return 'upcoming';
     }
 
-    function render() {
-      const ball = loadBallData();
-      const team = loadTeamData();
+    // 描画
+    function renderEvents() {
+      events.sort((a, b) => timeToMinutes(a.time) - timeToMinutes(b.time));
+      eventListEl.innerHTML = '';
+      
+      let running = null;
+      let next = null;
 
-      // 球技日の進捗計算
-      const ballDone = ball.matches.filter(m => m.status === 'done').length;
-      const ballTotal = ball.matches.length;
-      const ballPct = ballTotal ? Math.round(ballDone / ballTotal * 100) : 0;
-      document.getElementById('ballProgress').textContent = `${ballDone}/${ballTotal} 試合終了`;
-      document.getElementById('ballBar').style.width = `${ballPct}%`;
+      events.forEach((ev, idx) => {
+        const status = getStatus(ev.time);
+        if (status === 'running' && !running) running = ev;
+        if (status === 'upcoming' && !next) next = ev;
+        if (status === 'next' && !next) next = ev;
 
-      // 団体競技日の進捗計算
-      const teamDone = team.events.filter(e => e.status === 'done').length;
-      const teamTotal = team.events.length;
-      const teamPct = teamTotal ? Math.round(teamDone / teamTotal * 100) : 0;
-      document.getElementById('teamProgress').textContent = `${teamDone}/${teamTotal} 種目終了`;
-      document.getElementById('teamBar').style.width = `${teamPct}%`;
+        const statusLabel = {
+          running: '進行中',
+          next: 'まもなく',
+          upcoming: '予定',
+          done: '終了'
+        }[status];
 
-      // サマリー作成
-      const summary = document.getElementById('summary');
-      let html = '';
+        const statusClass = {
+          running: 'status-running',
+          next: 'status-next',
+          upcoming: 'status-upcoming',
+          done: 'status-done'
+        }[status];
 
-      // 球技：進行中の試合
-      const ballRunning = ball.matches.filter(m => m.status === 'running');
-      html += `<div><p class="font-bold text-blue-600 mb-1">⚽ 球技日 進行中</p>`;
-      if (ballRunning.length) {
-        html += ballRunning.map(m => `<p class="ml-3">・${m.venue}：${m.name}（${m.time}）</p>`).join('');
-      } else {
-        html += `<p class="ml-3 text-gray-400">現在進行中の試合はありません</p>`;
+        eventListEl.innerHTML += `
+          <div class="sub-card rounded-2xl p-5 ${status === 'running' ? 'ring-2 ring-emerald-500/50' : ''}">
+            <div class="flex items-start justify-between gap-3">
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-3 mb-2">
+                  <span class="font-mono-num text-lg font-bold text-white">${ev.time}</span>
+                  <span class="${statusClass} px-3 py-1 rounded-full text-xs font-medium text-white">${statusLabel}</span>
+                </div>
+                <h3 class="text-lg font-semibold mb-1">${ev.name}</h3>
+                ${ev.place ? `<p class="text-sm text-gray-400 mb-1">📍 ${ev.place}</p>` : ''}
+                ${ev.note ? `<p class="text-sm text-gray-500 whitespace-pre-line">${ev.note}</p>` : ''}
+              </div>
+              <div class="flex gap-1.5 flex-shrink-0">
+                <button data-edit="${idx}" class="p-2 rounded-lg hover:bg-white/10 transition-colors text-gray-400 hover:text-white">
+                  <i data-lucide="pencil" class="w-4 h-4"></i>
+                </button>
+                <button data-delete="${idx}" class="p-2 rounded-lg hover:bg-red-500/20 transition-colors text-gray-400 hover:text-red-400">
+                  <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+
+      lucide.createIcons();
+      
+      // 上部状況更新
+      nowRunningEl.textContent = running ? `${running.name}（${running.time}～）` : 'なし';
+      nextUpEl.textContent = next ? `${next.name}（${next.time}～）` : '-';
+      eventCountEl.textContent = `${events.length} 件`;
+      
+      saveData();
+    }
+
+    function saveData() {
+      localStorage.setItem('sportEvents', JSON.stringify(events));
+    }
+
+    // モーダル制御
+    function openModal(editIdx = null) {
+      eventForm.reset();
+      document.getElementById('editIndex').value = editIdx !== null ? editIdx : '';
+      document.getElementById('modalTitle').textContent = editIdx !== null ? '種目編集' : '種目追加';
+      
+      if (editIdx !== null) {
+        const ev = events[editIdx];
+        document.getElementById('eventName').value = ev.name;
+        document.getElementById('eventTime').value = ev.time;
+        document.getElementById('eventPlace').value = ev.place || '';
+        document.getElementById('eventNote').value = ev.note || '';
       }
-      html += `</div>`;
-
-      // 団体：進行中の種目
-      const teamRunning = team.events.filter(e => e.status === 'running' || e.status === 'delay');
-      html += `<div><p class="font-bold text-green-600 mb-1">🏃 団体競技日 進行中</p>`;
-      if (teamRunning.length) {
-        html += teamRunning.map(e => `<p class="ml-3">・${e.name}（${e.time}${e.delay?` +${e.delay}分`:''}）</p>`).join('');
-      } else {
-        html += `<p class="ml-3 text-gray-400">現在進行中の種目はありません</p>`;
-      }
-      html += `</div>`;
-
-      summary.innerHTML = html;
+      
+      eventModal.classList.remove('hidden');
     }
 
-    render();
-    // 定期的に更新
-    setInterval(render, 2000);
+    function closeModalFunc() {
+      eventModal.classList.add('hidden');
+      eventForm.reset();
+    }
+
+    // イベント
+    document.getElementById('addEventBtn').addEventListener('click', () => openModal());
+    document.getElementById('closeModal').addEventListener('click', closeModalFunc);
+    eventModal.addEventListener('click', e => {
+      if (e.target === eventModal) closeModalFunc();
+    });
+
+    eventForm.addEventListener('submit', e => {
+      e.preventDefault();
+      const name = document.getElementById('eventName').value.trim();
+      const time = document.getElementById('eventTime').value;
+      const place = document.getElementById('eventPlace').value.trim();
+      const note = document.getElementById('eventNote').value.trim();
+      const editIdx = document.getElementById('editIndex').value;
+
+      if (!name || !time) return;
+
+      const newEvent = { name, time, place, note };
+      
+      if (editIdx !== '') {
+        events[Number(editIdx)] = newEvent;
+      } else {
+        events.push(newEvent);
+      }
+
+      closeModalFunc();
+      renderEvents();
+    });
+
+    // 編集・削除
+    document.addEventListener('click', e => {
+      const editIdx = e.target.closest('[data-edit]')?.dataset.edit;
+      const delIdx = e.target.closest('[data-delete]')?.dataset.delete;
+      
+      if (editIdx !== undefined) {
+        openModal(Number(editIdx));
+      }
+      
+      if (delIdx !== undefined && confirm('この種目を削除しますか？')) {
+        events.splice(Number(delIdx), 1);
+        renderEvents();
+      }
+    });
+
+    // 初期描画
+    renderEvents();
+    // 1分ごとに状況更新
+    setInterval(renderEvents, 60000);
   </script>
 </body>
 </html>
