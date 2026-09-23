@@ -341,55 +341,57 @@
 
     // ===== 機器削除（関連履歴も削除）=====
     // ===== 機器削除（完全抹消：他に引き継がない）=====
-    async function deleteDeviceWithHistory(deviceId) {
-      if (!db) return false;
-      
-      // ✅ 削除前に対象データを取得して確認
-      const deviceRef = db.collection('equipment').doc(deviceId);
-      const deviceSnap = await deviceRef.get();
-      
-      if (!deviceSnap.exists) {
-        showPopup('指定された機器が存在しません', 'warning');
-        return false;
-      }
-      
-      const deviceData = deviceSnap.data();
-      
-      // ⚠️ 貸出中は削除不可
-      if (deviceData.status === 'lend') {
-        showPopup('貸出中の機器は削除できません。先に返却してください', 'error');
-        return false;
-      }
-      
-      // ✅ 機器を完全削除 — 管理番号・ラベル・詳細情報すべて抹消
-      await deviceRef.delete();
-      
-      // ✅ 関連履歴のみ削除
-      const histSnap = await db.collection('history').get();
-      const batch = db.batch();
-      let deletedHistCount = 0;
-      
-      histSnap.docs.forEach(doc => {
-        const data = doc.data();
-        if (data.ids && data.ids.includes(deviceId)) {
-          batch.delete(doc.ref);
-          deletedHistCount++;
-        }
-      });
-      
-      if (deletedHistCount > 0) await batch.commit();
-      
-      // ✅ ローカル配列からも削除して画面即時反映
-      items = items.filter(i => i.id !== deviceId);
-      
-      showPopup(
-        `✅ 機器を完全削除しました\n` +
-        `番号：${deviceId}\n` +
-        `種別：${deviceData.category || 'なし'}\n` +
-        `関連履歴：${deletedHistCount}件削除`
-      );
-      return true;
+async function deleteDeviceWithHistory(deviceId) {
+  if (!db) return false;
+  
+  const deviceRef = db.collection('equipment').doc(deviceId);
+  const deviceSnap = await deviceRef.get();
+  
+  if (!deviceSnap.exists) {
+    showPopup('指定された機器が存在しません', 'warning');
+    // 既に存在しない場合は強制的に画面から削除
+    items = items.filter(i => i.id !== deviceId);
+    renderSettings();
+    return false;
+  }
+  
+  const deviceData = deviceSnap.data();
+  
+  if (deviceData.status === 'lend') {
+    showPopup('貸出中の機器は削除できません。先に返却してください', 'error');
+    return false;
+  }
+  
+  // ✅ 先に画面上から即時削除
+  items = items.filter(i => i.id !== deviceId);
+  renderSettings();
+  
+  // ✅ Firestoreから削除
+  await deviceRef.delete();
+  
+  // ✅ 関連履歴削除
+  const histSnap = await db.collection('history').get();
+  const batch = db.batch();
+  let deletedHistCount = 0;
+  
+  histSnap.docs.forEach(doc => {
+    const data = doc.data();
+    if (data.ids && data.ids.includes(deviceId)) {
+      batch.delete(doc.ref);
+      deletedHistCount++;
     }
+  });
+  
+  if (deletedHistCount > 0) await batch.commit();
+  
+  showPopup(
+    `✅ 機器を完全削除しました\n` +
+    `番号：${deviceId}\n` +
+    `種別：${deviceData.category || 'なし'}\n` +
+    `関連履歴：${deletedHistCount}件削除`
+  );
+  return true;
+}
     // ===== 全データ初期化 =====
     async function resetAllData() {
       if (!db) return false;
