@@ -6,11 +6,12 @@
   <title>進行管理｜スポーツフェスタ</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <!-- 🔥 Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
   <style>
     * { font-family: 'Space Grotesk', system-ui, sans-serif; }
     .font-mono-num { font-family: 'JetBrains Mono', monospace; }
@@ -68,6 +69,10 @@
     input, select, textarea { background: rgba(255,255,255,0.05) !important; border: 1px solid rgba(255,255,255,0.1) !important; color: white !important; font-size: 16px !important; }
     input::placeholder, textarea::placeholder { color: rgba(255,255,255,0.3); }
     select option { background: #1a1a1a; color: white; }
+    .sync-status { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 4px 10px; border-radius: 9999px; }
+    .sync-online { background: rgba(16,185,129,0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.3); }
+    .sync-offline { background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); }
+    .sync-syncing { background: rgba(59,130,246,0.15); color: #3b82f6; border: 1px solid rgba(59,130,246,0.3); }
   </style>
 </head>
 <body class="text-white max-w-5xl mx-auto px-4 py-12 md:py-16">
@@ -84,12 +89,25 @@
           進行管理
         </h1>
         <p class="text-gray-400 mt-3 text-sm md:text-base tracking-wide">第78回体育祭 球技日・団体競技日 スケジュール</p>
+        <div class="flex items-center gap-3 mt-3 flex-wrap">
+          <span id="syncStatus" class="sync-status sync-syncing">
+            <span class="w-2 h-2 rounded-full bg-current pulse-dot"></span>
+            <span id="syncStatusText">接続中...</span>
+          </span>
+          <span id="lastSync" class="text-xs text-gray-500">最終同期：-</span>
+        </div>
       </div>
-      <button id="openSettingsBtn" class="settings-btn px-5 py-3 rounded-xl font-medium flex items-center gap-2 text-base">
-        <i data-lucide="settings" class="w-5 h-5"></i>
-        <span>⚙️ 設定</span>
-        <span class="text-xs bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full">要パスワード</span>
-      </button>
+      <div class="flex gap-2 flex-wrap">
+        <button id="manualSyncBtn" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 transition-colors text-sm flex items-center gap-2">
+          <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+          <span>🔄 手動同期</span>
+        </button>
+        <button id="openSettingsBtn" class="settings-btn px-5 py-3 rounded-xl font-medium flex items-center gap-2 text-base">
+          <i data-lucide="settings" class="w-5 h-5"></i>
+          <span>⚙️ 設定</span>
+          <span class="text-xs bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full">要パスワード</span>
+        </button>
+      </div>
     </div>
     <div class="divider w-full mt-8 rounded-full"></div>
   </header>
@@ -116,7 +134,6 @@
   </h2>
 
   <div class="grid gap-6 md:grid-cols-3 mb-12 fade-in-up delay-3">
-    <!-- 球技日 -->
     <a href="ball_sports.html" class="hub-card ball p-6 rounded-2xl block group">
       <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500/20 to-blue-600/10 border border-blue-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-all duration-500">
         <i data-lucide="trophy" class="w-7 h-7 text-blue-400"></i>
@@ -129,8 +146,6 @@
         <p id="ballProgress" class="pt-1 text-white">消化状況：-</p>
       </div>
     </a>
-
-    <!-- 団体競技日 -->
     <a href="team_events.html" class="hub-card team p-6 rounded-2xl block group">
       <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border border-emerald-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-all duration-500">
         <i data-lucide="users" class="w-7 h-7 text-emerald-400"></i>
@@ -143,8 +158,6 @@
         <p id="teamProgress" class="pt-1 text-white">消化状況：-</p>
       </div>
     </a>
-
-    <!-- 🔴 新規：入力履歴管理 -->
     <a href="history.html" class="hub-card history p-6 rounded-2xl block group">
       <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500/20 to-amber-600/10 border border-amber-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-all duration-500">
         <i data-lucide="history" class="w-7 h-7 text-amber-400"></i>
@@ -189,6 +202,9 @@
           </button>
           <button id="recalcAllBtn" class="w-full py-3 rounded-xl bg-white/10 hover:bg-white/15 transition-colors text-sm flex items-center justify-center gap-2">
             <i data-lucide="calculator" class="w-4 h-4"></i>全得点を再計算
+          </button>
+          <button id="backupBtn" class="w-full py-3 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 transition-colors text-sm flex items-center justify-center gap-2">
+            <i data-lucide="download" class="w-4 h-4"></i>💾 データバックアップ
           </button>
           <button id="resetAllBtn" class="w-full py-3 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-400 transition-colors text-sm flex items-center justify-center gap-2">
             <i data-lucide="trash-2" class="w-4 h-4"></i>全データを初期化
@@ -272,6 +288,9 @@
   </div>
 
   <script>
+    lucide.createIcons();
+
+    // 🔥 Firebase初期化
     const FIREBASE_CONFIG = {
       apiKey: "AIzaSyAWVUxoXbvTraGUDozLztqcJx2f2fIHQntc",
       authDomain: "thsportsfes.firebaseapp.com",
@@ -282,64 +301,161 @@
     };
     firebase.initializeApp(FIREBASE_CONFIG);
     const db = firebase.firestore();
-    lucide.createIcons();
-    const SETTINGS_PASSWORD = 'admin123';
 
-    // 共通設定
+    // 🔥 同期ユーティリティ
+    const Sync = {
+      status: 'connecting',
+      setStatus(s, text) {
+        this.status = s;
+        const el = document.getElementById('syncStatus');
+        const txt = document.getElementById('syncStatusText');
+        if (!el) return;
+        el.className = `sync-status sync-${s}`;
+        if (txt) txt.textContent = text;
+      },
+      updateLastSync() {
+        const el = document.getElementById('lastSync');
+        if (el) {
+          const d = new Date();
+          el.textContent = `最終同期：${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
+        }
+      },
+      async save(key, data) {
+        localStorage.setItem(key, JSON.stringify(data));
+        try {
+          this.setStatus('syncing', '同期中...');
+          await db.collection('app_data').doc(key).set({
+            data: JSON.parse(JSON.stringify(data)),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            device: getDeviceInfo()
+          });
+          this.setStatus('online', 'オンライン');
+          this.updateLastSync();
+        } catch (e) {
+          console.warn('Firestore保存失敗:', e);
+          this.setStatus('offline', 'オフライン');
+        }
+      },
+      async load(key, defaultValue) {
+        const local = localStorage.getItem(key);
+        let localData = local ? JSON.parse(local) : defaultValue;
+        try {
+          this.setStatus('syncing', '読込中...');
+          const doc = await db.collection('app_data').doc(key).get();
+          if (doc.exists) {
+            const remote = doc.data().data;
+            localStorage.setItem(key, JSON.stringify(remote));
+            this.setStatus('online', 'オンライン');
+            this.updateLastSync();
+            return remote;
+          } else if (local) {
+            // 🔥 ローカルにしかない → Firestoreにアップロード（データ消失防止）
+            await db.collection('app_data').doc(key).set({
+              data: JSON.parse(JSON.stringify(localData)),
+              updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+              device: getDeviceInfo(),
+              migrated: true
+            });
+            this.setStatus('online', 'オンライン');
+            this.updateLastSync();
+          }
+        } catch (e) {
+          console.warn('Firestore読込失敗:', e);
+          this.setStatus('offline', 'オフライン');
+        }
+        return localData;
+      },
+      subscribe(key, callback) {
+        return db.collection('app_data').doc(key).onSnapshot(snap => {
+          if (snap.exists) {
+            const data = snap.data().data;
+            localStorage.setItem(key, JSON.stringify(data));
+            this.setStatus('online', 'オンライン');
+            this.updateLastSync();
+            callback(data);
+          }
+        }, err => {
+          console.warn('同期エラー:', err);
+          this.setStatus('offline', 'オフライン');
+        });
+      }
+    };
+
+    function getDeviceInfo() {
+      const ua = navigator.userAgent;
+      let device = 'Unknown';
+      if (/iPhone/.test(ua)) device = 'iPhone';
+      else if (/iPad/.test(ua)) device = 'iPad';
+      else if (/Android/.test(ua)) device = 'Android';
+      else if (/Mac/.test(ua)) device = 'Mac';
+      else if (/Windows/.test(ua)) device = 'Windows';
+      let browser = 'Unknown';
+      if (/Edg/.test(ua)) browser = 'Edge';
+      else if (/Chrome/.test(ua)) browser = 'Chrome';
+      else if (/Firefox/.test(ua)) browser = 'Firefox';
+      else if (/Safari/.test(ua)) browser = 'Safari';
+      return `${device} / ${browser}`;
+    }
+
+    const SETTINGS_PASSWORD = 'admin123';
     const GRADES = ['中学1年', '中学2年', '中学3年', '高校1年', '高校2年', '高校3年'];
     const GROUPS = ['A', 'B', 'C', 'D'];
 
-    // 球技日 得点割（PDF）
     const BALL_SCORING = {
       'サッカー': [150, 100, 50, 0], '野球': [150, 100, 0, 0], 'バスケットボール': [150, 100, 50, 0],
       'バレーボール': [150, 100, 50, 0], 'ドッジボール': [150, 100, 50, 0], 'アルティメット': [150, 100, 50, 0], '卓球': [150, 100, 50, 0]
     };
-
-    // 団体競技日 得点割（PDF）
     const TEAM_SCORING = {
       '大玉送り': [200, 150, 100, 50], 'しっぽとり': [200, 150, 100, 100], '台風の目': [200, 150, 100, 100],
       '綱引き': [200, 150, 100, 100], '100人フットボール': [200, 150, 100, 100], '竹取物語': [200, 150, 100, 50],
-      '騎馬戦': [200, 150, 100, 100], '団長騎馬戦': [376, 276, 176, 76], '選抜リレー': [634, 434, 334, 234],
-      '二人三脚': [200, 150, 100, 50], '借り人競争': [100, 90, 80, 70], '部対抗リレー': [0, 0, 0, 0]
+      '通常騎馬戦': [200, 150, 100, 100], '団長騎馬戦': [376, 276, 176, 76], '選抜リレー': [634, 434, 334, 234],
+      '部対抗リレー': [0, 0, 0, 0], '二人三脚': [200, 150, 100, 50], '借り人競争': [100, 90, 80, 70],
+      '騎馬戦': [200, 150, 100, 100], '開会式': [0, 0, 0, 0], '閉会式': [0, 0, 0, 0], '昼休み': [0, 0, 0, 0]
     };
 
-    function loadData(key, def) { try { const s = localStorage.getItem(key); return s ? JSON.parse(s) : def; } catch { return def; } }
-    function saveData(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
+    function getDefaultBallData() { return { venues: ['上グラウンド','下グラウンド','体育館','ハードコート','オムニコート','卓球場'], matches: [] }; }
+    function getDefaultTeamData() { return { events: [] }; }
 
-    // 🔴 組別合計得点計算
+    // 🔥 データ読み込み + リアルタイム同期購読
+    async function init() {
+      Sync.setStatus('syncing', '接続中...');
+      
+      // リアルタイム同期：他端末の変更を自動反映
+      Sync.subscribe('ball_sports_data_v4', () => renderTotalRanking());
+      Sync.subscribe('team_events_data_v4', () => renderTotalRanking());
+      
+      renderTotalRanking();
+      Sync.setStatus('online', 'オンライン');
+      Sync.updateLastSync();
+    }
+
     function calcGroupTotal() {
-      const ballData = loadData('ball_sports_data_v4', null);
-      const teamData = loadData('team_events_data_v4', null);
+      const ballData = JSON.parse(localStorage.getItem('ball_sports_data_v4') || 'null');
+      const teamData = JSON.parse(localStorage.getItem('team_events_data_v4') || 'null');
       const groups = { A: { name: 'A組', total: 0, ball: 0, team: 0, details: [] }, B: { name: 'B組', total: 0, ball: 0, team: 0, details: [] }, C: { name: 'C組', total: 0, ball: 0, team: 0, details: [] }, D: { name: 'D組', total: 0, ball: 0, team: 0, details: [] } };
 
-      // 球技日
       if (ballData && ballData.matches) {
         ballData.matches.filter(m => m.status === 'done' && m.rank1).forEach(m => {
           const table = BALL_SCORING[m.sport] || [150, 100, 50, 0];
           [m.rank1, m.rank2, m.rank3, m.rank4].forEach((g, i) => {
             if (g && groups[g] && table[i] !== undefined) {
-              groups[g].ball += table[i];
-              groups[g].total += table[i];
+              groups[g].ball += table[i]; groups[g].total += table[i];
               groups[g].details.push(`${m.grade}${m.sport}:${table[i]}`);
             }
           });
         });
       }
-
-      // 団体競技日
       if (teamData && teamData.events) {
         teamData.events.filter(e => e.status === 'done' && e.rank1).forEach(e => {
           const table = TEAM_SCORING[e.name] || [200, 150, 100, 50];
           [e.rank1, e.rank2, e.rank3, e.rank4].forEach((g, i) => {
             if (g && groups[g] && table[i] !== undefined) {
-              groups[g].team += table[i];
-              groups[g].total += table[i];
+              groups[g].team += table[i]; groups[g].total += table[i];
               groups[g].details.push(`${e.name}:${table[i]}`);
             }
           });
         });
       }
-
       return Object.values(groups).sort((a, b) => b.total - a.total);
     }
 
@@ -363,14 +479,22 @@
         `;
       }).join('');
 
-      const bd = loadData('ball_sports_data_v4', null);
-      const td = loadData('team_events_data_v4', null);
-      const hist = loadData('input_history_v4', []);
+      const bd = JSON.parse(localStorage.getItem('ball_sports_data_v4') || 'null');
+      const td = JSON.parse(localStorage.getItem('team_events_data_v4') || 'null');
+      const hist = JSON.parse(localStorage.getItem('input_history_v4') || '[]');
       if (bd?.matches) { const done = bd.matches.filter(m => m.status === 'done').length; document.getElementById('ballProgress').textContent = `消化：${done} / ${bd.matches.length}`; }
       if (td?.events) { const done = td.events.filter(e => e.status === 'done').length; document.getElementById('teamProgress').textContent = `消化：${done} / ${td.events.length}`; }
       document.getElementById('historyCount').textContent = `登録履歴：${hist.length}件`;
       lucide.createIcons();
     }
+
+    // 🔥 手動同期
+    document.getElementById('manualSyncBtn').addEventListener('click', async () => {
+      Sync.setStatus('syncing', '強制同期中...');
+      await Sync.load('ball_sports_data_v4', getDefaultBallData());
+      await Sync.load('team_events_data_v4', getDefaultTeamData());
+      renderTotalRanking();
+    });
 
     // 設定モーダル
     document.getElementById('openSettingsBtn').addEventListener('click', () => {
@@ -393,25 +517,52 @@
 
     document.getElementById('recalcAllBtn').addEventListener('click', () => { renderTotalRanking(); alert('再計算しました'); });
     document.getElementById('refreshTotalBtn').addEventListener('click', renderTotalRanking);
-    document.getElementById('clearHistoryBtn').addEventListener('click', () => {
+    document.getElementById('clearHistoryBtn').addEventListener('click', async () => {
       if (!confirm('入力履歴を全て削除しますか？')) return;
       localStorage.removeItem('input_history_v4');
-      renderTotalRanking();
-      alert('削除しました');
+      // Firestore側も削除
+      try {
+        const snap = await db.collection('input_history').limit(500).get();
+        const batch = db.batch();
+        snap.forEach(doc => batch.delete(doc.ref));
+        await batch.commit();
+      } catch (e) { console.warn(e); }
+      renderTotalRanking(); alert('削除しました');
     });
-    document.getElementById('resetAllBtn').addEventListener('click', () => {
+
+    // 💾 バックアップ機能
+    document.getElementById('backupBtn').addEventListener('click', () => {
+      const backup = {
+        exportedAt: new Date().toISOString(),
+        ball_sports_data_v4: JSON.parse(localStorage.getItem('ball_sports_data_v4') || 'null'),
+        team_events_data_v4: JSON.parse(localStorage.getItem('team_events_data_v4') || 'null'),
+        input_history_v4: JSON.parse(localStorage.getItem('input_history_v4') || '[]')
+      };
+      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `sportsfes_backup_${new Date().toISOString().slice(0,10)}.json`;
+      a.click(); URL.revokeObjectURL(url);
+      alert('バックアップをダウンロードしました');
+    });
+
+    document.getElementById('resetAllBtn').addEventListener('click', async () => {
       if (!confirm('⚠️ 全データを初期化しますか？')) return;
-      if (!confirm('もう一度確認：全て消去されます')) return;
+      if (!confirm('もう一度確認：Firebase含め全て消去されます')) return;
       ['ball_sports_data_v4', 'team_events_data_v4', 'input_history_v4'].forEach(k => localStorage.removeItem(k));
+      try {
+        await db.collection('app_data').doc('ball_sports_data_v4').delete();
+        await db.collection('app_data').doc('team_events_data_v4').delete();
+      } catch (e) { console.warn(e); }
       location.reload();
     });
 
     // 球技日追加
     document.getElementById('addBallMatchBtn').addEventListener('click', () => { document.getElementById('ballModal').classList.remove('hidden'); });
     document.getElementById('ballModalClose').addEventListener('click', () => document.getElementById('ballModal').classList.add('hidden'));
-    document.getElementById('ballForm').addEventListener('submit', e => {
+    document.getElementById('ballForm').addEventListener('submit', async e => {
       e.preventDefault();
-      const data = loadData('ball_sports_data_v4', getDefaultBallData());
+      const data = await Sync.load('ball_sports_data_v4', getDefaultBallData());
       const newId = data.matches.length ? Math.max(...data.matches.map(m => m.id)) + 1 : 1;
       data.matches.push({
         id: newId, venue: document.getElementById('ballVenue').value, time: document.getElementById('ballTime').value,
@@ -419,7 +570,7 @@
         status: document.getElementById('ballStatus').value, delay: 0, duration: 30,
         rank1: '', rank2: '', rank3: '', rank4: '', note: ''
       });
-      saveData('ball_sports_data_v4', data);
+      await Sync.save('ball_sports_data_v4', data);
       document.getElementById('ballModal').classList.add('hidden');
       document.getElementById('ballForm').reset();
       renderTotalRanking();
@@ -429,9 +580,9 @@
     // 団体競技日追加
     document.getElementById('addTeamEventBtn').addEventListener('click', () => { document.getElementById('teamModal').classList.remove('hidden'); });
     document.getElementById('teamModalClose').addEventListener('click', () => document.getElementById('teamModal').classList.add('hidden'));
-    document.getElementById('teamForm').addEventListener('submit', e => {
+    document.getElementById('teamForm').addEventListener('submit', async e => {
       e.preventDefault();
-      const data = loadData('team_events_data_v4', getDefaultTeamData());
+      const data = await Sync.load('team_events_data_v4', getDefaultTeamData());
       const newId = data.events.length ? Math.max(...data.events.map(ev => ev.id)) + 1 : 1;
       data.events.push({
         id: newId, name: document.getElementById('teamName').value, time: document.getElementById('teamTime').value,
@@ -439,17 +590,14 @@
         place: '', status: 'wait', delay: 0,
         rank1: '', rank2: '', rank3: '', rank4: '', note: ''
       });
-      saveData('team_events_data_v4', data);
+      await Sync.save('team_events_data_v4', data);
       document.getElementById('teamModal').classList.add('hidden');
       document.getElementById('teamForm').reset();
       renderTotalRanking();
       alert('追加しました');
     });
 
-    function getDefaultBallData() { return { venues: ['上グラウンド','下グラウンド','体育館','ハードコート','オムニコート','卓球場'], matches: [] }; }
-    function getDefaultTeamData() { return { events: [] }; }
-
-    renderTotalRanking();
+    init();
     setInterval(renderTotalRanking, 30000);
   </script>
 </body>
