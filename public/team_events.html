@@ -41,7 +41,6 @@
     .glow-text { text-shadow: 0 0 40px rgba(255,255,255,0.12), 0 0 80px rgba(255,255,255,0.05); }
     .divider { background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent); height: 1px; }
     input, select, textarea { background: rgba(255,255,255,0.05) !important; border: 1px solid rgba(255,255,255,0.1) !important; color: white !important; font-size: 16px !important; }
-    input::placeholder, textarea::placeholder { color: rgba(255,255,255,0.3); }
     select option { background: #1a1a1a; color: white; }
     .fade-in-up { animation: fadeInUp 0.8s ease-out forwards; opacity: 0; transform: translateY(20px); }
     @keyframes fadeInUp { to { opacity: 1; transform: translateY(0); } }
@@ -51,51 +50,39 @@
     .rank-1 { background: linear-gradient(135deg, rgba(251,191,36,0.2), rgba(217,119,6,0.1)); border-left: 3px solid #fbbf24; }
     .rank-2 { background: linear-gradient(135deg, rgba(156,163,175,0.2), rgba(107,114,128,0.1)); border-left: 3px solid #9ca3af; }
     .rank-3 { background: linear-gradient(135deg, rgba(180,83,9,0.2), rgba(146,64,14,0.1)); border-left: 3px solid #b45309; }
+    .rank-4 { background: linear-gradient(135deg, rgba(75,85,99,0.15), rgba(55,65,81,0.08)); border-left: 3px solid #4b5563; }
     .progress-bar { transition: width 0.5s ease; }
     .scoring-badge { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); }
     @keyframes pulse-soft { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
     .pulse-dot { animation: pulse-soft 1.2s ease-in-out infinite; }
-    .group-select {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 8px;
-    }
+    .group-select { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
     .group-btn {
-      padding: 10px;
-      border-radius: 10px;
-      border: 2px solid rgba(255,255,255,0.1);
-      background: rgba(255,255,255,0.05);
-      cursor: pointer;
-      transition: all 0.2s ease;
-      font-weight: 600;
-      text-align: center;
+      padding: 12px 8px; border-radius: 10px; border: 2px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.05); cursor: pointer; transition: all 0.2s ease;
+      font-weight: 700; text-align: center; font-size: 18px;
     }
     .group-btn:hover { border-color: rgba(255,255,255,0.3); background: rgba(255,255,255,0.1); }
-    .group-btn.selected-1 { border-color: #fbbf24; background: rgba(251,191,36,0.2); color: #fbbf24; }
-    .group-btn.selected-2 { border-color: #9ca3af; background: rgba(156,163,175,0.2); color: #d1d5db; }
-    .group-btn.selected-3 { border-color: #b45309; background: rgba(180,83,9,0.2); color: #fbbf24; }
+    .group-btn.sel-1 { border-color: #fbbf24; background: rgba(251,191,36,0.2); color: #fbbf24; }
+    .group-btn.sel-2 { border-color: #9ca3af; background: rgba(156,163,175,0.2); color: #e5e7eb; }
+    .group-btn.sel-3 { border-color: #b45309; background: rgba(180,83,9,0.2); color: #fbbf24; }
+    .group-btn.sel-4 { border-color: #4b5563; background: rgba(75,85,99,0.2); color: #9ca3af; }
   </style>
 </head>
 <body class="text-white max-w-4xl mx-auto px-4 py-10 md:py-14">
   <header class="mb-10 fade-in-up">
     <a href="timetable.html" class="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-4">
-      <i data-lucide="arrow-left" class="w-4 h-4"></i>
-      <span>進行管理に戻る</span>
+      <i data-lucide="arrow-left" class="w-4 h-4"></i><span>進行管理に戻る</span>
     </a>
     <div class="flex items-center justify-between flex-wrap gap-4">
       <div>
         <p class="text-gray-500 text-xs tracking-[0.25em] uppercase mb-2">Team Events Management</p>
         <h1 class="text-3xl md:text-4xl font-bold tracking-tight glow-text flex items-center gap-3">
-          <i data-lucide="users" class="w-8 h-8 md:w-10 md:h-10 text-emerald-400" style="filter: drop-shadow(0 0 15px rgba(16,185,129,0.3));"></i>
-          🏃 団体競技日 進行管理
+          <i data-lucide="users" class="w-8 h-8 md:w-10 md:h-10 text-emerald-400"></i>🏃 団体競技日 進行管理
         </h1>
       </div>
-      <div class="flex gap-2">
-        <button id="exportBtn" class="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/15 transition-colors text-sm flex items-center gap-1.5">
-          <i data-lucide="download" class="w-4 h-4"></i>
-          <span class="hidden sm:inline">出力</span>
-        </button>
-      </div>
+      <button id="exportBtn" class="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/15 transition-colors text-sm flex items-center gap-1.5">
+        <i data-lucide="download" class="w-4 h-4"></i><span class="hidden sm:inline">出力</span>
+      </button>
     </div>
     <div class="divider w-full mt-6 rounded-full"></div>
   </header>
@@ -135,10 +122,7 @@
   <div class="card rounded-2xl p-5 mb-6 fade-in-up delay-1">
     <details class="group">
       <summary class="cursor-pointer flex items-center justify-between text-sm font-semibold text-gray-300">
-        <span class="flex items-center gap-2">
-          <i data-lucide="info" class="w-4 h-4"></i>
-          📊 種目別得点割 早見表
-        </span>
+        <span class="flex items-center gap-2"><i data-lucide="info" class="w-4 h-4"></i>📊 種目別得点割 早見表</span>
         <i data-lucide="chevron-down" class="w-4 h-4 transition-transform group-open:rotate-180"></i>
       </summary>
       <div class="mt-4 grid gap-3 md:grid-cols-2 text-sm">
@@ -149,18 +133,18 @@
         </div>
         <div class="scoring-badge rounded-xl p-3">
           <p class="font-semibold mb-1 text-blue-400">⚔️ 標準種目（同率3位あり）</p>
-          <p class="text-gray-400 text-xs">大玉送り・しっぽとり・台風の目・綱引き・100人FB・竹取物語・騎馬戦</p>
+          <p class="text-gray-400 text-xs">しっぽとり・台風の目・綱引き・100人FB・騎馬戦</p>
           <p class="text-gray-400 text-xs">1位200 / 2位150 / 3位100</p>
         </div>
         <div class="scoring-badge rounded-xl p-3">
           <p class="font-semibold mb-1 text-emerald-400">🏃 その他種目</p>
-          <p class="text-gray-400 text-xs">二人三脚：1位200 / 2位150 / 3位100 / 4位50</p>
+          <p class="text-gray-400 text-xs">大玉送り・竹取物語・二人三脚：1位200 / 2位150 / 3位100 / 4位50</p>
           <p class="text-gray-400 text-xs">借り人競争：1位100 / 2位90 / 3位80 / 4位70</p>
         </div>
         <div class="scoring-badge rounded-xl p-3">
           <p class="font-semibold mb-1 text-gray-400">📌 備考</p>
           <p class="text-gray-400 text-xs">部対抗リレー：得点なし</p>
-          <p class="text-gray-400 text-xs">最終順位は組（A/B/C/D）ごとに決定</p>
+          <p class="text-gray-400 text-xs">最終順位はABCD組ごとに合算</p>
         </div>
       </div>
     </details>
@@ -176,6 +160,8 @@
       </select>
       <select id="filterGrade" class="rounded-lg px-3 py-2 text-sm bg-white/5 border border-white/10">
         <option value="">全学年</option>
+        <option value="中学1年">中学1年</option><option value="中学2年">中学2年</option><option value="中学3年">中学3年</option>
+        <option value="高校1年">高校1年</option><option value="高校2年">高校2年</option><option value="高校3年">高校3年</option>
       </select>
     </div>
     <p class="text-sm text-gray-500">登録：<span id="eventCount">0</span>件</p>
@@ -187,105 +173,100 @@
   <!-- 組別合計得点 -->
   <div class="card rounded-3xl p-6 md:p-8 mt-10 fade-in-up delay-3">
     <h2 class="text-lg font-semibold mb-5 flex items-center gap-2">
-      <i data-lucide="trophy" class="w-5 h-5 text-amber-400"></i>
-      🏆 組別 合計得点ランキング
+      <i data-lucide="trophy" class="w-5 h-5 text-amber-400"></i>🏆 団体競技日 組別合計得点
     </h2>
     <div id="groupRanking" class="space-y-2"></div>
-    <p class="text-xs text-gray-500 mt-4 text-center">※ 各学年のA組・B組・C組・D組ごとに合計した順位</p>
+    <p class="text-xs text-gray-500 mt-4 text-center">※ PDF得点割に基づきABCD組ごとに合算</p>
   </div>
 
   <!-- 編集モーダル -->
   <div id="editModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
     <div class="card rounded-3xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-      <h3 id="modalTitle" class="text-xl font-bold mb-6 flex items-center gap-2">
-        <i data-lucide="edit-3" class="w-5 h-5 text-emerald-400"></i>
-        種目情報
+      <h3 id="modalTitle" class="text-xl font-bold mb-1 flex items-center gap-2">
+        <i data-lucide="edit-3" class="w-5 h-5 text-emerald-400"></i>種目情報
       </h3>
+      <p id="modalSubtitle" class="text-sm text-gray-400 mb-6"></p>
       <form id="eventForm" class="space-y-4">
         <input type="hidden" id="editEventId">
-        <div>
-          <label class="block text-sm text-gray-400 mb-1.5">種目名</label>
-          <input type="text" id="editName" class="w-full rounded-xl px-4 py-3" readonly>
-        </div>
         <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block text-sm text-gray-400 mb-1.5">開始時刻</label>
-            <input type="time" id="editTime" class="w-full rounded-xl px-4 py-3" required>
-          </div>
-          <div>
-            <label class="block text-sm text-gray-400 mb-1.5">⏱️ 所要時間（分）</label>
-            <input type="number" id="editDuration" value="15" min="1" class="w-full rounded-xl px-4 py-3 text-center">
-          </div>
+          <div><label class="block text-sm text-gray-400 mb-1.5">開始時刻</label><input type="time" id="editTime" class="w-full rounded-xl px-4 py-3" required></div>
+          <div><label class="block text-sm text-gray-400 mb-1.5">⏱️ 所要時間</label><input type="number" id="editDuration" value="15" min="1" class="w-full rounded-xl px-4 py-3 text-center"></div>
         </div>
-        <!-- 🔴 対象学年：選択制 -->
-        <div>
-          <label class="block text-sm text-gray-400 mb-1.5">👥 対象学年</label>
+        <div><label class="block text-sm text-gray-400 mb-1.5">👥 対象学年</label>
           <select id="editGrade" class="w-full rounded-xl px-4 py-3">
             <option value="">指定なし</option>
+            <option value="中学1年">中学1年</option><option value="中学2年">中学2年</option><option value="中学3年">中学3年</option>
+            <option value="高校1年">高校1年</option><option value="高校2年">高校2年</option><option value="高校3年">高校3年</option>
           </select>
         </div>
-        <!-- 🔴 時間調整：プラス・マイナス両対応 -->
         <div>
           <label class="block text-sm text-gray-400 mb-1.5">⏱️ 時間調整（分）</label>
           <div class="flex items-center gap-2">
-            <button type="button" class="adjust-btn px-3 py-2 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 font-bold" data-adjust="-5">-5</button>
-            <button type="button" class="adjust-btn px-3 py-2 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 font-bold" data-adjust="-1">-1</button>
-            <input type="number" id="editDelay" value="0" class="flex-1 rounded-xl px-4 py-3 text-center font-mono-num text-lg" placeholder="0">
-            <button type="button" class="adjust-btn px-3 py-2 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 font-bold" data-adjust="1">+1</button>
-            <button type="button" class="adjust-btn px-3 py-2 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 font-bold" data-adjust="5">+5</button>
+            <button type="button" class="adj-btn px-3 py-2 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 font-bold" data-adj="-5">-5</button>
+            <button type="button" class="adj-btn px-3 py-2 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 font-bold" data-adj="-1">-1</button>
+            <input type="number" id="editDelay" value="0" class="flex-1 rounded-xl px-4 py-3 text-center font-mono-num text-lg">
+            <button type="button" class="adj-btn px-3 py-2 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 font-bold" data-adj="1">+1</button>
+            <button type="button" class="adj-btn px-3 py-2 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 font-bold" data-adj="5">+5</button>
           </div>
           <p class="text-xs text-gray-500 mt-1">マイナス：巻いている / プラス：遅れている</p>
         </div>
         <div>
           <label class="block text-sm text-gray-400 mb-1.5">ステータス</label>
           <select id="editStatus" class="w-full rounded-xl px-4 py-3">
-            <option value="wait">未開始</option>
-            <option value="ready">準備中</option>
-            <option value="running">🔥 進行中</option>
-            <option value="delay">⚠️ 遅延</option>
-            <option value="early">⚡ 早まり</option>
-            <option value="done">✅ 終了</option>
+            <option value="wait">未開始</option><option value="ready">準備中</option>
+            <option value="running">🔥 進行中</option><option value="delay">⚠️ 遅延</option>
+            <option value="early">⚡ 早まり</option><option value="done">✅ 終了</option>
           </select>
         </div>
-        <!-- 🔴 勝った組：ABCDから選択 -->
+        <!-- ABCD組順位入力 -->
         <div class="pt-3 border-t border-white/5">
-          <p class="text-sm font-medium text-gray-300 mb-3">🏆 結果入力（組で選択）</p>
+          <p class="text-sm font-medium text-gray-300 mb-3">🏆 結果入力（ABCD組）</p>
           <div class="space-y-3">
             <div>
-              <label class="block text-xs text-gray-500 mb-2">🥇 1位の組</label>
+              <label class="block text-xs text-gray-500 mb-2">🥇 1位</label>
               <div class="group-select" data-rank="1">
-                <button type="button" class="group-btn" data-group="A">A組</button>
-                <button type="button" class="group-btn" data-group="B">B組</button>
-                <button type="button" class="group-btn" data-group="C">C組</button>
-                <button type="button" class="group-btn" data-group="D">D組</button>
+                <button type="button" class="group-btn" data-g="A">A組</button>
+                <button type="button" class="group-btn" data-g="B">B組</button>
+                <button type="button" class="group-btn" data-g="C">C組</button>
+                <button type="button" class="group-btn" data-g="D">D組</button>
               </div>
             </div>
             <div>
-              <label class="block text-xs text-gray-500 mb-2">🥈 2位の組</label>
+              <label class="block text-xs text-gray-500 mb-2">🥈 2位</label>
               <div class="group-select" data-rank="2">
-                <button type="button" class="group-btn" data-group="A">A組</button>
-                <button type="button" class="group-btn" data-group="B">B組</button>
-                <button type="button" class="group-btn" data-group="C">C組</button>
-                <button type="button" class="group-btn" data-group="D">D組</button>
+                <button type="button" class="group-btn" data-g="A">A組</button>
+                <button type="button" class="group-btn" data-g="B">B組</button>
+                <button type="button" class="group-btn" data-g="C">C組</button>
+                <button type="button" class="group-btn" data-g="D">D組</button>
               </div>
             </div>
             <div>
-              <label class="block text-xs text-gray-500 mb-2">🥉 3位の組</label>
+              <label class="block text-xs text-gray-500 mb-2">🥉 3位</label>
               <div class="group-select" data-rank="3">
-                <button type="button" class="group-btn" data-group="A">A組</button>
-                <button type="button" class="group-btn" data-group="B">B組</button>
-                <button type="button" class="group-btn" data-group="C">C組</button>
-                <button type="button" class="group-btn" data-group="D">D組</button>
+                <button type="button" class="group-btn" data-g="A">A組</button>
+                <button type="button" class="group-btn" data-g="B">B組</button>
+                <button type="button" class="group-btn" data-g="C">C組</button>
+                <button type="button" class="group-btn" data-g="D">D組</button>
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs text-gray-500 mb-2">4位</label>
+              <div class="group-select" data-rank="4">
+                <button type="button" class="group-btn" data-g="A">A組</button>
+                <button type="button" class="group-btn" data-g="B">B組</button>
+                <button type="button" class="group-btn" data-g="C">C組</button>
+                <button type="button" class="group-btn" data-g="D">D組</button>
               </div>
             </div>
           </div>
           <input type="hidden" id="editRank1" value="">
           <input type="hidden" id="editRank2" value="">
           <input type="hidden" id="editRank3" value="">
+          <input type="hidden" id="editRank4" value="">
         </div>
         <div>
           <label class="block text-sm text-gray-400 mb-1.5">備考</label>
-          <textarea id="editNote" rows="2" placeholder="連絡事項など" class="w-full rounded-xl px-4 py-3"></textarea>
+          <textarea id="editNote" rows="2" class="w-full rounded-xl px-4 py-3"></textarea>
         </div>
         <div class="flex gap-3 pt-2">
           <button type="button" id="modalClose" class="flex-1 py-3 rounded-xl bg-white/10 hover:bg-white/15 transition-colors font-medium">キャンセル</button>
@@ -298,52 +279,75 @@
   <script>
     lucide.createIcons();
 
-    // PDF得点割
-    const SCORING_TABLE = {
+    const TEAM_SCORING = {
       '大玉送り': [200, 150, 100, 50], '竹取物語': [200, 150, 100, 50], '台風の目': [200, 150, 100, 100],
       'しっぽとり': [200, 150, 100, 100], '借り人競争': [100, 90, 80, 70], '部対抗リレー': [0, 0, 0, 0],
       '綱引き': [200, 150, 100, 100], '二人三脚': [200, 150, 100, 50], '100人フットボール': [200, 150, 100, 100],
       '選抜リレー': [634, 434, 334, 234], '騎馬戦': [200, 150, 100, 100], '団長騎馬戦': [376, 276, 176, 76],
-      '開会式': [0, 0, 0, 0], '閉会式': [0, 0, 0, 0]
+      '開会式': [0, 0, 0, 0], '閉会式': [0, 0, 0, 0], '昼休み': [0, 0, 0, 0]
     };
 
     const STATUS_LABEL = { wait: '未開始', ready: '準備中', running: '🔥 進行中', delay: '⚠️ 遅延', early: '⚡ 早まり', done: '✅ 終了' };
     const STATUS_CLASS = { wait: 'status-wait', ready: 'status-ready', running: 'status-running', delay: 'status-delay', early: 'status-early', done: 'status-done' };
 
-    function loadCommon() {
-      try { const s = localStorage.getItem('common_settings');
-        return s ? JSON.parse(s) : { classes: [], grades: ['中学1年','中学2年','中学3年','高校1年','高校2年','高校3年'] }; }
-      catch { return { classes: [], grades: ['中学1年','中学2年','中学3年','高校1年','高校2年','高校3年'] }; }
-    }
-    const common = loadCommon();
-
     function getDefaultData() {
       return {
         events: [
-          { id: 1, name: '開会式', time: '08:20', duration: 30, place: 'グラウンド', status: 'wait', delay: 0, category: 'general', grade: '', rank1: '', rank2: '', rank3: '', note: '校長挨拶・選手宣誓・団長挨拶' },
-          { id: 2, name: '大玉送り', time: '08:50', duration: 18, place: 'グラウンド', status: 'wait', delay: 0, category: 'general', grade: '高校1年', rank1: '', rank2: '', rank3: '', note: '' },
-          { id: 3, name: '竹取物語', time: '09:08', duration: 45, place: 'グラウンド', status: 'wait', delay: 0, category: 'general', grade: '', rank1: '', rank2: '', rank3: '', note: '前半・後半 各15分' },
-          { id: 4, name: '台風の目', time: '09:53', duration: 31, place: 'グラウンド', status: 'wait', delay: 0, category: 'general', grade: '', rank1: '', rank2: '', rank3: '', note: '前半・後半・勝者戦' },
-          { id: 5, name: 'しっぽとり', time: '10:24', duration: 17, place: 'グラウンド', status: 'wait', delay: 0, category: 'general', grade: '中学2年', rank1: '', rank2: '', rank3: '', note: '' },
-          { id: 6, name: '借り人競争', time: '10:41', duration: 12, place: 'トラック', status: 'wait', delay: 0, category: 'mixed', grade: '', rank1: '', rank2: '', rank3: '', note: '応援団員・先生方参加' },
-          { id: 7, name: '部対抗リレー', time: '10:53', duration: 37, place: 'トラック', status: 'wait', delay: 0, category: 'mixed', grade: '', rank1: '', rank2: '', rank3: '', note: '運動部・文化部 得点なし' },
-          { id: 8, name: '昼休み', time: '11:30', duration: 45, place: '', status: 'wait', delay: 0, category: 'general', grade: '', rank1: '', rank2: '', rank3: '', note: '' },
-          { id: 9, name: '綱引き', time: '12:15', duration: 45, place: 'グラウンド', status: 'wait', delay: 0, category: 'general', grade: '', rank1: '', rank2: '', rank3: '', note: '前半・後半' },
-          { id: 10, name: '二人三脚', time: '13:00', duration: 21, place: 'トラック', status: 'wait', delay: 0, category: 'general', grade: '', rank1: '', rank2: '', rank3: '', note: '' },
-          { id: 11, name: '100人フットボール', time: '13:21', duration: 45, place: 'グラウンド', status: 'wait', delay: 0, category: 'general', grade: '', rank1: '', rank2: '', rank3: '', note: '中2・中3・高1 各15分' },
-          { id: 12, name: '選抜リレー', time: '14:06', duration: 16, place: 'トラック', status: 'wait', delay: 0, category: 'mixed', grade: '', rank1: '', rank2: '', rank3: '', note: '生徒選抜者・教師' },
-          { id: 13, name: '騎馬戦', time: '14:22', duration: 44, place: 'グラウンド', status: 'wait', delay: 0, category: 'general', grade: '', rank1: '', rank2: '', rank3: '', note: '高2・高3 各22分' },
-          { id: 14, name: '団長騎馬戦', time: '15:06', duration: 9, place: 'グラウンド', status: 'wait', delay: 0, category: 'general', grade: '', rank1: '', rank2: '', rank3: '', note: '応援団長' },
-          { id: 15, name: '閉会式', time: '15:15', duration: 12, place: 'グラウンド', status: 'wait', delay: 0, category: 'general', grade: '', rank1: '', rank2: '', rank3: '', note: '15:27 終了予定' },
+          { id: 1, name: '開会式', time: '08:20', duration: 30, grade: '', place: 'グラウンド', status: 'wait', delay: 0, rank1: '', rank2: '', rank3: '', rank4: '', note: '校長挨拶・選手宣誓' },
+          { id: 2, name: '大玉送り', time: '08:50', duration: 18, grade: '高校1年', place: 'グラウンド', status: 'wait', delay: 0, rank1: '', rank2: '', rank3: '', rank4: '', note: '' },
+          { id: 3, name: '竹取物語', time: '09:08', duration: 45, grade: '', place: 'グラウンド', status: 'wait', delay: 0, rank1: '', rank2: '', rank3: '', rank4: '', note: '前半・後半' },
+          { id: 4, name: '台風の目', time: '09:53', duration: 31, grade: '', place: 'グラウンド', status: 'wait', delay: 0, rank1: '', rank2: '', rank3: '', rank4: '', note: '前半・後半・勝者戦' },
+          { id: 5, name: 'しっぽとり', time: '10:24', duration: 17, grade: '中学2年', place: 'グラウンド', status: 'wait', delay: 0, rank1: '', rank2: '', rank3: '', rank4: '', note: '' },
+          { id: 6, name: '借り人競争', time: '10:41', duration: 12, grade: '', place: 'トラック', status: 'wait', delay: 0, rank1: '', rank2: '', rank3: '', rank4: '', note: '応援団員・先生' },
+          { id: 7, name: '部対抗リレー', time: '10:53', duration: 37, grade: '', place: 'トラック', status: 'wait', delay: 0, rank1: '', rank2: '', rank3: '', rank4: '', note: '得点なし' },
+          { id: 8, name: '昼休み', time: '11:30', duration: 45, grade: '', place: '', status: 'wait', delay: 0, rank1: '', rank2: '', rank3: '', rank4: '', note: '' },
+          { id: 9, name: '綱引き', time: '12:15', duration: 45, grade: '', place: 'グラウンド', status: 'wait', delay: 0, rank1: '', rank2: '', rank3: '', rank4: '', note: '' },
+          { id: 10, name: '二人三脚', time: '13:00', duration: 21, grade: '', place: 'トラック', status: 'wait', delay: 0, rank1: '', rank2: '', rank3: '', rank4: '', note: '' },
+          { id: 11, name: '100人フットボール', time: '13:21', duration: 45, grade: '', place: 'グラウンド', status: 'wait', delay: 0, rank1: '', rank2: '', rank3: '', rank4: '', note: '中2・中3・高1' },
+          { id: 12, name: '選抜リレー', time: '14:06', duration: 16, grade: '', place: 'トラック', status: 'wait', delay: 0, rank1: '', rank2: '', rank3: '', rank4: '', note: '生徒選抜・教師' },
+          { id: 13, name: '騎馬戦', time: '14:22', duration: 44, grade: '', place: 'グラウンド', status: 'wait', delay: 0, rank1: '', rank2: '', rank3: '', rank4: '', note: '高2・高3' },
+          { id: 14, name: '団長騎馬戦', time: '15:06', duration: 9, grade: '', place: 'グラウンド', status: 'wait', delay: 0, rank1: '', rank2: '', rank3: '', rank4: '', note: '応援団長' },
+          { id: 15, name: '閉会式', time: '15:15', duration: 12, grade: '', place: 'グラウンド', status: 'wait', delay: 0, rank1: '', rank2: '', rank3: '', rank4: '', note: '15:27終了予定' },
         ]
       };
     }
 
     let scheduleData = getDefaultData();
-    function saveSchedule() { localStorage.setItem('team_events_data_v3', JSON.stringify(scheduleData)); }
-    function loadSchedule() {
-      const saved = localStorage.getItem('team_events_data_v3');
-      if (saved) try { scheduleData = Object.assign(getDefaultData(), JSON.parse(saved)); } catch {}
+    function saveSchedule() { localStorage.setItem('team_events_data_v4', JSON.stringify(scheduleData)); }
+    function loadSchedule() { const s = localStorage.getItem('team_events_data_v4'); if (s) try { scheduleData = Object.assign(getDefaultData(), JSON.parse(s)); } catch {} }
+
+    // 入力履歴
+    function addHistory(type, eventId, before, after) {
+      const hist = JSON.parse(localStorage.getItem('input_history_v4') || '[]');
+      hist.unshift({
+        timestamp: new Date().toISOString(),
+        type: type,
+        page: 'team',
+        eventId: eventId,
+        eventName: after.name,
+        grade: after.grade,
+        before: before,
+        after: { rank1: after.rank1, rank2: after.rank2, rank3: after.rank3, rank4: after.rank4, status: after.status, delay: after.delay },
+        userAgent: navigator.userAgent,
+        device: getDeviceInfo()
+      });
+      localStorage.setItem('input_history_v4', JSON.stringify(hist.slice(0, 500)));
+    }
+
+    function getDeviceInfo() {
+      const ua = navigator.userAgent;
+      let device = 'Unknown';
+      if (/iPhone/.test(ua)) device = 'iPhone';
+      else if (/iPad/.test(ua)) device = 'iPad';
+      else if (/Android/.test(ua)) device = 'Android';
+      else if (/Mac/.test(ua)) device = 'Mac';
+      else if (/Windows/.test(ua)) device = 'Windows';
+      let browser = 'Unknown';
+      if (/Edg/.test(ua)) browser = 'Edge';
+      else if (/Chrome/.test(ua)) browser = 'Chrome';
+      else if (/Firefox/.test(ua)) browser = 'Firefox';
+      else if (/Safari/.test(ua)) browser = 'Safari';
+      return `${device} / ${browser}`;
     }
 
     function calcActualTime(event) {
@@ -368,61 +372,43 @@
 
     function calcTotalDelay() { return scheduleData.events.reduce((sum, e) => sum + (e.delay || 0), 0); }
 
-    // 🔴 組別ランキング計算
     function calcGroupRanking() {
-      const groups = { A: { name: 'A組', total: 0, details: {} }, B: { name: 'B組', total: 0, details: {} }, C: { name: 'C組', total: 0, details: {} }, D: { name: 'D組', total: 0, details: {} } };
-      
-      scheduleData.events.filter(e => e.status === 'done').forEach(e => {
-        const table = SCORING_TABLE[e.name] || [200, 150, 100, 50];
-        [e.rank1, e.rank2, e.rank3].forEach((group, i) => {
-          if (group && groups[group] && table[i]) {
-            groups[group].total += table[i];
-            groups[group].details[e.name] = (groups[group].details[e.name] || 0) + table[i];
-          }
+      const groups = { A: { name: 'A組', total: 0, details: [] }, B: { name: 'B組', total: 0, details: [] }, C: { name: 'C組', total: 0, details: [] }, D: { name: 'D組', total: 0, details: [] } };
+      scheduleData.events.filter(e => e.status === 'done' && e.rank1).forEach(e => {
+        const table = TEAM_SCORING[e.name] || [200, 150, 100, 50];
+        [e.rank1, e.rank2, e.rank3, e.rank4].forEach((g, i) => {
+          if (g && groups[g] && table[i] !== undefined) { groups[g].total += table[i]; groups[g].details.push(`${e.name}:${table[i]}`); }
         });
       });
-      
       const ranking = Object.values(groups).sort((a, b) => b.total - a.total);
       const listEl = document.getElementById('groupRanking');
-      
       if (!ranking.some(r => r.total > 0)) { listEl.innerHTML = '<p class="text-gray-500 text-sm text-center py-6">終了した種目がありません</p>'; return; }
-      
       listEl.innerHTML = ranking.map((t, i) => {
-        const rc = i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : 'bg-white/5 border border-white/5';
-        const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}位`;
+        const rc = ['rank-1', 'rank-2', 'rank-3', 'rank-4'][i] || 'bg-white/5 border border-white/5';
+        const medal = ['🥇', '🥈', '🥉', '4位'][i] || `${i + 1}位`;
         return `
           <div class="event-card ${rc} rounded-xl p-4 flex items-center gap-4">
-            <div class="w-12 text-center font-bold text-lg">${medal}</div>
+            <div class="w-14 text-center font-bold text-2xl">${medal}</div>
             <div class="flex-1 min-w-0">
-              <p class="font-semibold text-lg">${t.name}</p>
-              ${Object.keys(t.details).length ? `<p class="text-xs text-gray-400 truncate">${Object.entries(t.details).map(([k,v]) => `${k}:${v}`).join(' / ')}</p>` : ''}
+              <p class="font-bold text-xl">${t.name}</p>
+              ${t.details.length ? `<p class="text-xs text-gray-400 truncate">${t.details.join(' / ')}</p>` : ''}
             </div>
-            <div class="text-right">
-              <p class="font-mono-num font-bold text-3xl">${t.total}</p>
-              <p class="text-xs text-gray-500">合計pt</p>
-            </div>
+            <div class="text-right"><p class="font-mono-num font-bold text-3xl">${t.total}</p><p class="text-xs text-gray-500">pt</p></div>
           </div>
         `;
       }).join('');
       saveSchedule();
     }
 
-    function updateSelectOptions() {
-      document.getElementById('filterGrade').innerHTML = '<option value="">全学年</option>' + common.grades.map(g => `<option value="${g}">${g}</option>`).join('');
-      document.getElementById('editGrade').innerHTML = '<option value="">指定なし</option>' + common.grades.map(g => `<option value="${g}">${g}</option>`).join('');
-    }
-
     function renderTimetable() {
-      updateSelectOptions();
       const listEl = document.getElementById('eventList');
       if (!listEl) return;
-      
       const running = scheduleData.events.find(e => e.status === 'running' || e.status === 'delay' || e.status === 'early');
       const nextUp = scheduleData.events.find(e => ['wait', 'ready'].includes(e.status));
       const doneCount = scheduleData.events.filter(e => e.status === 'done').length;
       const total = scheduleData.events.length;
       const totalDelay = calcTotalDelay();
-      
+
       document.getElementById('nowRunning').textContent = running ? running.name : 'なし';
       document.getElementById('nextUp').textContent = nextUp ? `${nextUp.name}（${calcActualTime(nextUp)}）` : '予定なし';
       document.getElementById('totalDelay').textContent = `${totalDelay >= 0 ? '+' : ''}${totalDelay}分`;
@@ -430,38 +416,169 @@
       document.getElementById('eventCount').textContent = total;
       document.getElementById('progressText').textContent = `${doneCount} / ${total} 終了`;
       document.getElementById('progressBar').style.width = `${total ? doneCount/total*100 : 0}%`;
-      
+
       let events = [...scheduleData.events].sort((a, b) => a.time.localeCompare(b.time));
       const fStatus = document.getElementById('filterStatus')?.value;
       const fGrade = document.getElementById('filterGrade')?.value;
       if (fStatus === 'active') events = events.filter(e => !['done'].includes(e.status));
       if (fStatus === 'notstarted') events = events.filter(e => ['wait'].includes(e.status));
       if (fGrade) events = events.filter(e => e.grade === fGrade);
-      
+
       listEl.innerHTML = '';
       events.forEach(event => {
         const actualTime = calcActualTime(event);
         const endTime = calcEndTime(event);
         const delay = event.delay || 0;
-        let delayBadge = '';
-        if (delay > 0) delayBadge = `<span class="text-amber-400 text-xs ml-2 bg-amber-400/10 px-2 py-0.5 rounded-full">+${delay}分 遅延</span>`;
-        else if (delay < 0) delayBadge = `<span class="text-cyan-400 text-xs ml-2 bg-cyan-400/10 px-2 py-0.5 rounded-full">${delay}分 巻き</span>`;
-        
-        const scoring = SCORING_TABLE[event.name];
-        const scoringText = scoring && scoring[0] > 0 ? `<span class="text-xs text-gray-500 ml-2">得点: ${scoring.slice(0,3).join('/')}</span>` : '';
-        
+        let db = '';
+        if (delay > 0) db = `<span class="text-amber-400 text-xs ml-2 bg-amber-400/10 px-2 py-0.5 rounded-full">+${delay}分 遅延</span>`;
+        else if (delay < 0) db = `<span class="text-cyan-400 text-xs ml-2 bg-cyan-400/10 px-2 py-0.5 rounded-full">${delay}分 巻き</span>`;
+
+        const scoring = TEAM_SCORING[event.name];
+        const st = scoring && scoring[0] > 0 ? `<span class="text-xs text-gray-500 ml-2">得点: ${scoring.slice(0,3).join('/')}</span>` : '';
+
         const rankText = event.rank1 ? `
           <div class="flex flex-wrap gap-2 mt-2 text-xs">
-            ${event.rank1 ? `<span class="bg-amber-400/10 text-amber-400 px-2 py-1 rounded-full">🥇 ${event.rank1}組${scoring ? `(${scoring[0]}pt)` : ''}</span>` : ''}
-            ${event.rank2 ? `<span class="bg-gray-400/10 text-gray-300 px-2 py-1 rounded-full">🥈 ${event.rank2}組${scoring ? `(${scoring[1]}pt)` : ''}</span>` : ''}
-            ${event.rank3 ? `<span class="bg-amber-700/10 text-amber-700 px-2 py-1 rounded-full">🥉 ${event.rank3}組${scoring ? `(${scoring[2]}pt)` : ''}</span>` : ''}
+            ${event.rank1 ? `<span class="bg-amber-400/10 text-amber-400 px-2 py-1 rounded-full">🥇${event.rank1}組${scoring?`(${scoring[0]}pt)`:''}</span>` : ''}
+            ${event.rank2 ? `<span class="bg-gray-400/10 text-gray-300 px-2 py-1 rounded-full">🥈${event.rank2}組${scoring?`(${scoring[1]}pt)`:''}</span>` : ''}
+            ${event.rank3 ? `<span class="bg-amber-700/10 text-amber-700 px-2 py-1 rounded-full">🥉${event.rank3}組${scoring?`(${scoring[2]}pt)`:''}</span>` : ''}
+            ${event.rank4 ? `<span class="bg-gray-600/20 text-gray-400 px-2 py-1 rounded-full">4${event.rank4}組</span>` : ''}
           </div>
         ` : '';
-        
+
         listEl.innerHTML += `
           <div class="event-card ${STATUS_CLASS[event.status]} rounded-2xl p-5">
             <div class="flex justify-between items-start mb-3 flex-wrap gap-3">
               <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2 mb-1 flex-wrap">
                   <h3 class="font-bold text-lg">${event.name}</h3>
-                  ${event.grade ? `<span class="text-xs px-2 py-0.5 rounded-full bg-white/10">${event.grade}</span>` : ''
+                  ${event.grade ? `<span class="text-xs px-2 py-0.5 rounded-full bg-white/10">${event.grade}</span>` : ''}
+                  <span class="px-3 py-1 rounded-full text-xs font-medium bg-white/5">${STATUS_LABEL[event.status]}</span>
+                </div>
+                <div class="text-sm text-gray-400 space-y-0.5">
+                  <p>🕒 予定：<span class="font-mono-num">${event.time}</span> → 実際：<span class="font-mono-num text-white">${actualTime}</span> 〜 <span class="font-mono-num">${endTime}</span> ${db} ${st}</p>
+                  <p>📍 場所：${event.place || '未設定'} | ⏱️ 所要 ${event.duration || 15}分</p>
+                  ${event.note ? `<p class="text-gray-500">📝 ${event.note}</p>` : ''}
+                </div>
+                ${rankText}
+              </div>
+              <button data-edit="${event.id}" class="p-2 rounded-lg hover:bg-white/10 transition-colors text-gray-400 hover:text-white flex-shrink-0">
+                <i data-lucide="pencil" class="w-4 h-4"></i>
+              </button>
+            </div>
+            <div class="flex gap-2 items-center flex-wrap pt-3 border-t border-white/5">
+              <select class="status-select rounded-lg px-3 py-2 text-sm bg-white/5 border border-white/10" data-id="${event.id}">
+                ${Object.entries(STATUS_LABEL).map(([val, label]) => `<option value="${val}" ${event.status === val ? 'selected' : ''}>${label}</option>`).join('')}
+              </select>
+              <div class="flex items-center gap-1 text-sm">
+                <label class="text-gray-500">遅延：</label>
+                <input type="number" class="delay-input rounded-lg px-2 py-2 w-16 text-sm text-center bg-white/5 border border-white/10" data-id="${event.id}" value="${event.delay || 0}" placeholder="分">
+                <span class="text-gray-500">分</span>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+      bindEvents();
+      calcGroupRanking();
+      lucide.createIcons();
+    }
+
+    function bindEvents() {
+      document.querySelectorAll('.status-select').forEach(sel => sel.addEventListener('change', e => {
+        const id = Number(e.target.dataset.id);
+        const ev = scheduleData.events.find(x => x.id === id);
+        if (ev) { ev.status = e.target.value; saveSchedule(); renderTimetable(); }
+      }));
+      document.querySelectorAll('.delay-input').forEach(inp => inp.addEventListener('change', e => {
+        const id = Number(e.target.dataset.id);
+        const ev = scheduleData.events.find(x => x.id === id);
+        if (ev) { ev.delay = Number(e.target.value) || 0; saveSchedule(); renderTimetable(); }
+      }));
+      document.querySelectorAll('[data-edit]').forEach(btn => btn.addEventListener('click', () => openEdit(Number(btn.dataset.edit))));
+    }
+
+    function openEdit(id) {
+      const ev = scheduleData.events.find(x => x.id === id);
+      if (!ev) return;
+      document.getElementById('modalTitle').textContent = ev.name;
+      const scoring = TEAM_SCORING[ev.name];
+      document.getElementById('modalSubtitle').textContent = scoring && scoring[0] > 0 ? `得点割：${scoring.slice(0,3).join(' / ')}` : '得点なし';
+      document.getElementById('editEventId').value = id;
+      document.getElementById('editTime').value = ev.time;
+      document.getElementById('editDuration').value = ev.duration || 15;
+      document.getElementById('editGrade').value = ev.grade || '';
+      document.getElementById('editDelay').value = ev.delay || 0;
+      document.getElementById('editStatus').value = ev.status;
+      document.getElementById('editNote').value = ev.note || '';
+      document.getElementById('editRank1').value = ev.rank1 || '';
+      document.getElementById('editRank2').value = ev.rank2 || '';
+      document.getElementById('editRank3').value = ev.rank3 || '';
+      document.getElementById('editRank4').value = ev.rank4 || '';
+      updateGroupButtons();
+      document.getElementById('editModal').classList.remove('hidden');
+    }
+
+    function updateGroupButtons() {
+      [1,2,3,4].forEach(rank => {
+        const val = document.getElementById(`editRank${rank}`).value;
+        document.querySelectorAll(`.group-select[data-rank="${rank}"] .group-btn`).forEach(btn => {
+          btn.classList.remove('sel-1', 'sel-2', 'sel-3', 'sel-4');
+          if (btn.dataset.g === val) btn.classList.add(`sel-${rank}`);
+        });
+      });
+    }
+
+    document.addEventListener('click', e => {
+      const btn = e.target.closest('.group-btn');
+      if (!btn) return;
+      const rank = btn.closest('.group-select').dataset.rank;
+      const g = btn.dataset.g;
+      [1,2,3,4].forEach(r => { if (r != rank && document.getElementById(`editRank${r}`).value === g) document.getElementById(`editRank${r}`).value = ''; });
+      document.getElementById(`editRank${rank}`).value = g;
+      updateGroupButtons();
+    });
+
+    function closeModal() { document.getElementById('editModal').classList.add('hidden'); }
+
+    document.querySelectorAll('.adj-btn').forEach(btn => {
+      btn.addEventListener('click', () => { document.getElementById('editDelay').value = Number(document.getElementById('editDelay').value) + Number(btn.dataset.adj); });
+    });
+
+    document.getElementById('filterStatus')?.addEventListener('change', renderTimetable);
+    document.getElementById('filterGrade')?.addEventListener('change', renderTimetable);
+    document.getElementById('exportBtn').addEventListener('click', () => {
+      const blob = new Blob([JSON.stringify(scheduleData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `team_events_${new Date().toISOString().slice(0,10)}.json`;
+      a.click(); URL.revokeObjectURL(url);
+    });
+    document.getElementById('modalClose').addEventListener('click', closeModal);
+    document.getElementById('editModal').addEventListener('click', e => { if (e.target.id === 'editModal') closeModal(); });
+    document.getElementById('eventForm').addEventListener('submit', e => {
+      e.preventDefault();
+      const id = Number(document.getElementById('editEventId').value);
+      const ev = scheduleData.events.find(x => x.id === id);
+      if (!ev) return;
+      const before = JSON.parse(JSON.stringify(ev));
+      ev.time = document.getElementById('editTime').value;
+      ev.duration = Number(document.getElementById('editDuration').value) || 15;
+      ev.grade = document.getElementById('editGrade').value;
+      ev.delay = Number(document.getElementById('editDelay').value) || 0;
+      ev.status = document.getElementById('editStatus').value;
+      ev.rank1 = document.getElementById('editRank1').value;
+      ev.rank2 = document.getElementById('editRank2').value;
+      ev.rank3 = document.getElementById('editRank3').value;
+      ev.rank4 = document.getElementById('editRank4').value;
+      ev.note = document.getElementById('editNote').value.trim();
+      if (ev.rank1 || ev.rank2 || ev.rank3 || before.status !== ev.status || before.delay !== ev.delay) {
+        addHistory('result', id, before, ev);
+      }
+      saveSchedule(); renderTimetable(); closeModal();
+    });
+
+    loadSchedule(); renderTimetable();
+    setInterval(renderTimetable, 60000);
+  </script>
+</body>
+</html>
