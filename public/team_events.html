@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>団体競技日 進行管理｜スポーツフェスタ</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide アイコン -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Space Grotesk', system-ui, sans-serif; }
+    .font-mono-num { font-family: 'JetBrains Mono', monospace; }
+    body {
+      background: 
+        radial-gradient(ellipse at top, rgba(255,255,255,0.05) 0%, transparent 50%),
+        radial-gradient(ellipse at bottom, rgba(255,255,255,0.03) 0%, transparent 50%),
+        linear-gradient(180deg, #0a0a0a 0%, #141414 50%, #0a0a0a 100%);
+      min-height: 100vh;
+    }
+    .card {
+      background: linear-gradient(145deg, rgba(30,30,30,0.9), rgba(20,20,20,0.95));
+      border: 1px solid rgba(255,255,255,0.08);
+      backdrop-filter: blur(20px);
+      box-shadow: 0 25px 80px rgba(0,0,0,0.6), 0 0 120px rgba(255,255,255,0.02), inset 0 1px 0 rgba(255,255,255,0.06);
+    }
+    .event-card {
+      background: linear-gradient(145deg, rgba(40,40,40,0.7), rgba(25,25,25,0.9));
+      border: 1px solid rgba(255,255,255,0.06);
+      transition: all 0.3s ease;
+    }
+    .event-card:hover { border-color: rgba(255,255,255,0.15); transform: translateY(-2px); }
+    .status-wait { border-left: 4px solid #6b7280; }
+    .status-ready { border-left: 4px solid #3b82f6; background: linear-gradient(135deg, rgba(59,130,246,0.1), rgba(37,99,235,0.05)); }
+    .status-running { border-left: 4px solid #10b981; background: linear-gradient(135deg, rgba(16,185,129,0.15), rgba(5,150,105,0.08)); }
+    .status-delay { border-left: 4px solid #f59e0b; background: linear-gradient(135deg, rgba(245,158,11,0.15), rgba(217,119,6,0.08)); }
+    .status-done { border-left: 4px solid #6b7280; opacity: 0.8; }
+    .btn-primary { background: linear-gradient(135deg, #10b981, #059669); transition: all 0.3s ease; }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(16,185,129,0.25); }
+    .btn-danger { background: linear-gradient(135deg, #ef4444, #dc2626); transition: all 0.3s ease; }
+    .btn-danger:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(239,68,68,0.25); }
+    .glow-text { text-shadow: 0 0 40px rgba(255,255,255,0.12), 0 0 80px rgba(255,255,255,0.05); }
+    .divider { background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent); height: 1px; }
+    input, select, textarea { 
+      background: rgba(255,255,255,0.05) !important; 
+      border: 1px solid rgba(255,255,255,0.1) !important; 
+      color: white !important; 
+      font-size: 16px !important; 
+    }
+    input::placeholder, textarea::placeholder { color: rgba(255,255,255,0.3); }
+    select option { background: #1a1a1a; color: white; }
+    .fade-in-up { animation: fadeInUp 0.8s ease-out forwards; opacity: 0; transform: translateY(20px); }
+    @keyframes fadeInUp { to { opacity: 1; transform: translateY(0); } }
+    .delay-1 { animation-delay: 0.1s; }
+    .delay-2 { animation-delay: 0.2s; }
+    .delay-3 { animation-delay: 0.3s; }
+    .rank-1 { background: linear-gradient(135deg, rgba(251,191,36,0.2), rgba(217,119,6,0.1)); border-left: 3px solid #fbbf24; }
+    .rank-2 { background: linear-gradient(135deg, rgba(156,163,175,0.2), rgba(107,114,128,0.1)); border-left: 3px solid #9ca3af; }
+    .rank-3 { background: linear-gradient(135deg, rgba(180,83,9,0.2), rgba(146,64,14,0.1)); border-left: 3px solid #b45309; }
+    .progress-bar { transition: width 0.5s ease; }
+  </style>
+</head>
+<body class="text-white max-w-4xl mx-auto px-4 py-10 md:py-14">
+  <!-- ヘッダー -->
+  <header class="mb-10 fade-in-up">
+    <a href="timetable.html" class="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-4">
+      <i data-lucide="arrow-left" class="w-4 h-4"></i>
+      <span>進行管理に戻る</span>
+    </a>
+    <div class="flex items-center justify-between flex-wrap gap-4">
+      <div>
+        <p class="text-gray-500 text-xs tracking-[0.25em] uppercase mb-2">Team Events Management</p>
+        <h1 class="text-3xl md:text-4xl font-bold tracking-tight glow-text flex items-center gap-3">
+          <i data-lucide="users" class="w-8 h-8 md:w-10 md:h-10 text-emerald-400" style="filter: drop-shadow(0 0 15px rgba(16,185,129,0.3));"></i>
+          🏃 団体競技日 進行管理
+        </h1>
+      </div>
+      <div class="flex gap-2">
+        <button id="exportBtn" class="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/15 transition-colors text-sm flex items-center gap-1.5">
+          <i data-lucide="download" class="w-4 h-4"></i>
+          <span class="hidden sm:inline">出力</span>
+        </button>
+        <button id="addEventBtn" class="btn-primary px-4 py-2 rounded-lg text-white font-medium text-sm flex items-center gap-1.5">
+          <i data-lucide="plus" class="w-4 h-4"></i>
+          <span>種目追加</span>
+        </button>
+      </div>
+    </div>
+    <div class="divider w-full mt-6 rounded-full"></div>
+  </header>
+
+  <!-- 全体状況 -->
+  <div class="card rounded-3xl p-6 md:p-8 mb-8 fade-in-up delay-1">
+    <div class="flex items-center gap-2 mb-6">
+      <div class="w-2 h-2 rounded-full bg-emerald-500 pulse-dot"></div>
+      <p class="text-gray-400 text-xs tracking-[0.25em] uppercase">現在の状況</p>
+    </div>
+    <div class="grid gap-4 md:grid-cols-3 mb-6">
+      <div class="bg-white/5 rounded-2xl p-5 border border-white/5">
+        <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">進行中</p>
+        <p id="nowRunning" class="text-xl md:text-2xl font-bold text-emerald-400">なし</p>
+      </div>
+      <div class="bg-white/5 rounded-2xl p-5 border border-white/5">
+        <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">次の種目</p>
+        <p id="nextUp" class="text-xl md:text-2xl font-bold text-amber-400">-</p>
+      </div>
+      <div class="bg-white/5 rounded-2xl p-5 border border-white/5">
+        <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">累積遅延</p>
+        <p id="totalDelay" class="text-xl md:text-2xl font-bold font-mono-num">±0分</p>
+      </div>
+    </div>
+    <div class="mb-2">
+      <div class="flex justify-between text-sm mb-2">
+        <span class="text-gray-400">全体進捗</span>
+        <span id="progressText" class="font-medium">0 / 0 終了</span>
+      </div>
+      <div class="w-full bg-white/10 rounded-full h-3 overflow-hidden">
+        <div id="progressBar" class="progress-bar bg-gradient-to-r from-emerald-500 to-emerald-400 h-3 rounded-full" style="width:0%"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 操作バー -->
+  <div class="flex flex-wrap gap-3 justify-between items-center mb-6 fade-in-up delay-2">
+    <div class="flex gap-2 flex-wrap">
+      <select id="filterStatus" class="rounded-lg px-3 py-2 text-sm">
+        <option value="all">全て表示</option>
+        <option value="active">進行中/未開始のみ</option>
+        <option value="notstarted">未開始のみ</option>
+      </select>
+      <select id="filterCategory" class="rounded-lg px-3 py-2 text-sm">
+        <option value="all">全カテゴリ</option>
+        <option value="general">一般</option>
+        <option value="male">男子</option>
+        <option value="female">女子</option>
+        <option value="mixed">混合</option>
+      </select>
+    </div>
+    <p class="text-sm text-gray-500">登録：<span id="eventCount">0</span>件</p>
+  </div>
+
+  <!-- 種目一覧 -->
+  <div id="eventList" class="space-y-4 fade-in-up delay-3">
+    <!-- 動的に挿入 -->
+  </div>
+
+  <!-- クラス別得点ランキング -->
+  <div class="card rounded-3xl p-6 md:p-8 mt-10 fade-in-up delay-3">
+    <h2 class="text-lg font-semibold mb-5 flex items-center gap-2">
+      <i data-lucide="trophy" class="w-5 h-5 text-amber-400"></i>
+      クラス別合計得点
+    </h2>
+    <p class="text-xs text-gray-500 mb-4">各種目の1位〜3位にポイントを付与して合計を表示します</p>
+    <div class="grid gap-3 md:grid-cols-3 mb-5 text-sm">
+      <label class="flex items-center gap-2 bg-white/5 rounded-xl p-3">
+        <span class="text-amber-400">🥇 1位：</span>
+        <input type="number" id="pt1" value="10" class="w-16 rounded-lg px-2 py-1.5 text-center">
+        <span class="text-gray-500">pt</span>
+      </label>
+      <label class="flex items-center gap-2 bg-white/5 rounded-xl p-3">
+        <span class="text-gray-300">🥈 2位：</span>
+        <input type="number" id="pt2" value="7" class="w-16 rounded-lg px-2 py-1.5 text-center">
+        <span class="text-gray-500">pt</span>
+      </label>
+      <label class="flex items-center gap-2 bg-white/5 rounded-xl p-3">
+        <span class="text-amber-700">🥉 3位：</span>
+        <input type="number" id="pt3" value="5" class="w-16 rounded-lg px-2 py-1.5 text-center">
+        <span class="text-gray-500">pt</span>
+      </label>
+    </div>
+    <div id="classRanking" class="space-y-2">
+      <!-- 動的に挿入 -->
+    </div>
+  </div>
+
+  <!-- 編集モーダル -->
+  <div id="editModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+    <div class="card rounded-3xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+      <h3 id="modalTitle" class="text-xl font-bold mb-6 flex items-center gap-2">
+        <i data-lucide="edit-3" class="w-5 h-5 text-emerald-400"></i>
+        種目情報
+      </h3>
+      <form id="eventForm" class="space-y-4">
+        <input type="hidden" id="editEventId">
+        <div>
+          <label class="block text-sm text-gray-400 mb-1.5">種目名 *</label>
+          <input type="text" id="editName" class="w-full rounded-xl px-4 py-3" required>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-sm text-gray-400 mb-1.5">開始時刻 *</label>
+            <input type="time" id="editTime" class="w-full rounded-xl px-4 py-3" required>
+          </div>
+          <div>
+            <label class="block text-sm text-gray-400 mb-1.5">カテゴリ</label>
+            <select id="editCategory" class="w-full rounded-xl px-4 py-3">
+              <option value="general">一般</option>
+              <option value="male">男子</option>
+              <option value="female">女子</option>
+              <option value="mixed">混合</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm text-gray-400 mb-1.5">場所</label>
+          <input type="text" id="editPlace" placeholder="例：グラウンド・トラック" class="w-full rounded-xl px-4 py-3">
+        </div>
+        <div>
+          <label class="block text-sm text-gray-400 mb-1.5">ステータス</label>
+          <select id="editStatus" class="w-full rounded-xl px-4 py-3">
+            <option value="wait">未開始</option>
+            <option value="ready">準備中</option>
+            <option value="running">🔥 進行中</option>
+            <option value="delay">⚠️ 遅延</option>
+            <option value="done">✅ 終了</option>
+          </select>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-sm text-gray-400 mb-1.5">個別遅延</label>
+            <input type="number" id="editDelay" value="0" min="0" class="w-full rounded-xl px-4 py-3 text-center">
+          </div>
+          <div>
+            <label class="block text-sm text-gray-400 mb-1.5">🥇 1位</label>
+            <input type="text" id="editRank1" placeholder="クラス名" class="w-full rounded-xl px-4 py-3">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-sm text-gray-400 mb-1.5">🥈 2位</label>
+            <input type="text" id="editRank2" placeholder="クラス名" class="w-full rounded-xl px-4 py-3">
+          </div>
+          <div>
+            <label class="block text-sm text-gray-400 mb-1.5">🥉 3位</label>
+            <input type="text" id="editRank3" placeholder="クラス名" class="w-full rounded-xl px-4 py-3">
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm text-gray-400 mb-1.5">備考</label>
+          <textarea id="editNote" rows="2" placeholder="連絡事項など" class="w-full rounded-xl px-4 py-3"></textarea>
+        </div>
+        <div class="flex gap-3 pt-2">
+          <button type="button" id="modalClose" class="flex-1 py-3 rounded-xl bg-white/10 hover:bg-white/15 transition-colors font-medium">キャンセル</button>
+          <button type="button" id="modalDelete" class="px-4 py-3 rounded-xl btn-danger font-medium hidden">削除</button>
+          <button type="submit" class="flex-1 py-3 rounded-xl btn-primary font-medium">保存</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    lucide.createIcons();
+
+    let scheduleData = {
+      events: [
+        { id: 1, name: '開会式', time: '09:00', place: 'グラウンド', status: 'done', delay: 0, category: 'general', rank1: '', rank2: '', rank3: '', note: '' },
+        { id: 2, name: '100m走 予選', time: '09:20', place: 'トラック', status: 'running', delay: 0, category: 'male', rank1: '', rank2: '', rank3: '', note: '' },
+        { id: 3, name: '玉入れ', time: '10:00', place: 'グラウンド', status: 'wait', delay: 0, category: 'general', rank1: '', rank2: '', rank3: '', note: '' },
+        { id: 4, name: '綱引き 決勝', time: '10:30', place: 'グラウンド', status: 'wait', delay: 0, category: 'general', rank1: '', rank2: '', rank3: '', note: '' },
+        { id: 5, name: 'リレー 予選', time: '11:00', place: 'トラック', status: 'wait', delay: 5, category: 'general', rank1: '', rank2: '', rank3: '', note: '' },
+        { id: 6, name: '閉会式', time: '12:00', place: 'グラウンド', status: 'wait', delay: 0, category: 'general', rank1: '', rank2: '', rank3: '', note: '' },
+      ],
+      rankPoints: { pt1: 10, pt2: 7, pt3: 5 }
+    };
+
+    const STATUS_LABEL = { wait: '未開始', ready: '準備中', running: '🔥 進行中', delay: '⚠️ 遅延', done: '✅ 終了' };
+    const STATUS_CLASS = { wait: 'status-wait', ready: 'status-ready', running: 'status-running', delay: 'status-delay', done: 'status-done' };
+    const CATEGORY_LABEL = { general: '一般', male: '男子', female: '女子', mixed: '混合' };
+
+    function saveSchedule() { localStorage.setItem('team_events_data_v2', JSON.stringify(scheduleData)); }
+    function loadSchedule() {
+      const saved = localStorage.getItem('team_events_data_v2');
+      if (saved) try { scheduleData = Object.assign(scheduleData, JSON.parse(saved)); } catch {}
+    }
+
+    function calcActualTime(event) {
+      const sorted = [...scheduleData.events].sort((a, b) => a.time.localeCompare(b.time));
+      let delayBefore = 0;
+      for (const e of sorted) { if (e.id === event.id) break; delayBefore += e.delay || 0; }
+      const [h, m] = event.time.split(':').map(Number);
+      const totalMin = h * 60 + m + delayBefore + (event.delay || 0);
+      const nh = Math.floor((totalMin % 1440 + 1440) % 1440 / 60);
+      const nm = ((totalMin % 60) + 60) % 60;
+      return `${String(nh).padStart(2, '0')}:${String(nm).padStart(2, '0')}`;
+    }
+
+    function calcTotalDelay() {
+      return scheduleData.events.reduce((sum, e) => sum + (e.delay || 0), 0);
+    }
+
+    function calcClassRanking() {
+      const pts = {
+        pt1: Number(document.getElementById('pt1')?.value || scheduleData.rankPoints.pt1),
+        pt2: Number(document.getElementById('pt2')?.value || scheduleData.rankPoints.pt2),
+        pt3: Number(document.getElementById('pt3')?.value || scheduleData.rankPoints.pt3)
+      };
+      scheduleData.rankPoints = pts;
+      
+      const classes = {};
+      scheduleData.events.filter(e => e.status === 'done').forEach(e => {
+        if (e.rank1) { classes[e.rank1] = (classes[e.rank1] || 0) + pts.pt1; }
+        if (e.rank2) { classes[e.rank2] = (classes[e.rank2] || 0) + pts.pt2; }
+        if (e.rank3) { classes[e.rank3] = (classes[e.rank3] || 0) + pts.pt3; }
+      });
+      
+      const ranking = Object.entries(classes).sort((a, b) => b[1] - a[1]);
+      const listEl = document.getElementById('classRanking');
+      
+      if (!ranking.length) { listEl.innerHTML = '<p class="text-gray-500 text-sm text-center py-6">終了した種目がありません</p>'; return; }
+      
+      listEl.innerHTML = ranking.map(([name, point], i) => {
+        const rankClass = i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : 'bg-white/5 border border-white/5';
+        const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}位`;
+        return `
+          <div class="event-card ${rankClass} rounded-xl p-4 flex items-center gap-4">
+            <div class="w-12 text-center font-bold text-lg">${medal}</div>
+            <div class="flex-1 font-semibold text-lg">${name}</div>
+            <div class="text-right">
+              <p class="font-mono-num font-bold text-2xl">${point}</p>
+              <p class="text-xs text-gray-500">pt</p>
+            </div>
+          </div>
+        `;
+      }).join('');
+      saveSchedule();
+    }
+
+    function renderTimetable() {
+      const listEl = document.getElementById('eventList');
+      if (!listEl) return;
+      
+      const running = scheduleData.events.find(e => e.status === 'running' || e.status === 'delay');
+      const nextUp = scheduleData.events.find(e => ['wait', 'ready'].includes(e.status));
+      const doneCount = scheduleData.events.filter(e => e.status === 'done').length;
+      const total = scheduleData.events.length;
+      const totalDelay = calcTotalDelay();
+      
+      document.getElementById('nowRunning').textContent = running ? running.name : 'なし';
+      document.getElementById('nextUp').textContent = nextUp ? `${nextUp.name}（${calcActualTime(nextUp)}）` : '予定なし';
+      document.getElementById('totalDelay').textContent = `${totalDelay >= 0 ? '+' : ''}${totalDelay}分`;
+      document.getElementById('totalDelay').className = `text-xl md:text-2xl font-bold font-mono-num ${totalDelay > 0 ? 'text-amber-400' : totalDelay < 0 ? 'text-blue-400' : 'text-white'}`;
+      document.getElementById('eventCount').textContent = total;
+      document.getElementById('progressText').textContent = `${doneCount} / ${total} 終了`;
+      document.getElementById('progressBar').style.width = `${total ? doneCount/total*100 : 0}%`;
+      
+      let events = [...scheduleData.events].sort((a, b) => a.time.localeCompare(b.time));
+      const fStatus = document.getElementById('filterStatus')?.value;
+      const fCat = document.getElementById('filterCategory')?.value;
+      if (fStatus === 'active') events = events.filter(e => !['done'].includes(e.status));
+      if (fStatus === 'notstarted') events = events.filter(e => ['wait'].includes(e.status));
+      if (fCat && fCat !== 'all') events = events.filter(e => e.category === fCat);
+      
+      listEl.innerHTML = '';
+      events.forEach(event => {
+        const actualTime = calcActualTime(event);
+        const delayText = event.delay > 0 ? `<span class="text-amber-400 text-xs ml-2 bg-amber-400/10 px-2 py-0.5 rounded-full">+${event.delay}分 遅延</span>` : '';
+        const rankText = event.rank1 ? `
+          <div class="flex flex-wrap gap-2 mt-2 text-xs">
+            ${event.rank1 ? `<span class="bg-amber-400/10 text-amber-400 px-2 py-1 rounded-full">🥇 ${event.rank1}</span>` : ''}
+            ${event.rank2 ? `<span class="bg-gray-400/10 text-gray-300 px-2 py-1 rounded-full">🥈 ${event.rank2}</span>` : ''}
+            ${event.rank3 ? `<span class="bg-amber-700/10 text-amber-700 px-2 py-1 rounded-full">🥉 ${event.rank3}</span>` : ''}
+          </div>
+        ` : '';
+        
+        listEl.innerHTML += `
+          <div class="event-card ${STATUS_CLASS[event.status]} rounded-2xl p-5">
+            <div class="flex justify-between items-start mb-3 flex-wrap gap-3">
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-1 flex-wrap">
+                  <h3 class="font-bold text-lg">${event.name}</h3>
+                  <span class="text-xs px-2 py-0.5 rounded-full bg-white/10">${CATEGORY_LABEL[event.category] || event.category}</span>
+                  <span class="px-3 py-1 rounded-full text-xs font-medium ${STATUS_CLASS[event.status]} bg-white/5">${STATUS_LABEL[event.status]}</span>
+                </div>
+                <div class="text-sm text-gray-400 space-y-0.5">
+                  <p>🕒 予定：<span class="font-mono-num">${event.time}</span> → 実際：<span class="font-mono-num text-white">${actualTime}</span> ${delayText}</p>
+                  <p>📍 場所：${event.place || '未設定'}</p>
+                  ${event.note ? `<p class="text-gray-500">📝 ${event.note}</p>` : ''}
+                </div>
+                ${rankText}
+              </div>
+              <button data-edit="${event.id}" class="p-2 rounded-lg hover:bg-white/10 transition-colors text-gray-400 hover:text-white flex-shrink-0">
+                <i data-lucide="pencil" class="w-4 h-4"></i>
+              </button>
+            </div>
+            <div class="flex gap-2 items-center flex-wrap pt-3 border-t border-white/5">
+              <select class="status-select rounded-lg px-3 py-2 text-sm bg-white/5" data-id="${event.id}">
+                ${Object.entries(STATUS_LABEL).map(([val, label]) => `<option value="${val}" ${event.status === val ? 'selected' : ''}>${label}</option>`).join('')}
+              </select>
+              <div class="flex items-center gap-1 text-sm">
+                <label class="text-gray-500">遅延：</label>
+                <input type="number" class="delay-input rounded-lg px-2 py-2 w-16 text-sm text-center" data-id="${event.id}" value="${event.delay || 0}" min="0" placeholder="分">
+                <span class="text-gray-500">分</span>
+              </div>
+              <button class="delete-event-btn text-red-400 hover:text-red-600 text-sm ml-auto px-3 py-1.5 rounded-lg hover:bg-red-500/10 transition-colors" data-id="${event.id}">
+                🗑️ 削除
+              </button>
+            </div>
+          </div>
+        `;
+      });
+      bindEvents();
+      calcClassRanking();
+      lucide.createIcons();
+    }
+
+    function bindEvents() {
+      document.querySelectorAll('.status-select').forEach(sel => sel.addEventListener('change', e => {
+        const id = Number(e.target.dataset.id);
+        const ev = scheduleData.events.find(x => x.id === id);
+        if (ev) { ev.status = e.target.value; saveSchedule(); renderTimetable(); }
+      }));
+      document.querySelectorAll('.delay-input').forEach(inp => inp.addEventListener('change', e => {
+        const id = Number(e.target.dataset.id);
+        const ev = scheduleData.events.find(x => x.id === id);
+        if (ev) { ev.delay = Number(e.target.value) || 0; saveSchedule(); renderTimetable(); }
+      }));
+      document.querySelectorAll('.delete-event-btn').forEach(btn => btn.addEventListener('click', e => {
+        if (!confirm('この種目を削除しますか？')) return;
+        const id = Number(e.target.dataset.id);
+        scheduleData.events = scheduleData.events.filter(x => x.id !== id);
+        saveSchedule(); renderTimetable();
+      }));
+      document.querySelectorAll('[data-edit]').forEach(btn => btn.addEventListener('click', () => openEdit(Number(btn.dataset.edit))));
+    }
+
+    function openEdit(id) {
+      const ev = scheduleData.events.find(x => x.id === id);
+      if (!ev) return;
+      document.getElementById('modalTitle').textContent = '種目を編集';
+      document.getElementById('editEventId').value = id;
+      document.getElementById('editName').value = ev.name;
+      document.getElementById('editTime').value = ev.time;
+      document.getElementById('editCategory').value = ev.category || 'general';
+      document.getElementById('editPlace').value = ev.place || '';
+      document.getElementById('editStatus').value = ev.status;
+      document.getElementById('editDelay').value = ev.delay || 0;
+      document.getElementById('editRank1').value = ev.rank1 || '';
+      document.getElementById('editRank2').value = ev.rank2 || '';
+      document.getElementById('editRank3').value = ev.rank3 || '';
+      document.getElementById('editNote').value = ev.note || '';
+      document.getElementById('modalDelete').classList.remove('hidden');
+      document.getElementById('editModal').classList.remove('hidden');
+    }
+
+    function openAdd() {
+      const maxId = scheduleData.events.length ? Math.max(...scheduleData.events.map(e => e.id)) : 0;
+      document.getElementById('modalTitle').textContent = '種目を追加';
+      document.getElementById('editEventId').value = '';
+      document.getElementById('editName').value = '新しい種目';
+      document.getElementById('editTime').value = '00:00';
+      document.getElementById('editCategory').value = 'general';
+      document.getElementById('editPlace').value = '';
+      document.getElementById('editStatus').value = 'wait';
+      document.getElementById('editDelay').value = 0;
+      document.getElementById('editRank1').value = '';
+      document.getElementById('editRank2').value = '';
+      document.getElementById('editRank3').value = '';
+      document.getElementById('editNote').value = '';
+      document.getElementById('modalDelete').classList.add('hidden');
+      document.getElementById('editModal').classList.remove('hidden');
+    }
+
+    function closeModal() { document.getElementById('editModal').classList.add('hidden'); }
+
+    // イベント
+    document.getElementById('addEventBtn').addEventListener('click', openAdd);
+    document.getElementById('filterStatus')?.addEventListener('change', renderTimetable);
+    document.getElementById('filterCategory')?.addEventListener('change', renderTimetable);
+    document.getElementById('modalClose').addEventListener('click', closeModal);
+    document.getElementById('editModal').addEventListener('click', e => { if (e.target.id === 'editModal') closeModal(); });
+    document.getElementById('modalDelete').addEventListener('click', () => {
+      const id = Number(document.getElementById('editEventId').value);
+      if (!confirm('この種目を削除しますか？')) return;
+      scheduleData.events = scheduleData.events.filter(x => x.id !== id);
+      saveSchedule(); renderTimetable(); closeModal();
+    });
+    document.getElementById('eventForm').addEventListener('submit', e => {
+      e.preventDefault();
+      const idVal = document.getElementById('editEventId').value;
+      const name = document.getElementById('editName').value.trim();
+      const time = document.getElementById('editTime').value;
+      const category = document.getElementById('editCategory').value;
+      const place = document.getElementById('editPlace').value.trim();
+      const status = document.getElementById('editStatus').value;
+      const delay = Number(document.getElementById('editDelay').value) || 0;
+      const rank1 = document.getElementById('editRank1').value.trim();
+      const rank2 = document.getElementById('editRank2').value.trim();
+      const rank3 = document.getElementById('editRank3').value.trim();
+      const note = document.getElementById('editNote').value.trim();
+      if (!name || !time) return alert('必須項目を入力してください');
+      
+      if (idVal) {
+        const ev = scheduleData.events.find(x => x.id === Number(idVal));
+        Object.assign(ev, { name, time, category, place, status, delay, rank1, rank2, rank3, note });
+      } else {
+        const maxId = scheduleData.events.length ? Math.max(...scheduleData.events.map(e => e.id)) : 0;
+        scheduleData.events.push({ id: maxId + 1, name, time, category, place, status, delay, rank1, rank2, rank3, note });
+      }
+      saveSchedule(); renderTimetable(); closeModal();
+    });
+    ['pt1', 'pt2', 'pt3'].forEach(id => {
+      document.getElementById(id).value = scheduleData.rankPoints[id];
+      document.getElementById(id)?.addEventListener('change', calcClassRanking);
+    });
+    document.getElementById('exportBtn').addEventListener('click', () => {
+      const text = JSON.stringify(scheduleData, null, 2);
+      const blob = new Blob([text], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `team_events_${new Date().toISOString().slice(0,10)}.json`;
+      a.click(); URL.revokeObjectURL(url);
+    });
+
+    // 初期化
+    loadSchedule(); renderTimetable();
+    setInterval(renderTimetable, 60000);
+  </script>
+</body>
+</html>
