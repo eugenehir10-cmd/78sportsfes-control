@@ -1,488 +1,57 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>球技日 タイムテーブル｜スポーツフェスタ</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    * { font-family: 'Space Grotesk', system-ui, sans-serif; -webkit-tap-highlight-color: transparent; }
-    .font-mono-num { font-family: 'JetBrains Mono', monospace; }
-    body {
-      background: radial-gradient(ellipse at top, rgba(255,255,255,0.05) 0%, transparent 50%),
-        radial-gradient(ellipse at bottom, rgba(255,255,255,0.03) 0%, transparent 50%),
-        linear-gradient(180deg, #0a0a0a 0%, #141414 50%, #0a0a0a 100%);
-      min-height: 100vh;
-    }
-    .card {
-      background: linear-gradient(145deg, rgba(30,30,30,0.9), rgba(20,20,20,0.95));
-      border: 1px solid rgba(255,255,255,0.08);
-      backdrop-filter: blur(20px);
-      box-shadow: 0 25px 80px rgba(0,0,0,0.6), 0 0 120px rgba(255,255,255,0.02), inset 0 1px 0 rgba(255,255,255,0.06);
-    }
-    .sub-card {
-      background: linear-gradient(145deg, rgba(40,40,40,0.7), rgba(25,25,25,0.9));
-      border: 1px solid rgba(255,255,255,0.06);
-      transition: all 0.2s ease;
-    }
-    .sub-card:active { transform: scale(0.985); }
-    .status-running { background: linear-gradient(135deg, rgba(16,185,129,0.2), rgba(5,150,105,0.08)); border-left: 4px solid #10b981; }
-    .status-pending { background: linear-gradient(135deg, rgba(245,158,11,0.15), rgba(217,119,6,0.08)); border-left: 4px solid #f59e0b; }
-    .status-done { background: linear-gradient(135deg, rgba(75,85,99,0.2), rgba(55,65,81,0.1)); border-left: 4px solid #6b7280; opacity: 0.85; }
-    .status-future { background: linear-gradient(135deg, rgba(59,130,246,0.12), rgba(37,99,235,0.06)); border-left: 4px solid #3b82f6; }
-    .btn-primary { background: linear-gradient(135deg, #3b82f6, #2563eb); transition: all 0.2s ease; }
-    .btn-primary:active { transform: scale(0.97); }
-    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-    .scroll-h { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: thin; }
-    .scroll-h::-webkit-scrollbar { height: 6px; }
-    .scroll-h::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
-    input, select, textarea {
-      background: rgba(255,255,255,0.05) !important;
-      border: 1px solid rgba(255,255,255,0.1) !important;
-      color: white !important;
-      font-size: 16px !important;
-      min-height: 44px;
-    }
-    input:disabled, select:disabled { opacity: 0.5; cursor: not-allowed; }
-    select option { background: #1a1a1a; color: white; }
-    .fade-in-up { animation: fadeInUp 0.8s ease-out forwards; opacity: 0; transform: translateY(20px); }
-    @keyframes fadeInUp { to { opacity: 1; transform: translateY(0); } }
-    .delay-1 { animation-delay: 0.1s; }
-    .delay-2 { animation-delay: 0.2s; }
-    .rank-1 { background: linear-gradient(135deg, rgba(251,191,36,0.2), rgba(217,119,6,0.1)); border-left: 3px solid #fbbf24; }
-    .rank-2 { background: linear-gradient(135deg, rgba(156,163,175,0.2), rgba(107,114,128,0.1)); border-left: 3px solid #9ca3af; }
-    .rank-3 { background: linear-gradient(135deg, rgba(180,83,9,0.2), rgba(146,64,14,0.1)); border-left: 3px solid #b45309; }
-    .rank-4 { background: linear-gradient(135deg, rgba(75,85,99,0.15), rgba(55,65,81,0.08)); border-left: 3px solid #4b5563; }
-    @keyframes pulse-soft { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-    .pulse-dot { animation: pulse-soft 1.2s ease-in-out infinite; }
-    .venue-status-card { transition: all 0.2s ease; }
-    .venue-status-card:active { transform: scale(0.97); }
-    .group-select { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-    .group-btn {
-      padding: 14px 8px; border-radius: 12px; border: 2px solid rgba(255,255,255,0.1);
-      background: rgba(255,255,255,0.05); cursor: pointer; transition: all 0.15s ease;
-      font-weight: 700; text-align: center; font-size: 18px;
-      min-height: 52px;
-    }
-    .group-btn:active:not(:disabled) { transform: scale(0.92); }
-    .group-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-    .group-btn.sel-1 { border-color: #fbbf24; background: rgba(251,191,36,0.2); color: #fbbf24; }
-    .group-btn.sel-2 { border-color: #9ca3af; background: rgba(156,163,175,0.2); color: #e5e7eb; }
-    .group-btn.sel-3 { border-color: #b45309; background: rgba(180,83,9,0.2); color: #fbbf24; }
-    .group-btn.sel-4 { border-color: #4b5563; background: rgba(75,85,99,0.2); color: #9ca3af; }
-    .sync-status { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; padding: 4px 8px; border-radius: 9999px; }
-    .sync-online { background: rgba(16,185,129,0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.3); }
-    .sync-offline { background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); }
-    .sync-syncing { background: rgba(59,130,246,0.15); color: #3b82f6; border: 1px solid rgba(59,130,246,0.3); }
-    .auth-badge-authed { background: rgba(16,185,129,0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.3); }
-    .auth-badge-guest { background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); }
-    .locked-overlay {
-      position: absolute; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
-      border-radius: 12px; display: flex; align-items: center; justify-content: center;
-      flex-direction: column; gap: 8px; color: #ef4444;
-    }
-    .delay-chain-badge {
-      font-size: 10px; padding: 2px 6px; border-radius: 9999px; font-weight: 600; white-space: nowrap;
-    }
-    .delay-chain-plus { background: rgba(245,158,11,0.2); color: #f59e0b; border: 1px solid rgba(245,158,11,0.3); }
-    .delay-chain-minus { background: rgba(6,182,212,0.2); color: #06b6d4; border: 1px solid rgba(6,182,212,0.3); }
-    .delay-chain-zero { background: rgba(255,255,255,0.08); color: #9ca3af; border: 1px solid rgba(255,255,255,0.15); }
-    .google-btn {
-      background: white !important; color: #444 !important;
-      display: inline-flex; align-items: center; gap: 8px; font-weight: 500;
-      border: 1px solid rgba(0,0,0,0.1) !important; min-height: 44px;
-    }
-    .google-btn:active { background: #f0f0f0 !important; transform: scale(0.98); }
-    header a, header button { min-height: 40px; }
-    @media (max-width: 640px) {
-      #editModal { padding: 0 !important; }
-      #editModal .card {
-        margin: 0; border-radius: 20px 20px 0 0;
-        max-height: 90vh; height: 90vh;
-        position: fixed; bottom: 0; left: 0; right: 0;
-      }
-      .filter-row { flex-direction: column; align-items: stretch !important; }
-      .filter-row select { width: 100% !important; }
-    }
-  </style>
-</head>
-<body class="text-white min-h-screen">
-  <header class="sticky top-0 z-20 backdrop-blur-xl bg-black/60 border-b border-white/5">
-    <div class="max-w-7xl mx-auto px-3 py-3 flex justify-between items-center gap-2">
-      <a href="timetable.html" class="inline-flex items-center gap-1.5 text-gray-400 hover:text-white transition-colors px-2 py-1">
-        <i data-lucide="arrow-left" class="w-4 h-4"></i>
-        <span class="text-sm">戻る</span>
-      </a>
-      <h1 class="text-base md:text-lg font-bold flex items-center gap-1.5">
-        <i data-lucide="trophy" class="w-4.5 h-4.5 text-blue-400"></i>⚽ 球技日
-      </h1>
-      <div class="flex items-center gap-1.5">
-        <span id="syncStatus" class="sync-status sync-syncing">
-          <span class="w-1.5 h-1.5 rounded-full bg-current pulse-dot"></span>
-          <span class="hidden sm:inline text-xs" id="syncStatusText">接続中</span>
-        </span>
-        <span id="authBadge" class="sync-status auth-badge-guest hidden sm:inline-flex">
-          <i data-lucide="lock" class="w-3 h-3"></i>
-          <span id="authStatusText">未認証</span>
-        </span>
-      </div>
-      <div class="flex gap-1.5">
-        <button id="authBtn" class="px-2.5 py-2 rounded-lg bg-white hover:bg-gray-100 text-gray-800 transition-colors text-xs flex items-center gap-1.5 google-btn">
-          <svg width="15" height="15" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.5 29.3 35.5 24 35.5c-6.4 0-11.5-5.1-11.5-11.5S17.6 12.5 24 12.5c2.9 0 5.6 1.1 7.6 2.9l5.7-5.7C33.9 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c10 0 18.4-7.4 19.6-17.1.3-.9.4-1.8.4-2.7 0-.9-.1-1.8-.4-2.7z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.8 16 19 12.5 24 12.5c2.9 0 5.6 1.1 7.6 2.9l5.7-5.7C33.9 6.1 29.3 4 24 4 16.3 4 9.6 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2c-2 1.4-4.5 2.3-7.2 2.3-5.3 0-9.7-3-11.3-7.3l-6.5 5C9.5 38.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.2 5.7l6.2 5.2c.4-.4 7.7-5.6 7.7-14.9 0-.9-.1-1.8-.4-2.7z"/></svg>
-          <span class="hidden sm:inline" id="authBtnText">ログイン</span>
-        </button>
-        <button id="manualSyncBtn" class="px-2.5 py-2 rounded-lg bg-white/10 hover:bg-white/15 transition-colors text-sm" title="同期">
-          <i data-lucide="refresh-cw" class="w-4 h-4"></i>
-        </button>
-        <button id="exportBtn" class="px-2.5 py-2 rounded-lg bg-white/10 hover:bg-white/15 transition-colors text-sm" title="出力">
-          <i data-lucide="download" class="w-4 h-4"></i>
-        </button>
-      </div>
-    </div>
-  </header>
-  <main class="max-w-7xl mx-auto px-3 py-4 md:py-8">
-    <div class="card rounded-2xl p-4 md:p-6 mb-6 fade-in-up">
-      <div class="flex items-center gap-2 mb-4">
-        <div class="w-2 h-2 rounded-full bg-blue-500 pulse-dot"></div>
-        <p class="text-gray-400 text-xs tracking-wider uppercase">各コート状況</p>
-      </div>
-      <div id="venueStatusGrid" class="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 mb-4"></div>
-      <p class="text-xs text-gray-500 pt-3 border-t border-white/5">📌 試合をタップ → 編集・結果入力</p>
-    </div>
-    <div class="card rounded-2xl p-3 mb-4 fade-in-up delay-1">
-      <div class="filter-row flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
-        <span class="text-sm text-gray-400 whitespace-nowrap">絞り込み：</span>
-        <select id="filterGrade" class="rounded-lg px-3 py-2 text-sm flex-1">
-          <option value="">全学年</option>
-          <option value="中学1年">中学1年</option><option value="中学2年">中学2年</option><option value="中学3年">中学3年</option>
-          <option value="高校1年">高校1年</option><option value="高校2年">高校2年</option><option value="高校3年">高校3年</option>
-        </select>
-        <select id="filterSport" class="rounded-lg px-3 py-2 text-sm flex-1">
-          <option value="">全競技</option>
-          <option value="サッカー">サッカー</option><option value="野球">野球</option><option value="バスケットボール">バスケットボール</option>
-          <option value="バレーボール">バレーボール</option><option value="ドッジボール">ドッジボール</option>
-          <option value="アルティメット">アルティメット</option><option value="卓球">卓球</option>
-        </select>
-        <p class="text-xs text-gray-500 sm:ml-auto">※ 追加は設定画面から</p>
-      </div>
-    </div>
-    <div class="fade-in-up delay-2">
-      <h2 class="text-base font-semibold mb-3 flex items-center gap-2">
-        <i data-lucide="calendar-clock" class="w-4.5 h-4.5 text-gray-400"></i>タイムテーブル
-      </h2>
-      <div class="scroll-h pb-4 -mx-3 px-3">
-        <div id="timetableGrid" class="flex gap-3 align-start min-w-max"></div>
-      </div>
-    </div>
-    <div class="card rounded-2xl p-4 md:p-6 mt-6 fade-in-up delay-2">
-      <h2 class="text-base font-semibold mb-4 flex items-center gap-2">
-        <i data-lucide="bar-chart-3" class="w-4.5 h-4.5 text-amber-400"></i>🏆 組別得点ランキング
-      </h2>
-      <div id="rankingList" class="space-y-2.5"></div>
-      <p class="text-xs text-gray-500 mt-3 text-center">※ 1位150 / 2位100 / 3位50 / 4位0（野球は3位なし）</p>
-    </div>
-  </main>
-  <div id="editModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-    <div class="card rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-      <h3 id="modalTitle" class="text-lg font-bold mb-1 flex items-center gap-2">
-        <i data-lucide="edit-3" class="w-4.5 h-4.5 text-blue-400"></i>試合情報
-      </h3>
-      <p id="modalSubtitle" class="text-xs text-gray-400 mb-4"></p>
-      <form id="matchForm" class="space-y-3.5">
-        <input type="hidden" id="editMatchId">
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block text-xs text-gray-400 mb-1">開始時刻</label>
-            <input type="time" id="editTime" class="w-full rounded-xl px-3 py-2.5" required>
-          </div>
-          <div>
-            <label class="block text-xs text-gray-400 mb-1">所要時間</label>
-            <input type="number" id="editDuration" value="30" min="1" class="w-full rounded-xl px-3 py-2.5 text-center">
-          </div>
-        </div>
-        <div>
-          <label class="block text-xs text-gray-400 mb-1">⏱️ 遅延時間（後続に伝播）</label>
-          <div class="flex items-center gap-2">
-            <button type="button" class="adj-btn px-3 py-2.5 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 font-bold" data-adj="-5">-5</button>
-            <button type="button" class="adj-btn px-3 py-2.5 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 font-bold" data-adj="-1">-1</button>
-            <input type="number" id="editDelay" value="0" class="flex-1 rounded-xl px-3 py-2.5 text-center font-mono-num text-lg">
-            <button type="button" class="adj-btn px-3 py-2.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 font-bold" data-adj="1">+1</button>
-            <button type="button" class="adj-btn px-3 py-2.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 font-bold" data-adj="5">+5</button>
-          </div>
-        </div>
-        <div>
-          <label class="block text-xs text-gray-400 mb-1">ステータス</label>
-          <select id="editStatus" class="w-full rounded-xl px-3 py-2.5">
-            <option value="future">まもなく</option><option value="pending">準備中</option>
-            <option value="running">🔥 進行中</option><option value="done">✅ 終了</option>
-          </select>
-        </div>
-        <div class="pt-3 border-t border-white/5 relative" id="resultSection">
-          <p class="text-sm font-medium text-gray-300 mb-3 flex items-center justify-between">
-            <span>🏆 順位入力</span>
-            <span id="resultLockBadge" class="text-xs px-2 py-0.5 rounded-full bg-red-500/20 text-red-400">🔒 要ログイン</span>
-          </p>
-          <div id="resultInputArea" class="space-y-3 relative">
-            <div>
-              <label class="block text-xs text-gray-500 mb-1.5">🥇 1位（150pt）</label>
-              <div class="group-select" data-rank="1">
-                <button type="button" class="group-btn" data-g="A" disabled>A</button>
-                <button type="button" class="group-btn" data-g="B" disabled>B</button>
-                <button type="button" class="group-btn" data-g="C" disabled>C</button>
-                <button type="button" class="group-btn" data-g="D" disabled>D</button>
-              </div>
-            </div>
-            <div>
-              <label class="block text-xs text-gray-500 mb-1.5">🥈 2位（100pt）</label>
-              <div class="group-select" data-rank="2">
-                <button type="button" class="group-btn" data-g="A" disabled>A</button>
-                <button type="button" class="group-btn" data-g="B" disabled>B</button>
-                <button type="button" class="group-btn" data-g="C" disabled>C</button>
-                <button type="button" class="group-btn" data-g="D" disabled>D</button>
-              </div>
-            </div>
-            <div>
-              <label class="block text-xs text-gray-500 mb-1.5">🥉 3位（50pt）</label>
-              <div class="group-select" data-rank="3">
-                <button type="button" class="group-btn" data-g="A" disabled>A</button>
-                <button type="button" class="group-btn" data-g="B" disabled>B</button>
-                <button type="button" class="group-btn" data-g="C" disabled>C</button>
-                <button type="button" class="group-btn" data-g="D" disabled>D</button>
-              </div>
-            </div>
-            <div>
-              <label class="block text-xs text-gray-500 mb-1.5">4位（0pt）</label>
-              <div class="group-select" data-rank="4">
-                <button type="button" class="group-btn" data-g="A" disabled>A</button>
-                <button type="button" class="group-btn" data-g="B" disabled>B</button>
-                <button type="button" class="group-btn" data-g="C" disabled>C</button>
-                <button type="button" class="group-btn" data-g="D" disabled>D</button>
-              </div>
-            </div>
-            <div id="lockedOverlay" class="locked-overlay">
-              <i data-lucide="lock" class="w-7 h-7 mb-1"></i>
-              <p class="text-sm font-medium">ログインして入力</p>
-              <button type="button" id="openLoginFromResult" class="mt-2 px-4 py-2 rounded-lg google-btn text-sm font-medium">
-                <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.5 29.3 35.5 24 35.5c-6.4 0-11.5-5.1-11.5-11.5S17.6 12.5 24 12.5c2.9 0 5.6 1.1 7.6 2.9l5.7-5.7C33.9 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c10 0 18.4-7.4 19.6-17.1.3-.9.4-1.8.4-2.7 0-.9-.1-1.8-.4-2.7z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.8 16 19 12.5 24 12.5c2.9 0 5.6 1.1 7.6 2.9l5.7-5.7C33.9 6.1 29.3 4 24 4 16.3 4 9.6 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2c-2 1.4-4.5 2.3-7.2 2.3-5.3 0-9.7-3-11.3-7.3l-6.5 5C9.5 38.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.2 5.7l6.2 5.2c.4-.4 7.7-5.6 7.7-14.9 0-.9-.1-1.8-.4-2.7z"/></svg>
-                Googleログイン
-              </button>
-            </div>
-          </div>
-          <input type="hidden" id="editRank1" value="">
-          <input type="hidden" id="editRank2" value="">
-          <input type="hidden" id="editRank3" value="">
-          <input type="hidden" id="editRank4" value="">
-        </div>
-        <div>
-          <label class="block text-xs text-gray-400 mb-1">備考</label>
-          <textarea id="editNote" rows="2" class="w-full rounded-xl px-3 py-2.5"></textarea>
-        </div>
-        <div class="flex gap-3 pt-2">
-          <button type="button" id="modalClose" class="flex-1 py-3 rounded-xl bg-white/10 hover:bg-white/15 transition-colors font-medium">キャンセル</button>
-          <button type="submit" class="flex-1 py-3 rounded-xl btn-primary font-medium text-white">保存</button>
-        </div>
-      </form>
-    </div>
-  </div>
-  <script>
-    lucide.createIcons();
-    const FIREBASE_CONFIG = {
-      apiKey: "AIzaSyCVYfQSmKyPvbDWrAp6FNMUmuu3_GyrM00",
-      authDomain: "thsportsfes.firebaseapp.com",
-      projectId: "thsportsfes",
-      storageBucket: "thsportsfes.appspot.com",
-      messagingSenderId: "96596815858",
-      appId: "1:96596815858:web:5f85526bf785ccc5d8056b"
-    };
-    firebase.initializeApp(FIREBASE_CONFIG);
-    const db = firebase.firestore();
-    const auth = firebase.auth();
-    const AUTHORIZED_EMAILS = [
-      'jh62231310@s.musashi.ed.jp',
-      'jh62220120@s.musashi.ed.jp',
-      'eugene.hir.10@gmail.com'
-    ];
-    const AUTHORIZED_DOMAIN = null;
-    let isAuthed = false;
-    let currentUser = null;
-    auth.onAuthStateChanged(user => {
-      currentUser = user;
-      isAuthed = checkAuthorized(user);
-      updateAuthUI();
-    });
-    function checkAuthorized(user) {
-      if (!user) return false;
-      const email = user.email;
-      if (!email) return false;
-      if (AUTHORIZED_EMAILS.includes(email)) return true;
-      if (AUTHORIZED_DOMAIN && email.endsWith('@' + AUTHORIZED_DOMAIN)) return true;
-      if (AUTHORIZED_EMAILS.length === 0 && !AUTHORIZED_DOMAIN) return true;
-      return false;
-    }
-    function updateAuthUI() {
-      const badge = document.getElementById('authBadge');
-      const txt = document.getElementById('authStatusText');
-      const btn = document.getElementById('authBtn');
-      if (isAuthed) {
-        if (badge) { badge.className = 'sync-status auth-badge-authed'; badge.classList.remove('hidden'); }
-        if (txt) txt.textContent = (currentUser.displayName || currentUser.email).split('@')[0];
-        btn.innerHTML = `<i data-lucide="log-out" class="w-4 h-4"></i><span class="hidden sm:inline">ログアウト</span>`;
-        btn.className = 'px-2.5 py-2 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400 transition-colors text-sm flex items-center gap-1.5';
-      } else {
-        if (badge) { badge.className = 'sync-status auth-badge-guest hidden sm:inline-flex'; }
-        if (txt) txt.textContent = '未認証';
-        btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.5 29.3 35.5 24 35.5c-6.4 0-11.5-5.1-11.5-11.5S17.6 12.5 24 12.5c2.9 0 5.6 1.1 7.6 2.9l5.7-5.7C33.9 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c10 0 18.4-7.4 19.6-17.1.3-.9.4-1.8.4-2.7 0-.9-.1-1.8-.4-2.7z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.8 16 19 12.5 24 12.5c2.9 0 5.6 1.1 7.6 2.9l5.7-5.7C33.9 6.1 29.3 4 24 4 16.3 4 9.6 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2c-2 1.4-4.5 2.3-7.2 2.3-5.3 0-9.7-3-11.3-7.3l-6.5 5C9.5 38.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.2 5.7l6.2 5.2c.4-.4 7.7-5.6 7.7-14.9 0-.9-.1-1.8-.4-2.7z"/></svg><span class="hidden sm:inline">ログイン</span>`;
-        btn.className = 'px-2.5 py-2 rounded-lg bg-white hover:bg-gray-100 text-gray-800 transition-colors text-xs flex items-center gap-1.5 google-btn';
-      }
-      updateResultInputLock();
-      lucide.createIcons();
-    }
-    function updateResultInputLock() {
-      const overlay = document.getElementById('lockedOverlay');
-      const lockBadge = document.getElementById('resultLockBadge');
-      const btns = document.querySelectorAll('#resultInputArea .group-btn');
-      if (isAuthed) {
-        if (overlay) overlay.style.display = 'none';
-        if (lockBadge) {
-          lockBadge.textContent = '✅ 認証済み';
-          lockBadge.className = 'text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400';
-        }
-        btns.forEach(b => b.disabled = false);
-      } else {
-        if (overlay) overlay.style.display = 'flex';
-        if (lockBadge) {
-          lockBadge.textContent = '🔒 要ログイン';
-          lockBadge.className = 'text-xs px-2 py-0.5 rounded-full bg-red-500/20 text-red-400';
-        }
-        btns.forEach(b => b.disabled = true);
-      }
-    }
-    document.getElementById('authBtn').addEventListener('click', async () => {
-      if (isAuthed) {
-        if (confirm('ログアウトしますか？')) { await auth.signOut(); alert('ログアウトしました'); }
-        return;
-      }
-      try {
-        const provider = new firebase.auth.GoogleAuthProvider();
-        await auth.signInWithPopup(provider);
-      } catch (err) {
-        if (err.code === 'auth/popup-closed-by-user') return;
-        if (err.code === 'auth/unauthorized-domain') {
-          alert('⚠️ このドメインは未許可です。\nFirebaseコンソール → Authentication → 許可ドメインに追加してください。');
-        } else { alert('ログイン失敗: ' + err.message); }
-      }
-    });
-    document.getElementById('openLoginFromResult').addEventListener('click', async () => {
-      document.getElementById('editModal').classList.add('hidden');
-      try {
-        const provider = new firebase.auth.GoogleAuthProvider();
-        await auth.signInWithPopup(provider);
-        setTimeout(() => {
-          if (isAuthed && document.getElementById('editMatchId').value) {
-            document.getElementById('editModal').classList.remove('hidden');
-            updateResultInputLock();
-          }
-        }, 300);
-      } catch (err) {
-        if (!['auth/popup-closed-by-user','auth/cancelled-popup-request'].includes(err.code)) { alert('ログインに失敗しました'); }
-      }
-    });
-    const Sync = {
-      setStatus(s, text) {
-        const el = document.getElementById('syncStatus');
-        const txt = document.getElementById('syncStatusText');
-        if (!el) return;
-        el.className = `sync-status sync-${s}`;
-        if (txt) txt.textContent = text;
-      },
-      async save(key, data) {
-        localStorage.setItem(key, JSON.stringify(data));
-        try {
-          this.setStatus('syncing', '同期中');
-          await db.collection('app_data').doc(key).set({
-            data: JSON.parse(JSON.stringify(data)),
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-            device: getDeviceInfo()
-          });
-          this.setStatus('online', 'オンライン');
-        } catch (e) {
-          console.warn('保存失敗:', e);
-          this.setStatus('offline', 'オフライン');
-        }
-      },
-      async load(key, defaultValue) {
-        const local = localStorage.getItem(key);
-        let localData = local ? JSON.parse(local) : defaultValue;
-        try {
-          this.setStatus('syncing', '読込中');
-          const doc = await db.collection('app_data').doc(key).get();
-          if (doc.exists) {
-            const remote = doc.data().data;
-            localStorage.setItem(key, JSON.stringify(remote));
-            this.setStatus('online', 'オンライン');
-            return remote;
-          } else if (local) {
-            await db.collection('app_data').doc(key).set({
-              data: JSON.parse(JSON.stringify(localData)),
-              updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-              device: getDeviceInfo()
-            });
-          }
-        } catch (e) {
-          console.warn('読込失敗:', e);
-          this.setStatus('offline', 'オフライン');
-        }
-        return localData;
-      },
-      subscribe(key, callback) {
-        return db.collection('app_data').doc(key).onSnapshot(snap => {
-          if (snap.exists) {
-            const data = snap.data().data;
-            localStorage.setItem(key, JSON.stringify(data));
-            this.setStatus('online', 'オンライン');
-            callback(data);
-          }
-        }, err => {
-          console.warn('同期エラー:', err);
-          this.setStatus('offline', 'オフライン');
-        });
-      },
-      async addHistory(entry) {
-        const hist = JSON.parse(localStorage.getItem('input_history_v4') || '[]');
-        hist.unshift({ ...entry, user: currentUser?.email || 'guest', userName: currentUser?.displayName || '' });
-        localStorage.setItem('input_history_v4', JSON.stringify(hist.slice(0, 500)));
-        try {
-          await db.collection('input_history').add({
-            ...entry, user: currentUser?.email || 'guest', userName: currentUser?.displayName || '',
-            timestamp: firebase.firestore.FieldValue.serverTimestamp()
-          });
-        } catch (e) {}
-      }
-    };
-    function getDeviceInfo() {
-      const ua = navigator.userAgent;
-      let device = /iPhone/.test(ua) ? 'iPhone' : /iPad/.test(ua) ? 'iPad' : /Android/.test(ua) ? 'Android' : /Mac/.test(ua) ? 'Mac' : /Windows/.test(ua) ? 'Windows' : 'Unknown';
-      let browser = /Edg/.test(ua) ? 'Edge' : /Chrome/.test(ua) ? 'Chrome' : /Firefox/.test(ua) ? 'Firefox' : /Safari/.test(ua) ? 'Safari' : 'Unknown';
-      return `${device} / ${browser}`;
-    }
-    const BALL_SCORING = {
-      'サッカー': [150, 100, 50, 0], '野球': [150, 100, 0, 0], 'バスケットボール': [150, 100, 50, 0],
-      'バレーボール': [150, 100, 50, 0], 'ドッジボール': [150, 100, 50, 0], 'アルティメット': [150, 100, 50, 0], '卓球': [150, 100, 50, 0]
-    };
-    function getDefaultData() {
-      return {
-        venues: ['上グラウンド', '下グラウンド', '体育館', 'ハードコート', 'オムニコート', '卓球場'],
-        matches: [
-          { id: 1, venue: '上グラウンド', time: '08:20', sport: 'サッカー', grade: '中学1年', status: 'future', delay: 0, duration: 67, rank1: '', rank2: '', rank3: '', rank4: '', note: '' },
-          { id: 2, venue: '下グラウンド', time: '08:20', sport: 'サッカー', grade: '中学1年', status: 'future', delay: 0, duration: 67, rank1: '', rank2: '', rank3: '', rank4: '', note: '' },
-          { id: 3, venue: '体育館', time: '08:20', sport: 'バスケットボール', grade: '中学3年', status: 'future', delay: 0, duration: 57, rank1: '', rank2: '', rank3: '', rank4: '', note: '' },
-          { id: 4, venue: 'オムニコート', time: '08:20', sport: 'バレーボール', grade: '高校2年', status: 'future', delay: 0, duration: 85, rank1: '', rank2: '', rank3: '', rank4: '', note: '' },
-          { id: 5, venue: 'ハードコート', time: '08:20', sport: 'ドッジボール', grade: '中学2年', status: 'future', delay: 0, duration: 55, rank1: '', rank2: '', rank3: '', rank4: '', note: '' },
-          { id: 6, venue: '卓球場', time: '08:20', sport: '卓球', grade: '中学1年', status: 'future', delay: 0, duration: 55,
+<html lang="ja"> <head> <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"> <title>球技日 タイムテーブル｜スポーツフェスタ</title> <script src="https://cdn.tailwindcss.com"></script> <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script> <!-- 🔥 Firebase SDK（Google Auth追加） --> <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script> <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script> <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script> <link rel="preconnect" href="https://fonts.googleapis.com"> <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin> <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"> <style> /* スタイルは前回と全く同じなので省略 */ * { font-family: 'Space Grotesk', system-ui, sans-serif; } .font-mono-num { font-family: 'JetBrains Mono', monospace; } body { background: radial-gradient(ellipse at top, rgba(255,255,255,0.05) 0%, transparent 50%), radial-gradient(ellipse at bottom, rgba(255,255,255,0.03) 0%, transparent 50%), linear-gradient(180deg, #0a0a0a 0%, #141414 50%, #0a0a0a 100%); min-height: 100vh; } .card { background: linear-gradient(145deg, rgba(30,30,30,0.9), rgba(20,20,20,0.95)); border: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(20px); box-shadow: 0 25px 80px rgba(0,0,0,0.6), 0 0 120px rgba(255,255,255,0.02), inset 0 1px 0 rgba(255,255,255,0.06); } .sub-card { background: linear-gradient(145deg, rgba(40,40,40,0.7), rgba(25,25,25,0.9)); border: 1px solid rgba(255,255,255,0.06); transition: all 0.3s ease; } .sub-card:hover { border-color: rgba(255,255,255,0.12); transform: translateY(-2px); } .status-running { background: linear-gradient(135deg, rgba(16,185,129,0.2), rgba(5,150,105,0.1)); border-left: 4px solid #10b981; } .status-pending { background: linear-gradient(135deg, rgba(245,158,11,0.15), rgba(217,119,6,0.08)); border-left: 4px solid #f59e0b; } .status-done { background: linear-gradient(135deg, rgba(75,85,99,0.2), rgba(55,65,81,0.1)); border-left: 4px solid #6b7280; opacity: 0.85; } .status-future { background: linear-gradient(135deg, rgba(59,130,246,0.12), rgba(37,99,235,0.06)); border-left: 4px solid #3b82f6; } .btn-primary { background: linear-gradient(135deg, #3b82f6, #2563eb); transition: all 0.3s ease; } .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(59,130,246,0.25); } .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; } .glow-text { text-shadow: 0 0 40px rgba(255,255,255,0.12), 0 0 80px rgba(255,255,255,0.05); } .scroll-h { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: thin; } .scroll-h::-webkit-scrollbar { height: 8px; } .scroll-h::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 4px; } input, select, textarea { background: rgba(255,255,255,0.05) !important; border: 1px solid rgba(255,255,255,0.1) !important; color: white !important; font-size: 16px !important; } input:disabled, select:disabled { opacity: 0.5; cursor: not-allowed; } select option { background: #1a1a1a; color: white; } .fade-in-up { animation: fadeInUp 0.8s ease-out forwards; opacity: 0; transform: translateY(20px); } @keyframes fadeInUp { to { opacity: 1; transform: translateY(0); } } .delay-1 { animation-delay: 0.1s; } .delay-2 { animation-delay: 0.2s; } .rank-1 { background: linear-gradient(135deg, rgba(251,191,36,0.2), rgba(217,119,6,0.1)); border-left: 3px solid #fbbf24; } .rank-2 { background: linear-gradient(135deg, rgba(156,163,175,0.2), rgba(107,114,128,0.1)); border-left: 3px solid #9ca3af; } .rank-3 { background: linear-gradient(135deg, rgba(180,83,9,0.2), rgba(146,64,14,0.1)); border-left: 3px solid #b45309; } .rank-4 { background: linear-gradient(135deg, rgba(75,85,99,0.15), rgba(55,65,81,0.08)); border-left: 3px solid #4b5563; } @keyframes pulse-soft { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } } .pulse-dot { animation: pulse-soft 1.2s ease-in-out infinite; } .venue-status-card { transition: all 0.3s ease; } .venue-status-card:hover { transform: translateY(-3px); } .group-select { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; } .group-btn { padding: 12px 8px; border-radius: 10px; border: 2px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); cursor: pointer; transition: all 0.2s ease; font-weight: 700; text-align: center; font-size: 18px; } .group-btn:hover:not(:disabled) { border-color: rgba(255,255,255,0.3); background: rgba(255,255,255,0.1); } .group-btn:disabled { opacity: 0.4; cursor: not-allowed; } .group-btn.sel-1 { border-color: #fbbf24; background: rgba(251,191,36,0.2); color: #fbbf24; } .group-btn.sel-2 { border-color: #9ca3af; background: rgba(156,163,175,0.2); color: #e5e7eb; } .group-btn.sel-3 { border-color: #b45309; background: rgba(180,83,9,0.2); color: #fbbf24; } .group-btn.sel-4 { border-color: #4b5563; background: rgba(75,85,99,0.2); color: #9ca3af; } .sync-status { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 4px 10px; border-radius: 9999px; } .sync-online { background: rgba(16,185,129,0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.3); } .sync-offline { background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); } .sync-syncing { background: rgba(59,130,246,0.15); color: #3b82f6; border: 1px solid rgba(59,130,246,0.3); } .auth-badge-authed { background: rgba(16,185,129,0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.3); } .auth-badge-guest { background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); } .locked-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 8px; color: #ef4444; } .delay-chain-badge { font-size: 11px; padding: 2px 8px; border-radius: 9999px; font-weight: 600; } .delay-chain-plus { background: rgba(245,158,11,0.2); color: #f59e0b; border: 1px solid rgba(245,158,11,0.3); } .delay-chain-minus { background: rgba(6,182,212,0.2); color: #06b6d4; border: 1px solid rgba(6,182,212,0.3); } .delay-chain-zero { background: rgba(255,255,255,0.08); color: #9ca3af; border: 1px solid rgba(255,255,255,0.15); } .google-btn { background: white !important; color: #444 !important; display: inline-flex; align-items: center; gap: 10px; font-weight: 500; border: 1px solid rgba(0,0,0,0.1) !important; } .google-btn:hover { background: #f8f8f8 !important; } </style> </head> <body class="text-white min-h-screen"> <header class="sticky top-0 z-20 backdrop-blur-xl bg-black/40 border-b border-white/5"> <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center flex-wrap gap-3"> <a href="timetable.html" class="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors"> <i data-lucide="arrow-left" class="w-4 h-4"></i><span class="hidden sm:inline">進行管理に戻る</span><span class="sm:hidden">戻る</span> </a> <div class="flex items-center gap-3 flex-wrap"> <span id="syncStatus" class="sync-status sync-syncing"> <span class="w-2 h-2 rounded-full bg-current pulse-dot"></span> <span id="syncStatusText">接続中...</span> </span> <span id="authBadge" class="sync-status auth-badge-guest"> <i data-lucide="lock" class="w-3 h-3"></i> <span id="authStatusText">未認証</span> </span> <h1 class="text-lg md:text-xl font-bold flex items-center gap-2"> <i data-lucide="trophy" class="w-5 h-5 text-blue-400"></i>⚽ 球技日 </h1> </div> <div class="flex gap-2"> <button id="authBtn" class="px-3 py-2 rounded-lg bg-white hover:bg-gray-100 text-gray-800 transition-colors text-sm flex items-center gap-1.5 google-btn"> <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.5 29.3 35.5 24 35.5c-6.4 0-11.5-5.1-11.5-11.5S17.6 12.5 24 12.5c2.9 0 5.6 1.1 7.6 2.9l5.7-5.7C33.9 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c10 0 18.4-7.4 19.6-17.1.3-.9.4-1.8.4-2.7 0-.9-.1-1.8-.4-2.7z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.8 16 19 12.5 24 12.5c2.9 0 5.6 1.1 7.6 2.9l5.7-5.7C33.9 6.1 29.3 4 24 4 16.3 4 9.6 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2c-2 1.4-4.5 2.3-7.2 2.3-5.3 0-9.7-3-11.3-7.3l-6.5 5C9.5 38.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.2 5.7l6.2 5.2c.4-.4 7.7-5.6 7.7-14.9 0-.9-.1-1.8-.4-2.7z"/></svg> <span id="authBtnText">Googleでログイン</span> </button> <button id="manualSyncBtn" class="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/15 transition-colors text-sm flex items-center gap-1.5"> <i data-lucide="refresh-cw" class="w-4 h-4"></i><span class="hidden sm:inline">同期</span> </button> <button id="exportBtn" class="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/15 transition-colors text-sm flex items-center gap-1.5"> <i data-lucide="download" class="w-4 h-4"></i><span class="hidden sm:inline">出力</span> </button> </div> </div> </header> <main class="max-w-7xl mx-auto px-4 py-8 md:py-12"> <!-- 各コート状況 --> <div class="card rounded-3xl p-6 md:p-8 mb-8 fade-in-up"> <div class="flex items-center gap-2 mb-6"> <div class="w-2 h-2 rounded-full bg-blue-500 pulse-dot"></div> <p class="text-gray-400 text-xs tracking-[0.25em] uppercase">各コート 状況</p> </div> <div id="venueStatusGrid" class="grid gap-4 md:grid-cols-3 lg:grid-cols-6 mb-6"></div> <p class="text-xs text-gray-500 pt-4 border-t border-white/5">📌 各試合をクリック → 順位・時間調整を入力</p> </div> <!-- フィルター --> <div class="card rounded-2xl p-4 mb-6 fade-in-up delay-1 flex flex-wrap gap-3 items-center"> <span class="text-sm text-gray-400">絞り込み：</span> <select id="filterGrade" class="rounded-lg px-3 py-2 text-sm bg-white/5 border border-white/10"> <option value="">全学年</option> <option value="中学1年">中学1年</option><option value="中学2年">中学2年</option><option value="中学3年">中学3年</option> <option value="高校1年">高校1年</option><option value="高校2年">高校2年</option><option value="高校3年">高校3年</option> </select> <select id="filterSport" class="rounded-lg px-3 py-2 text-sm bg-white/5 border border-white/10"> <option value="">全競技</option> <option value="サッカー">サッカー</option><option value="野球">野球</option><option value="バスケットボール">バスケットボール</option> <option value="バレーボール">バレーボール</option><option value="ドッジボール">ドッジボール</option> <option value="アルティメット">アルティメット</option><option value="卓球">卓球</option> </select> <p class="text-xs text-gray-500 ml-auto">※ 試合追加は設定画面から</p> </div> <!-- タイムテーブル --> <div class="fade-in-up delay-2"> <h2 class="text-lg font-semibold mb-4 flex items-center gap-2"> <i data-lucide="calendar-clock" class="w-5 h-5 text-gray-400"></i>タイムテーブル </h2> <div class="scroll-h pb-6"> <div id="timetableGrid" class="flex gap-4 align-start min-w-max"></div> </div> </div> <!-- 組別ランキング --> <div class="card rounded-3xl p-6 md:p-8 mt-8 fade-in-up delay-2"> <h2 class="text-lg font-semibold mb-5 flex items-center gap-2"> <i data-lucide="bar-chart-3" class="w-5 h-5 text-amber-400"></i>🏆 球技日 組別得点ランキング </h2> <div id="rankingList" class="space-y-2"></div> <p class="text-xs text-gray-500 mt-4 text-center">※ PDF得点割：1位150 / 2位100 / 3位50 / 4位0（野球は3位なし）</p> </div> </main> <!-- 編集モーダル --> <div id="editModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4"> <div class="card rounded-3xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto"> <h3 id="modalTitle" class="text-xl font-bold mb-2 flex items-center gap-2"> <i data-lucide="edit-3" class="w-5 h-5 text-blue-400"></i>試合情報 </h3> <p id="modalSubtitle" class="text-sm text-gray-400 mb-6"></p> <form id="matchForm" class="space-y-4"> <input type="hidden" id="editMatchId"> <div class="grid grid-cols-2 gap-3"> <div> <label class="block text-sm text-gray-400 mb-1.5">開始時刻（直接編集可）</label> <input type="time" id="editTime" class="w-full rounded-xl px-4 py-3" required> </div> <div><label class="block text-sm text-gray-400 mb-1.5">所要時間</label><input type="number" id="editDuration" value="30" min="1" class="w-full rounded-xl px-4 py-3 text-center"></div> </div> <div> <label class="block text-sm text-gray-400 mb-1.5">⏱️ この試合の遅延時間（後ろに伝播）</label> <div class="flex items-center gap-2"> <button type="button" class="adj-btn px-3 py-2 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 font-bold" data-adj="-5">-5</button> <button type="button" class="adj-btn px-3 py-2 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 font-bold" data-adj="-1">-1</button> <input type="number" id="editDelay" value="0" class="flex-1 rounded-xl px-4 py-3 text-center font-mono-num text-lg"> <button type="button" class="adj-btn px-3 py-2 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 font-bold" data-adj="1">+1</button> <button type="button" class="adj-btn px-3 py-2 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 font-bold" data-adj="5">+5</button> </div> <p class="text-xs text-gray-500 mt-1">マイナス：巻き / プラス：遅延 → この会場の後続試合に自動反映</p> </div> <div> <label class="block text-sm text-gray-400 mb-1.5">ステータス</label> <select id="editStatus" class="w-full rounded-xl px-4 py-3"> <option value="future">まもなく</option><option value="pending">準備中</option> <option value="running">🔥 進行中</option><option value="done">✅ 終了</option> </select> </div> <!-- 🔐 結果入力欄：Google認証必須 --> <div class="pt-3 border-t border-white/5 relative" id="resultSection"> <p class="text-sm font-medium text-gray-300 mb-3 flex items-center gap-2"> 🏆 4クラス 順位入力 <span id="resultLockBadge" class="text-xs px-2 py-0.5 rounded-full bg-red-500/20 text-red-400">🔒 Googleログインが必要</span> </p> <div id="resultInputArea" class="space-y-3 relative"> <div> <label class="block text-xs text-gray-500 mb-2">🥇 1位（150pt）</label> <div class="group-select" data-rank="1"> <button type="button" class="group-btn" data-g="A" disabled>A組</button> <button type="button" class="group-btn" data-g="B" disabled>B組</button> <button type="button" class="group-btn" data-g="C" disabled>C組</button> <button type="button" class="group-btn" data-g="D" disabled>D組</button> </div> </div> <div> <label class="block text-xs text-gray-500 mb-2">🥈 2位（100pt）</label> <div class="group-select" data-rank="2"> <button type="button" class="group-btn" data-g="A" disabled>A組</button> <button type="button" class="group-btn" data-g="B" disabled>B組</button> <button type="button" class="group-btn" data-g="C" disabled>C組</button> <button type="button" class="group-btn" data-g="D" disabled>D組</button> </div> </div> <div> <label class="block text-xs text-gray-500 mb-2">🥉 3位（50pt）</label> <div class="group-select" data-rank="3"> <button type="button" class="group-btn" data-g="A" disabled>A組</button> <button type="button" class="group-btn" data-g="B" disabled>B組</button> <button type="button" class="group-btn" data-g="C" disabled>C組</button> <button type="button" class="group-btn" data-g="D" disabled>D組</button> </div> </div> <div> <label class="block text-xs text-gray-500 mb-2">4位（0pt）</label> <div class="group-select" data-rank="4"> <button type="button" class="group-btn" data-g="A" disabled>A組</button> <button type="button" class="group-btn" data-g="B" disabled>B組</button> <button type="button" class="group-btn" data-g="C" disabled>C組</button> <button type="button" class="group-btn" data-g="D" disabled>D組</button> </div> </div> <div id="lockedOverlay" class="locked-overlay"> <i data-lucide="lock" class="w-8 h-8"></i> <p class="text-sm font-medium">Googleログインして順位を入力</p> <button type="button" id="openLoginFromResult" class="mt-1 px-4 py-1.5 rounded-lg google-btn text-xs font-medium"> <svg width="14" height="14" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.5 29.3 35.5 24 35.5c-6.4 0-11.5-5.1-11.5-11.5S17.6 12.5 24 12.5c2.9 0 5.6 1.1 7.6 2.9l5.7-5.7C33.9 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c10 0 18.4-7.4 19.6-17.1.3-.9.4-1.8.4-2.7 0-.9-.1-1.8-.4-2.7z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.8 16 19 12.5 24 12.5c2.9 0 5.6 1.1 7.6 2.9l5.7-5.7C33.9 6.1 29.3 4 24 4 16.3 4 9.6 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2c-2 1.4-4.5 2.3-7.2 2.3-5.3 0-9.7-3-11.3-7.3l-6.5 5C9.5 38.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.2 5.7l6.2 5.2c.4-.4 7.7-5.6 7.7-14.9 0-.9-.1-1.8-.4-2.7z"/></svg> Googleログイン </button> </div> </div> <input type="hidden" id="editRank1" value=""> <input type="hidden" id="editRank2" value=""> <input type="hidden" id="editRank3" value=""> <input type="hidden" id="editRank4" value=""> </div> <div> <label class="block text-sm text-gray-400 mb-1.5">備考</label> <textarea id="editNote" rows="2" class="w-full rounded-xl px-4 py-3"></textarea> </div> <div class="flex gap-3 pt-2"> <button type="button" id="modalClose" class="flex-1 py-3 rounded-xl bg-white/10 hover:bg-white/15 transition-colors font-medium">キャンセル</button> <button type="submit" class="flex-1 py-3 rounded-xl btn-primary font-medium">保存</button> </div> </form> </div> </div> <script> lucide.createIcons(); // 🔥 Firebase初期化 const FIREBASE_CONFIG = { apiKey: "AIzaSyCVYfQSmKyPvbDWrAp6FNMUmuu3_GyrM00", authDomain: "thsportsfes.firebaseapp.com", projectId: "thsportsfes", storageBucket: "thsportsfes.appspot.com", messagingSenderId: "96596815858", appId: "1:96596815858:web:5f85526bf785ccc5d8056b" }; firebase.initializeApp(FIREBASE_CONFIG); const db = firebase.firestore(); const auth = firebase.auth(); // ✅ 許可するGoogleアカウント const AUTHORIZED_EMAILS = [ 'jh62231310@s.musashi.ed.jp', 'jh62220120@s.musashi.ed.jp', 'eugene.hir.10@gmail.com' ]; const AUTHORIZED_DOMAIN = null; let isAuthed = false; let currentUser = null; // 認証状態監視 auth.onAuthStateChanged(user => { currentUser = user; isAuthed = checkAuthorized(user); updateAuthUI(); }); function checkAuthorized(user) { if (!user) return false; const email = user.email; if (!email) return false; // 個別メール許可 if (AUTHORIZED_EMAILS.includes(email)) return true; // ドメイン許可 if (AUTHORIZED_DOMAIN && email.endsWith('@' + AUTHORIZED_DOMAIN)) return true; // 許可リストが空の場合はGoogleログインできれば誰でもOK if (AUTHORIZED_EMAILS.length === 0 && !AUTHORIZED_DOMAIN) return true; return false; } function updateAuthUI() { const badge = document.getElementById('authBadge'); const txt = document.getElementById('authStatusText'); const btn = document.getElementById('authBtn'); const btnText = document.getElementById('authBtnText'); if (isAuthed) { badge.className = 'sync-status auth-badge-authed'; txt.textContent = currentUser.displayName || currentUser.email; btnText.textContent = 'ログアウト'; btn.className = 'px-3 py-2 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400 transition-colors text-sm flex items-center gap-1.5'; btn.innerHTML = `<i data-lucide="log-out" class="w-4 h-4"></i><span id="authBtnText">ログアウト</span>`; } else { badge.className = 'sync-status auth-badge-guest'; txt.textContent = '未認証'; btnText.textContent = 'Googleでログイン'; btn.className = 'px-3 py-2 rounded-lg bg-white hover:bg-gray-100 text-gray-800 transition-colors text-sm flex items-center gap-1.5 google-btn'; btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.5 29.3 35.5 24 35.5c-6.4 0-11.5-5.1-11.5-11.5S17.6 12.5 24 12.5c2.9 0 5.6 1.1 7.6 2.9l5.7-5.7C33.9 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c10 0 18.4-7.4 19.6-17.1.3-.9.4-1.8.4-2.7 0-.9-.1-1.8-.4-2.7z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.8 16 19 12.5 24 12.5c2.9 0 5.6 1.1 7.6 2.9l5.7-5.7C33.9 6.1 29.3 4 24 4 16.3 4 9.6 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2c-2 1.4-4.5 2.3-7.2 2.3-5.3 0-9.7-3-11.3-7.3l-6.5 5C9.5 38.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.2 5.7l6.2 5.2c.4-.4 7.7-5.6 7.7-14.9 0-.9-.1-1.8-.4-2.7z"/></svg><span id="authBtnText">Googleでログイン</span>`; } updateResultInputLock(); lucide.createIcons(); } function updateResultInputLock() { const overlay = document.getElementById('lockedOverlay'); const lockBadge = document.getElementById('resultLockBadge'); const btns = document.querySelectorAll('#resultInputArea .group-btn'); if (isAuthed) { if (overlay) overlay.style.display = 'none'; if (lockBadge) { lockBadge.textContent = '✅ Google認証済み'; lockBadge.className = 'text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400'; } btns.forEach(b => b.disabled = false); } else { if (overlay) overlay.style.display = 'flex'; if (lockBadge) { lockBadge.textContent = '🔒 Googleログインが必要'; lockBadge.className = 'text-xs px-2 py-0.5 rounded-full bg-red-500/20 text-red-400'; } btns.forEach(b => b.disabled = true); } } // 🔥 Googleログイン document.getElementById('authBtn').addEventListener('click', async () => { if (isAuthed) { if (confirm('ログアウトしますか？')) { await auth.signOut(); alert('ログアウトしました'); } return; } try { const provider = new firebase.auth.GoogleAuthProvider(); await auth.signInWithPopup(provider); // 認証状態は onAuthStateChanged で自動処理 } catch (err) { if (err.code === 'auth/popup-closed-by-user') return; if (err.code === 'auth/unauthorized-domain') { alert('⚠️ このドメインはGoogleログインが許可されていません。\nFirebaseコンソール → Authentication → Settings → Authorized domains に追加してください。'); } else if (err.code === 'auth/cancelled-popup-request') { return; } else { alert('Googleログインに失敗しました: ' + err.message); } } }); document.getElementById('openLoginFromResult').addEventListener('click', async () => { document.getElementById('editModal').classList.add('hidden'); try { const provider = new firebase.auth.GoogleAuthProvider(); await auth.signInWithPopup(provider); // 認証成功後、自動的に編集モーダルを再表示 setTimeout(() => { const matchId = document.getElementById('editMatchId').value; if (matchId && isAuthed) { document.getElementById('editModal').classList.remove('hidden'); updateResultInputLock(); } }, 300); } catch (err) { if (err.code !== 'auth/popup-closed-by-user' && err.code !== 'auth/cancelled-popup-request') { alert('Googleログインに失敗しました'); } } }); // 🔥 同期ユーティリティ const Sync = { setStatus(s, text) { const el = document.getElementById('syncStatus'); const txt = document.getElementById('syncStatusText'); if (!el) return; el.className = `sync-status sync-${s}`; if (txt) txt.textContent = text; }, async save(key, data) { localStorage.setItem(key, JSON.stringify(data)); try { this.setStatus('syncing', '同期中...'); await db.collection('app_data').doc(key).set({ data: JSON.parse(JSON.stringify(data)), updatedAt: firebase.firestore.FieldValue.serverTimestamp(), device: getDeviceInfo() }); this.setStatus('online', 'オンライン'); } catch (e) { console.warn('Firestore保存失敗:', e); this.setStatus('offline', 'オフライン'); } }, async load(key, defaultValue) { const local = localStorage.getItem(key); let localData = local ? JSON.parse(local) : defaultValue; try { this.setStatus('syncing', '読込中...'); const doc = await db.collection('app_data').doc(key).get(); if (doc.exists) { const remote = doc.data().data; localStorage.setItem(key, JSON.stringify(remote)); this.setStatus('online', 'オンライン'); return remote; } else if (local) { await db.collection('app_data').doc(key).set({ data: JSON.parse(JSON.stringify(localData)), updatedAt: firebase.firestore.FieldValue.serverTimestamp(), device: getDeviceInfo() }); this.setStatus('online', 'オンライン'); } } catch (e) { console.warn('Firestore読込失敗:', e); this.setStatus('offline', 'オフライン'); } return localData; }, subscribe(key, callback) { return db.collection('app_data').doc(key).onSnapshot(snap => { if (snap.exists) { const data = snap.data().data; localStorage.setItem(key, JSON.stringify(data)); this.setStatus('online', 'オンライン'); callback(data); } }, err => { console.warn('同期エラー:', err); this.setStatus('offline', 'オフライン'); }); }, async addHistory(entry) { const hist = JSON.parse(localStorage.getItem('input_history_v4') || '[]'); hist.unshift({ ...entry, user: currentUser?.email || 'guest', userName: currentUser?.displayName || '' }); const trimmed = hist.slice(0, 500); localStorage.setItem('input_history_v4', JSON.stringify(trimmed)); try { await db.collection('input_history').add({ ...entry, user: currentUser?.email || 'guest', userName: currentUser?.displayName || '', timestamp: firebase.firestore.FieldValue.serverTimestamp() }); } catch (e) { console.warn('履歴保存失敗:', e); } } }; function getDeviceInfo() { const ua = navigator.userAgent; let device = 'Unknown'; if (/iPhone/.test(ua)) device = 'iPhone'; else if (/iPad/.test(ua)) device = 'iPad'; else if (/Android/.test(ua)) device = 'Android'; else if (/Mac/.test(ua)) device = 'Mac'; else if (/Windows/.test(ua)) device = 'Windows'; let browser = 'Unknown'; if (/Edg/.test(ua)) browser = 'Edge'; else if (/Chrome/.test(ua)) browser = 'Chrome'; else if (/Firefox/.test(ua)) browser = 'Firefox'; else if (/Safari/.test(ua)) browser = 'Safari'; return `${device} / ${browser}`; } const GRADES = ['中学1年', '中学2年', '中学3年', '高校1年', '高校2年', '高校3年']; const BALL_SCORING = { 'サッカー': [150, 100, 50, 0], '野球': [150, 100, 0, 0], 'バスケットボール': [150, 100, 50, 0], 'バレーボール': [150, 100, 50, 0], 'ドッジボール': [150, 100, 50, 0], 'アルティメット': [150, 100, 50, 0], '卓球': [150, 100, 50, 0] }; function getDefaultData() { return { venues: ['上グラウンド', '下グラウンド', '体育館', 'ハードコート', 'オムニコート', '卓球場'], matches: [ { id: 1, venue: '上グラウンド', time: '08:20', sport: 'サッカー', grade: '中学1年', status: 'future', delay: 0, duration: 67, rank1: '', rank2: '', rank3: '', rank4: '', note: '' }, { id: 2, venue: '下グラウンド', time: '08:20', sport: 'サッカー', grade: '中学1年', status: 'future', delay: 0, duration: 67, rank1: '', rank2: '', rank3: '', rank4: '', note: '' }, { id: 3, venue: '体育館', time: '08:20', sport: 'バスケットボール', grade: '中学3年', status: 'future', delay: 0, duration: 57, rank1: '', rank2: '', rank3: '', rank4: '', note: '' }, { id: 4, venue: 'オムニコート', time: '08:20', sport: 'バレーボール', grade: '高校2年', status: 'future', delay: 0, duration: 85, rank1: '', rank2: '', rank3: '', rank4: '', note: '' }, { id: 5, venue: 'ハードコート', time: '08:20', sport: 'ドッジボール', grade: '中学2年', status: 'future', delay: 0, duration: 55, rank1: '', rank2: '', rank3: '', rank4: '', note: '' }, { id: 6, venue: '卓球場', time: '08:20', sport: '卓球', grade: '中学1年', status: 'future', delay: 0, duration: 55, rank1: '', rank2: '', rank3: '', rank4: '', note: '' }, { id: 7, venue: '上グラウンド', time: '09:35', sport: 'サッカー', grade: '高校1年', status: 'future', delay: 0, duration: 67, rank1: '', rank2: '', rank3: '', rank4: '', note: '' }, { id: 8, venue: 'ハードコート', time: '09:35', sport: 'アルティメット', grade: '中学3年', status: 'future', delay: 0, duration: 52, rank1: '', rank2: '', rank3: '', rank4: '', note: '' }, { id: 9, venue: '体育館', time: '09:45', sport: 'バスケットボール', grade: '高校2年', status: 'future', delay: 0, duration: 57, rank1: '', rank2: '', rank3: '', rank4: '', note: '' }, { id: 10, venue: 'オムニコート', time: '09:55', sport: 'バレーボール', grade: '高校3年', status: 'future', delay: 0, duration: 85, rank1: '', rank2: '', rank3: '', rank4: '', note: '' }, { id: 11, venue: '卓球場', time: '09:25', sport: '卓球', grade: '高校1年', status: 'future', delay: 0, duration: 55, rank1: '', rank2: '', rank3: '', rank4: '', note: '' }, { id: 12, venue: '上グラウンド', time: '10:50', sport: 'サッカー', grade: '中学2年', status: 'future', delay: 0, duration: 67, rank1: '', rank2: '', rank3: '', rank4: '', note: '' }, { id: 13, venue: '体育館', time: '10:50', sport: 'バスケットボール', grade: '中学1年', status: 'future', delay: 0, duration: 57, rank1: '', rank2: '', rank3: '', rank4: '', note: '' }, { id: 14, venue: '卓球場', time: '10:30', sport: '卓球', grade: '高校2年', status: 'future', delay: 0, duration: 55, rank1: '', rank2: '', rank3: '', rank4: '', note: '' }, { id: 15, venue: '上グラウンド', time: '11:20', sport: 'サッカー', grade: '高校3年', status: 'future', delay: 0, duration: 67, rank1: '', rank2: '', rank3: '', rank4: '', note: '' }, { id: 16, venue: '下グラウンド', time: '11:25', sport: '野球', grade: '高校3年', status: 'future', delay: 0, duration: 60, rank1: '', rank2: '', rank3: '', rank4: '', note: '' }, { id: 17, venue: 'オムニコート', time: '11:30', sport: 'バレーボール', grade: '高校1年', status: 'future', delay: 0, duration: 85, rank1: '', rank2: '', rank3: '', rank4: '', note: '' }, { id: 18, venue: '上グラウンド', time: '12:35', sport: 'サッカー', grade: '高校2年', status: 'future', delay: 0, duration: 67, rank1: '', rank2: '', rank3: '', rank4: '', note: '' }, { id: 19, venue: '体育館', time: '13:00', sport: 'バスケットボール', grade: '高校1年', status: 'future', delay: 0, duration: 57, rank1: '', rank2: '', rank3: '', rank4: '', note: '' }, { id: 20, venue: '卓球場', time: '12:00', sport: '卓球', grade: '中学2年', status: 'future', delay: 0, duration: 55, rank1: '', rank2: '', rank3: '', rank4: '', note: '' }, { id: 21, venue: 'オムニコート', time: '13:35', sport: 'バレーボール', grade: '中学3年', status: 'future', delay: 0, duration: 85, rank1: '', rank2: '', rank3: '', rank4: '', note: '' }, { id: 22, venue: '上グラウンド', time: '13:50', sport: 'サッカー', grade: '高校3年', status: 'future', delay: 0, duration: 67, rank1: '', rank2: '', rank3: '', rank4: '', note: '' }, { id: 23, venue: '下グラウンド', time: '13:00', sport: '野球', grade: '高校3年', status: 'future', delay: 0, duration: 60, rank1: '', rank2: '', rank3: '', rank4: '', note: '' }, { id: 24, venue: '体育館', time: '14:05', sport: 'バスケットボール', grade: '高校3年', status: 'future', delay: 0, duration: 57, rank1: '', rank2: '', rank3: '', rank4: '', note: '' }, ] }; } let data = getDefaultData(); function calcVenueCumulativeDelays() { const result = {}; data.venues.forEach(venue => { const matches = data.matches.filter(m => m.venue === venue).sort((a, b) => a.time.localeCompare(b.time)); let cumDelay = 0; result[venue] = {}; matches.forEach(m => { result[venue][m.id] = cumDelay; cumDelay += m.delay || 0; }); }); return result; } function applyDelay(time, delay) { if (!delay) return time; const [h, m] = time.split(':').map(Number); const total = h * 60 + m + delay; const nh = Math.floor((total % 1440 + 1440) % 1440 / 60); const nm = ((total % 60) + 60) % 60; return `${String(nh).padStart(2,'0')}:${String(nm).padStart(2,'0')}`; } function calcEndTime(time, duration, delay) { return applyDelay(time, (duration || 30) + (delay || 0)); } function getStatusStyle(s) { return { running: 'status-running', pending: 'status-pending', done: 'status-done', future: 'status-future' }[s] || 'status-future'; } function getStatusLabel(s) { return { future: 'まもなく', pending: '準備中', running: '🔥 進行中', done: '✅ 終了' }[s] || s; } function calcVenueStatus() { const now = new Date(); const curHM = now.getHours() * 60 + now.getMinutes(); const cumDelays = calcVenueCumulativeDelays(); return data.venues.map(venue => { const matches = data.matches.filter(m => m.venue === venue).sort((a,b) => a.time.localeCompare(b.time)); if (!matches.length) return { venue, status: 'empty', current: null, next: null, totalDelay: 0, done: 0, total: 0 }; let totalDelay = 0, current = null, next = null, done = 0; matches.forEach(m => { const cumDelay = cumDelays[venue][m.id] || 0; const startHM = parseInt(m.time.split(':')[0]) * 60 + parseInt(m.time.split(':')[1]) + cumDelay; const endHM = startHM + (m.duration || 30); if (m.status === 'done') done++; else if (curHM >= startHM && curHM < endHM && !current) current = m; else if (curHM < startHM && !next && !current) next = m; totalDelay += m.delay || 0; }); const status = current ? 'running' : next ? 'waiting' : 'finished'; return { venue, status, current, next, totalDelay, done, total: matches.length }; }); } function renderVenueStatus() { const venues = calcVenueStatus(); const grid = document.getElementById('venueStatusGrid'); grid.innerHTML = venues.map(v => { const sc = { running: 'border-emerald-500/40 bg-emerald-500/10', waiting: 'border-blue-500/40 bg-blue-500/10', finished: 'border-gray-500/40 bg-gray-500/10', empty: 'border-gray-600/30 bg-gray-600/5' }[v.status]; const st = { running: '🔥 進行中', waiting: '⏳ 次待ち', finished: '✅ 終了', empty: '— 空き' }[v.status]; const dt = v.totalDelay > 0 ? `<span class="text-amber-400">+${v.totalDelay}分 遅延</span>` : v.totalDelay < 0 ? `<span class="text-cyan-400">${v.totalDelay}分 巻き</span>` : `<span class="text-gray-400">定刻</span>`; return ` <div class="venue-status-card sub-card rounded-2xl p-4 border-2 ${sc}"> <div class="flex items-center justify-between mb-2"> <h4 class="font-bold text-sm">${v.venue}</h4> <span class="text-xs px-2 py-0.5 rounded-full bg-white/10">${st}</span> </div> <div class="text-xs space-y-1"> <p>${dt}</p> ${v.current ? `<p class="text-emerald-400 truncate">現：${v.current.grade}</p>` : ''} ${v.next ? `<p class="text-blue-400 truncate">次：${v.next.time} ${v.next.sport}</p>` : ''} <p class="text-gray-500 pt-1 border-t border-white/5 mt-1">${v.done}/${v.total}</p> </div> </div> `; }).join(''); } function render() { renderVenueStatus(); const fGrade = document.getElementById('filterGrade')?.value; const fSport = document.getElementById('filterSport')?.value; const grid = document.getElementById('timetableGrid'); const cumDelays = calcVenueCumulativeDelays(); grid.innerHTML = ''; data.venues.forEach(venue => { let matches = data.matches.filter(m => m.venue === venue).sort((a,b) => a.time.localeCompare(b.time)); if (fGrade) matches = matches.filter(m => m.grade === fGrade); if (fSport) matches = matches.filter(m => m.sport === fSport); grid.innerHTML += ` <div class="flex-shrink-0" style="min-width: 320px;"> <div class="flex items-center justify-between mb-3 px-1"> <h2 class="font-bold text-lg flex items-center gap-2"><i data-lucide="map-pin" class="w-4 h-4 text-blue-400"></i>${venue}</h2> </div> <div class="space-y-3"> ${matches.length ? matches.map(m => { const cumDelay = cumDelays[venue][m.id] || 0; const actualStart = applyDelay(m.time, cumDelay); const actualEnd = calcEndTime(m.time, m.duration, cumDelay); const ownDelay = m.delay || 0;
+let delayBadge = '';
+if (cumDelay > 0) delayBadge = <span class="delay-chain-badge delay-chain-plus">定刻 +${cumDelay}分</span>;
+else if (cumDelay < 0) delayBadge = <span class="delay-chain-badge delay-chain-minus">定刻 ${cumDelay}分</span>;
+else delayBadge = <span class="delay-chain-badge delay-chain-zero">定刻通り</span>;
+const ownDelayBadge = ownDelay !== 0 ? <span class="text-xs ${ownDelay > 0 ? 'text-amber-400' : 'text-cyan-400'} ml-1"> (この試合${ownDelay > 0 ? '+' : ''}${ownDelay}分) </span> : '';
+const ranks = m.rank1 ? `
+<div class="flex flex-wrap gap-1.5 mt-2 text-xs"> ${m.rank1 ? `<span class="bg-amber-400/10 text-amber-400 px-2 py-1 rounded-full">🥇${m.rank1}</span>` : ''} ${m.rank2 ? `<span class="bg-gray-400/10 text-gray-300 px-2 py-1 rounded-full">🥈${m.rank2}</span>` : ''} ${m.rank3 ? `<span class="bg-amber-700/10 text-amber-700 px-2 py-1 rounded-full">🥉${m.rank3}</span>` : ''} ${m.rank4 ? `<span class="bg-gray-600/20 text-gray-400 px-2 py-1 rounded-full">4${m.rank4}</span>` : ''} </div> ` : ''; return ` <div class="sub-card rounded-2xl p-4 cursor-pointer ${getStatusStyle(m.status)}" data-edit-id="${m.id}"> <div class="flex justify-between items-start mb-2"> <div class="flex items-center gap-2 flex-wrap"> <span class="font-mono-num font-bold text-lg">${actualStart}</span> <span class="font-mono-num text-xs text-gray-500">→${actualEnd}</span> <span class="text-xs px-2 py-0.5 rounded-full bg-white/10">${m.grade}</span> <span class="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300">${m.sport}</span> ${delayBadge}${ownDelayBadge} </div> <span class="text-xs font-medium px-2.5 py-1 rounded-full bg-white/10">${getStatusLabel(m.status)}</span> </div> <p class="text-xs text-gray-500">📅 定刻 ${m.time} | ⏱️ 所要 ${m.duration || 30}分</p> ${ranks} ${m.note?`<p class="text-xs text-gray-400 mt-1">📝 ${m.note}</p>`:''} </div> `}).join('') : '<p class="text-gray-500 text-sm px-2 py-4 text-center bg-white/5 rounded-xl border border-dashed border-white/10">該当なし</p>'} </div> </div> `; }); bindGridEvents(); calcRanking(); lucide.createIcons(); } function calcRanking() { const groups = { A: { name: 'A組', total: 0, details: [] }, B: { name: 'B組', total: 0, details: [] }, C: { name: 'C組', total: 0, details: [] }, D: { name: 'D組', total: 0, details: [] } }; data.matches.filter(m => m.status === 'done' && m.rank1).forEach(m => { const table = BALL_SCORING[m.sport] || [150, 100, 50, 0]; [m.rank1, m.rank2, m.rank3, m.rank4].forEach((g, i) => { if (g && groups[g] && table[i] !== undefined) { groups[g].total += table[i]; groups[g].details.push(`${m.grade}:${table[i]}`); } }); }); const ranking = Object.values(groups).sort((a, b) => b.total - a.total); const listEl = document.getElementById('rankingList'); if (!ranking.some(r => r.total > 0)) { listEl.innerHTML = '<p class="text-gray-500 text-sm text-center py-6">終了した試合がありません</p>'; return; } listEl.innerHTML = ranking.map((t, i) => { const rc = ['rank-1', 'rank-2', 'rank-3', 'rank-4'][i] || 'bg-white/5 border border-white/5'; const medal = ['🥇', '🥈', '🥉', '4位'][i] || `${i + 1}位`; return ` <div class="sub-card ${rc} rounded-xl p-4 flex items-center gap-4"> <div class="w-14 text-center font-bold text-2xl">${medal}</div> <div class="flex-1 min-w-0"> <p class="font-bold text-xl">${t.name}</p> <p class="text-xs text-gray-400 truncate">${t.details.join(' / ')}</p> </div> <div class="text-right"><p class="font-mono-num font-bold text-3xl">${t.total}</p><p class="text-xs text-gray-500">pt</p></div> </div> `; }).join(''); } function bindGridEvents() { document.querySelectorAll('[data-edit-id]').forEach(el => el.addEventListener('click', () => openEdit(Number(el.dataset.editId)))); } function openEdit(id) { const m = data.matches.find(x => x.id === id); if (!m) return; document.getElementById('modalTitle').textContent = `${m.grade} ${m.sport}`; document.getElementById('modalSubtitle').textContent = `${m.venue} | 得点割：${(BALL_SCORING[m.sport] || [150,100,50,0]).slice(0,3).join(' / ')}`; document.getElementById('editMatchId').value = id; document.getElementById('editTime').value = m.time; document.getElementById('editDuration').value = m.duration || 30; document.getElementById('editDelay').value = m.delay || 0; document.getElementById('editStatus').value = m.status; document.getElementById('editNote').value = m.note || ''; document.getElementById('editRank1').value = m.rank1 || ''; document.getElementById('editRank2').value = m.rank2 || ''; document.getElementById('editRank3').value = m.rank3 || ''; document.getElementById('editRank4').value = m.rank4 || ''; updateGroupButtons(); updateResultInputLock(); document.getElementById('editModal').classList.remove('hidden'); } function updateGroupButtons() { [1,2,3,4].forEach(rank => { const val = document.getElementById(`editRank${rank}`).value; document.querySelectorAll(`.group-select[data-rank="${rank}"] .group-btn`).forEach(btn => { btn.classList.remove('sel-1', 'sel-2', 'sel-3', 'sel-4'); if (btn.dataset.g === val) btn.classList.add(`sel-${rank}`); }); }); } document.addEventListener('click', e => { const btn = e.target.closest('.group-btn'); if (!btn || btn.disabled) return; const rank = btn.closest('.group-select').dataset.rank; const g = btn.dataset.g; [1,2,3,4].forEach(r => { if (r != rank && document.getElementById(`editRank${r}`).value === g) document.getElementById(`editRank${r}`).value = ''; }); document.getElementById(`editRank${rank}`).value = g; updateGroupButtons(); }); function closeModal() { document.getElementById('editModal').classList.add('hidden'); } document.querySelectorAll('.adj-btn').forEach(btn => { btn.addEventListener('click', () => { document.getElementById('editDelay').value = Number(document.getElementById('editDelay').value) + Number(btn.dataset.adj); }); }); document.getElementById('filterGrade')?.addEventListener('change', render); document.getElementById('filterSport')?.addEventListener('change', render); document.getElementById('manualSyncBtn').addEventListener('click', async () => { data = await Sync.load('ball_sports_data_v4', getDefaultData()); render(); }); document.getElementById('exportBtn').addEventListener('click', () => { const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `ball_sports_${new Date().toISOString().slice(0,10)}.json`; a.click(); URL.revokeObjectURL(url); }); document.getElementById('modalClose').addEventListener('click', closeModal); document.getElementById('editModal').addEventListener('click', e => { if (e.target.id === 'editModal') closeModal(); }); document.getElementById('matchForm').addEventListener('submit', async e => { e.preventDefault(); const id = Number(document.getElementById('editMatchId').value); const m = data.matches.find(x => x.id === id); if (!m) return; const before = JSON.parse(JSON.stringify(m)); m.time = document.getElementById('editTime').value; m.duration = Number(document.getElementById('editDuration').value) || 30; m.delay = Number(document.getElementById('editDelay').value) || 0; m.status = document.getElementById('editStatus').value;
+if (isAuthed) {
+m.rank1 = document.getElementById('editRank1').value;
+m.rank2 = document.getElementById('editRank2').value;
+m.rank3 = document.getElementById('editRank3').value;
+m.rank4 = document.getElementById('editRank4').value;
+}
+m.note = document.getElementById('editNote').value.trim();
+if (isAuthed && (m.rank1 || m.rank2 || m.rank3 || before.rank1 !== m.rank1)) {
+await Sync.addHistory({
+timestamp: new Date().toISOString(),
+type: 'result',
+page: 'ball',
+matchId: id,
+matchName: ${m.grade} ${m.sport},
+venue: m.venue,
+before: { rank1: before.rank1, rank2: before.rank2, rank3: before.rank3, rank4: before.rank4, status: before.status, delay: before.delay },
+after: { rank1: m.rank1, rank2: m.rank2, rank3: m.rank3, rank4: m.rank4, status: m.status, delay: m.delay },
+userAgent: navigator.userAgent,
+device: getDeviceInfo()
+});
+} else if (before.status !== m.status || before.delay !== m.delay) {
+await Sync.addHistory({
+timestamp: new Date().toISOString(),
+type: before.status !== m.status ? 'status' : 'delay',
+page: 'ball',
+matchId: id,
+matchName: ${m.grade} ${m.sport},
+venue: m.venue,
+before: { status: before.status, delay: before.delay },
+after: { status: m.status, delay: m.delay },
+userAgent: navigator.userAgent,
+device: getDeviceInfo()
+});
+}
+await Sync.save ('ball_sports_data_v4', data);
+render (); closeModal ();
+});
+async function init () {
+Sync.setStatus ('syncing', ' 接続中...');
+data = await Sync.load ('ball_sports_data_v4', getDefaultData ());
+render ();
+Sync.subscribe ('ball_sports_data_v4', remote => {
+data = remote;
+render ();
+});
+}
+init ();
+setInterval (renderVenueStatus, 30000);
+</script></body> </html>
