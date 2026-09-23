@@ -57,6 +57,8 @@
     .rank-3 { background: linear-gradient(135deg, rgba(180,83,9,0.2), rgba(146,64,14,0.1)); border-left: 3px solid #b45309; }
     @keyframes pulse-soft { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
     .pulse-dot { animation: pulse-soft 1.2s ease-in-out infinite; }
+    .venue-status-card { transition: all 0.3s ease; }
+    .venue-status-card:hover { transform: translateY(-3px); }
   </style>
 </head>
 <body class="text-white min-h-screen">
@@ -81,36 +83,16 @@
   </header>
 
   <main class="max-w-7xl mx-auto px-4 py-8 md:py-12">
-    <!-- 全体状況 -->
+    <!-- 🔴 各コートの時間状況 -->
     <div class="card rounded-3xl p-6 md:p-8 mb-8 fade-in-up">
       <div class="flex items-center gap-2 mb-6">
         <div class="w-2 h-2 rounded-full bg-blue-500 pulse-dot"></div>
-        <p class="text-gray-400 text-xs tracking-[0.25em] uppercase">全体状況</p>
+        <p class="text-gray-400 text-xs tracking-[0.25em] uppercase">各コート 時間状況</p>
       </div>
-      <div class="grid gap-4 md:grid-cols-4">
-        <div class="sub-card rounded-2xl p-4">
-          <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">進行中</p>
-          <p id="nowRunning" class="text-xl font-bold text-emerald-400">なし</p>
-        </div>
-        <div class="sub-card rounded-2xl p-4">
-          <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">時間調整</p>
-          <p id="timeAdjust" class="text-xl font-bold font-mono-num">±0分</p>
-        </div>
-        <div class="sub-card rounded-2xl p-4">
-          <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">試合消化</p>
-          <p id="matchProgress" class="text-xl font-bold">0 / 0</p>
-        </div>
-        <div class="sub-card rounded-2xl p-4">
-          <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">会場数</p>
-          <p id="venueCount" class="text-xl font-bold text-blue-400">0</p>
-        </div>
-      </div>
-      <div class="mt-5 pt-5 border-t border-white/5 flex flex-wrap gap-3 items-center">
-        <label class="text-sm text-gray-400">⏱️ 全体時間調整：</label>
-        <input type="number" id="globalDelay" value="0" class="w-24 rounded-lg px-3 py-2 text-center" placeholder="分">
-        <span class="text-sm text-gray-500">分</span>
-        <button id="applyDelayBtn" class="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/15 transition-colors text-sm">適用</button>
-        <button id="resetDelayBtn" class="px-4 py-2 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400 transition-colors text-sm">リセット</button>
+      <div id="venueStatusGrid" class="grid gap-4 md:grid-cols-3 lg:grid-cols-6 mb-6"></div>
+      
+      <div class="pt-5 border-t border-white/5">
+        <p class="text-sm text-gray-400 mb-3">📌 各試合ごとに個別で時間調整が可能です（クリックして編集）</p>
       </div>
     </div>
 
@@ -130,7 +112,7 @@
         <option value="アルティメット">アルティメット</option>
         <option value="卓球">卓球</option>
       </select>
-      <p class="text-xs text-gray-500 ml-auto">※ 試合の追加・削除は設定画面から行えます</p>
+      <p class="text-xs text-gray-500 ml-auto">※ 試合の追加は設定画面から行えます</p>
     </div>
 
     <!-- タイムテーブル本体 -->
@@ -179,14 +161,30 @@
             <input type="time" id="editTime" class="w-full rounded-xl px-4 py-3" required>
           </div>
           <div>
-            <label class="block text-sm text-gray-400 mb-1.5">ステータス</label>
-            <select id="editStatus" class="w-full rounded-xl px-4 py-3">
-              <option value="future">まもなく</option>
-              <option value="pending">準備中</option>
-              <option value="running">🔥 進行中</option>
-              <option value="done">✅ 終了</option>
-            </select>
+            <label class="block text-sm text-gray-400 mb-1.5">所要時間（分）</label>
+            <input type="number" id="editDuration" value="15" min="1" class="w-full rounded-xl px-4 py-3 text-center">
           </div>
+        </div>
+        <!-- 🔴 個別時間調整：プラス・マイナス両対応 -->
+        <div>
+          <label class="block text-sm text-gray-400 mb-1.5">⏱️ 時間調整（分）</label>
+          <div class="flex items-center gap-2">
+            <button type="button" class="adjust-btn px-3 py-2 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 font-bold" data-adjust="-5">-5</button>
+            <button type="button" class="adjust-btn px-3 py-2 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 font-bold" data-adjust="-1">-1</button>
+            <input type="number" id="editDelay" value="0" class="flex-1 rounded-xl px-4 py-3 text-center font-mono-num text-lg" placeholder="0">
+            <button type="button" class="adjust-btn px-3 py-2 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 font-bold" data-adjust="1">+1</button>
+            <button type="button" class="adjust-btn px-3 py-2 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 font-bold" data-adjust="5">+5</button>
+          </div>
+          <p class="text-xs text-gray-500 mt-1">マイナス：巻いている / プラス：遅れている</p>
+        </div>
+        <div>
+          <label class="block text-sm text-gray-400 mb-1.5">ステータス</label>
+          <select id="editStatus" class="w-full rounded-xl px-4 py-3">
+            <option value="future">まもなく</option>
+            <option value="pending">準備中</option>
+            <option value="running">🔥 進行中</option>
+            <option value="done">✅ 終了</option>
+          </select>
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div>
@@ -213,7 +211,6 @@
   <script>
     lucide.createIcons();
 
-    // 共通設定
     function loadCommon() {
       try { const s = localStorage.getItem('common_settings');
         return s ? JSON.parse(s) : { classes: [], grades: ['中学1年','中学2年','中学3年','高校1年','高校2年','高校3年'] }; }
@@ -221,44 +218,37 @@
     }
     const common = loadCommon();
 
-    // デフォルト初期データ（PDFタイムテーブルより）
     function getDefaultData() {
       const classes = common.classes.length ? common.classes : ['中1A組','中1B組','中2A組','中2B組','中3A組','中3B組','高1A組','高1B組','高2A組','高2B組','高3A組','高3B組'];
       const c = (i) => classes[i % classes.length];
       return {
         venues: ['上グラウンド', '下グラウンド', '体育館', 'ハードコート', 'オムニコート', '卓球場'],
         matches: [
-          // 第1枠 8:20〜
-          { id: 1, venue: '上グラウンド', time: '08:20', sport: 'サッカー', grade: '中学1年', teamA: c(0), teamB: c(1), scoreA: 0, scoreB: 0, status: 'future', note: '' },
-          { id: 2, venue: '下グラウンド', time: '08:20', sport: 'サッカー', grade: '中学1年', teamA: c(2), teamB: c(3), scoreA: 0, scoreB: 0, status: 'future', note: '' },
-          { id: 3, venue: '体育館', time: '08:20', sport: 'バスケットボール', grade: '中学3年', teamA: c(4), teamB: c(5), scoreA: 0, scoreB: 0, status: 'future', note: '' },
-          { id: 4, venue: 'オムニコート', time: '08:20', sport: 'バレーボール', grade: '高校2年', teamA: c(6), teamB: c(7), scoreA: 0, scoreB: 0, status: 'future', note: '' },
-          { id: 5, venue: 'ハードコート', time: '08:20', sport: 'ドッジボール', grade: '中学2年', teamA: c(2), teamB: c(3), scoreA: 0, scoreB: 0, status: 'future', note: '' },
-          { id: 6, venue: '卓球場', time: '08:20', sport: '卓球', grade: '中学1年', teamA: c(0), teamB: c(1), scoreA: 0, scoreB: 0, status: 'future', note: '' },
-          // 第2枠 9:35〜
-          { id: 7, venue: '上グラウンド', time: '09:35', sport: 'サッカー', grade: '高校1年', teamA: c(8), teamB: c(9), scoreA: 0, scoreB: 0, status: 'future', note: '' },
-          { id: 8, venue: 'ハードコート', time: '09:35', sport: 'アルティメット', grade: '中学3年', teamA: c(4), teamB: c(5), scoreA: 0, scoreB: 0, status: 'future', note: '' },
-          { id: 9, venue: '体育館', time: '09:45', sport: 'バスケットボール', grade: '高校2年', teamA: c(6), teamB: c(7), scoreA: 0, scoreB: 0, status: 'future', note: '' },
-          { id: 10, venue: 'オムニコート', time: '09:55', sport: 'バレーボール', grade: '高校3年', teamA: c(10), teamB: c(11), scoreA: 0, scoreB: 0, status: 'future', note: '' },
-          { id: 11, venue: '卓球場', time: '09:25', sport: '卓球', grade: '高校1年', teamA: c(8), teamB: c(9), scoreA: 0, scoreB: 0, status: 'future', note: '' },
-          // 第3枠 10:55〜
-          { id: 12, venue: 'ハードコート', time: '10:45', sport: 'アルティメット', grade: '高校2年', teamA: c(6), teamB: c(7), scoreA: 0, scoreB: 0, status: 'future', note: '' },
-          { id: 13, venue: '上グラウンド', time: '10:50', sport: 'サッカー', grade: '中学2年', teamA: c(2), teamB: c(3), scoreA: 0, scoreB: 0, status: 'future', note: '' },
-          { id: 14, venue: '体育館', time: '10:50', sport: 'バスケットボール', grade: '中学1年', teamA: c(0), teamB: c(1), scoreA: 0, scoreB: 0, status: 'future', note: '' },
-          { id: 15, venue: '卓球場', time: '10:30', sport: '卓球', grade: '高校2年', teamA: c(6), teamB: c(7), scoreA: 0, scoreB: 0, status: 'future', note: '' },
-          // 第4枠 11:15〜
-          { id: 16, venue: '上グラウンド', time: '11:20', sport: 'サッカー', grade: '高校3年', teamA: c(10), teamB: c(11), scoreA: 0, scoreB: 0, status: 'future', note: '' },
-          { id: 17, venue: '下グラウンド', time: '11:25', sport: '野球', grade: '高校3年', teamA: c(10), teamB: c(11), scoreA: 0, scoreB: 0, status: 'future', note: '' },
-          { id: 18, venue: '体育館', time: '11:30', sport: 'バスケットボール', grade: '高校1年', teamA: c(8), teamB: c(9), scoreA: 0, scoreB: 0, status: 'future', note: '' },
-          { id: 19, venue: 'オムニコート', time: '11:30', sport: 'バレーボール', grade: '高校1年', teamA: c(8), teamB: c(9), scoreA: 0, scoreB: 0, status: 'future', note: '' },
-          // 第5枠 12:35〜
-          { id: 20, venue: '上グラウンド', time: '12:35', sport: 'サッカー', grade: '高校2年', teamA: c(6), teamB: c(7), scoreA: 0, scoreB: 0, status: 'future', note: '' },
-          { id: 21, venue: '体育館', time: '13:00', sport: 'バスケットボール', grade: '高校3年', teamA: c(10), teamB: c(11), scoreA: 0, scoreB: 0, status: 'future', note: '' },
-          { id: 22, venue: '卓球場', time: '12:00', sport: '卓球', grade: '中学2年', teamA: c(2), teamB: c(3), scoreA: 0, scoreB: 0, status: 'future', note: '' },
-          { id: 23, venue: 'オムニコート', time: '13:35', sport: 'バレーボール', grade: '中学3年', teamA: c(4), teamB: c(5), scoreA: 0, scoreB: 0, status: 'future', note: '' },
-          { id: 24, venue: '上グラウンド', time: '13:50', sport: 'サッカー', grade: '高校3年', teamA: c(10), teamB: c(11), scoreA: 0, scoreB: 0, status: 'future', note: '' },
+          { id: 1, venue: '上グラウンド', time: '08:20', sport: 'サッカー', grade: '中学1年', teamA: c(0), teamB: c(1), scoreA: 0, scoreB: 0, status: 'future', note: '', delay: 0, duration: 67 },
+          { id: 2, venue: '下グラウンド', time: '08:20', sport: 'サッカー', grade: '中学1年', teamA: c(2), teamB: c(3), scoreA: 0, scoreB: 0, status: 'future', note: '', delay: 0, duration: 67 },
+          { id: 3, venue: '体育館', time: '08:20', sport: 'バスケットボール', grade: '中学3年', teamA: c(4), teamB: c(5), scoreA: 0, scoreB: 0, status: 'future', note: '', delay: 0, duration: 57 },
+          { id: 4, venue: 'オムニコート', time: '08:20', sport: 'バレーボール', grade: '高校2年', teamA: c(6), teamB: c(7), scoreA: 0, scoreB: 0, status: 'future', note: '', delay: 0, duration: 85 },
+          { id: 5, venue: 'ハードコート', time: '08:20', sport: 'ドッジボール', grade: '中学2年', teamA: c(2), teamB: c(3), scoreA: 0, scoreB: 0, status: 'future', note: '', delay: 0, duration: 55 },
+          { id: 6, venue: '卓球場', time: '08:20', sport: '卓球', grade: '中学1年', teamA: c(0), teamB: c(1), scoreA: 0, scoreB: 0, status: 'future', note: '', delay: 0, duration: 55 },
+          { id: 7, venue: '上グラウンド', time: '09:35', sport: 'サッカー', grade: '高校1年', teamA: c(8), teamB: c(9), scoreA: 0, scoreB: 0, status: 'future', note: '', delay: 0, duration: 67 },
+          { id: 8, venue: 'ハードコート', time: '09:35', sport: 'アルティメット', grade: '中学3年', teamA: c(4), teamB: c(5), scoreA: 0, scoreB: 0, status: 'future', note: '', delay: 0, duration: 52 },
+          { id: 9, venue: '体育館', time: '09:45', sport: 'バスケットボール', grade: '高校2年', teamA: c(6), teamB: c(7), scoreA: 0, scoreB: 0, status: 'future', note: '', delay: 0, duration: 57 },
+          { id: 10, venue: 'オムニコート', time: '09:55', sport: 'バレーボール', grade: '高校3年', teamA: c(10), teamB: c(11), scoreA: 0, scoreB: 0, status: 'future', note: '', delay: 0, duration: 85 },
+          { id: 11, venue: '卓球場', time: '09:25', sport: '卓球', grade: '高校1年', teamA: c(8), teamB: c(9), scoreA: 0, scoreB: 0, status: 'future', note: '', delay: 0, duration: 55 },
+          { id: 12, venue: '上グラウンド', time: '10:50', sport: 'サッカー', grade: '中学2年', teamA: c(2), teamB: c(3), scoreA: 0, scoreB: 0, status: 'future', note: '', delay: 0, duration: 67 },
+          { id: 13, venue: '体育館', time: '10:50', sport: 'バスケットボール', grade: '中学1年', teamA: c(0), teamB: c(1), scoreA: 0, scoreB: 0, status: 'future', note: '', delay: 0, duration: 57 },
+          { id: 14, venue: '卓球場', time: '10:30', sport: '卓球', grade: '高校2年', teamA: c(6), teamB: c(7), scoreA: 0, scoreB: 0, status: 'future', note: '', delay: 0, duration: 55 },
+          { id: 15, venue: '上グラウンド', time: '11:20', sport: 'サッカー', grade: '高校3年', teamA: c(10), teamB: c(11), scoreA: 0, scoreB: 0, status: 'future', note: '', delay: 0, duration: 67 },
+          { id: 16, venue: '下グラウンド', time: '11:25', sport: '野球', grade: '高校3年', teamA: c(10), teamB: c(11), scoreA: 0, scoreB: 0, status: 'future', note: '', delay: 0, duration: 60 },
+          { id: 17, venue: 'オムニコート', time: '11:30', sport: 'バレーボール', grade: '高校1年', teamA: c(8), teamB: c(9), scoreA: 0, scoreB: 0, status: 'future', note: '', delay: 0, duration: 85 },
+          { id: 18, venue: '上グラウンド', time: '12:35', sport: 'サッカー', grade: '高校2年', teamA: c(6), teamB: c(7), scoreA: 0, scoreB: 0, status: 'future', note: '', delay: 0, duration: 67 },
+          { id: 19, venue: '体育館', time: '13:00', sport: 'バスケットボール', grade: '高校1年', teamA: c(8), teamB: c(9), scoreA: 0, scoreB: 0, status: 'future', note: '', delay: 0, duration: 57 },
+          { id: 20, venue: '卓球場', time: '12:00', sport: '卓球', grade: '中学2年', teamA: c(2), teamB: c(3), scoreA: 0, scoreB: 0, status: 'future', note: '', delay: 0, duration: 55 },
+          { id: 21, venue: 'オムニコート', time: '13:35', sport: 'バレーボール', grade: '中学3年', teamA: c(4), teamB: c(5), scoreA: 0, scoreB: 0, status: 'future', note: '', delay: 0, duration: 85 },
+          { id: 22, venue: '上グラウンド', time: '13:50', sport: 'サッカー', grade: '高校3年', teamA: c(10), teamB: c(11), scoreA: 0, scoreB: 0, status: 'future', note: '', delay: 0, duration: 67 },
+          { id: 23, venue: '下グラウンド', time: '13:00', sport: '野球', grade: '高校3年', teamA: c(10), teamB: c(11), scoreA: 0, scoreB: 0, status: 'future', note: '', delay: 0, duration: 60 },
+          { id: 24, venue: '体育館', time: '14:05', sport: 'バスケットボール', grade: '高校3年', teamA: c(10), teamB: c(11), scoreA: 0, scoreB: 0, status: 'future', note: '', delay: 0, duration: 57 },
         ],
-        globalDelay: 0,
         points: { win: 3, draw: 1, lose: 0 }
       };
     }
@@ -270,16 +260,93 @@
       if (s) try { data = Object.assign(getDefaultData(), JSON.parse(s)); } catch {}
     }
 
-    function applyDelay(time) {
-      if (!data.globalDelay) return time;
+    function applyDelay(time, delay) {
+      if (!delay) return time;
       const [h, m] = time.split(':').map(Number);
-      const total = h * 60 + m + data.globalDelay;
+      const total = h * 60 + m + delay;
       const nh = Math.floor((total % 1440 + 1440) % 1440 / 60);
       const nm = ((total % 60) + 60) % 60;
       return `${String(nh).padStart(2,'0')}:${String(nm).padStart(2,'0')}`;
     }
+    function calcEndTime(time, duration, delay) {
+      return applyDelay(time, (duration || 15) + (delay || 0));
+    }
     function getStatusStyle(s) { return { running: 'status-running', pending: 'status-pending', done: 'status-done', future: 'status-future' }[s] || 'status-future'; }
     function getStatusLabel(s) { return { future: 'まもなく', pending: '準備中', running: '🔥 進行中', done: '✅ 終了' }[s] || s; }
+
+    // 🔴 各コートの状況を計算
+    function calcVenueStatus() {
+      const now = new Date();
+      const curHM = now.getHours() * 60 + now.getMinutes();
+      
+      return data.venues.map(venue => {
+        const matches = data.matches.filter(m => m.venue === venue).sort((a,b) => a.time.localeCompare(b.time));
+        if (!matches.length) return { venue, status: 'empty', current: null, next: null, totalDelay: 0, done: 0, total: 0 };
+        
+        let totalDelay = 0;
+        let current = null, next = null;
+        let done = 0;
+        
+        matches.forEach(m => {
+          const startHM = parseInt(m.time.split(':')[0]) * 60 + parseInt(m.time.split(':')[1]) + totalDelay;
+          const endHM = startHM + (m.duration || 15);
+          
+          if (m.status === 'done') done++;
+          else if (curHM >= startHM && curHM < endHM && !current) current = m;
+          else if (curHM < startHM && !next && !current) next = m;
+          
+          totalDelay += m.delay || 0;
+        });
+        
+        if (current) status = 'running';
+        else if (next) status = 'waiting';
+        else status = 'finished';
+        
+        return { venue, status, current, next, totalDelay, done, total: matches.length };
+      });
+    }
+
+    function renderVenueStatus() {
+      const venues = calcVenueStatus();
+      const grid = document.getElementById('venueStatusGrid');
+      
+      grid.innerHTML = venues.map(v => {
+        const statusColor = {
+          running: 'border-emerald-500/40 bg-emerald-500/10',
+          waiting: 'border-blue-500/40 bg-blue-500/10',
+          finished: 'border-gray-500/40 bg-gray-500/10',
+          empty: 'border-gray-600/30 bg-gray-600/5'
+        }[v.status];
+        
+        const statusText = {
+          running: '🔥 進行中',
+          waiting: '⏳ 次待ち',
+          finished: '✅ 終了',
+          empty: '— 空き'
+        }[v.status];
+        
+        const delayText = v.totalDelay > 0 
+          ? `<span class="text-amber-400">+${v.totalDelay}分 遅延</span>`
+          : v.totalDelay < 0 
+            ? `<span class="text-blue-400">${v.totalDelay}分 巻き</span>`
+            : `<span class="text-gray-400">定刻</span>`;
+        
+        return `
+          <div class="venue-status-card sub-card rounded-2xl p-4 border-2 ${statusColor}">
+            <div class="flex items-center justify-between mb-2">
+              <h4 class="font-bold text-sm">${v.venue}</h4>
+              <span class="text-xs px-2 py-0.5 rounded-full bg-white/10">${statusText}</span>
+            </div>
+            <div class="text-xs space-y-1">
+              <p class="text-gray-400">${delayText}</p>
+              ${v.current ? `<p class="text-emerald-400 truncate">現：${v.current.teamA} vs ${v.current.teamB}</p>` : ''}
+              ${v.next ? `<p class="text-blue-400 truncate">次：${v.next.time} ${v.next.sport}</p>` : ''}
+              <p class="text-gray-500 pt-1 border-t border-white/5 mt-1">消化：${v.done}/${v.total}</p>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
 
     function updateFilterOptions() {
       document.getElementById('filterGrade').innerHTML = '<option value="">全学年</option>' + common.grades.map(g => `<option value="${g}">${g}</option>`).join('');
@@ -287,6 +354,8 @@
 
     function render() {
       updateFilterOptions();
+      renderVenueStatus();
+      
       const fGrade = document.getElementById('filterGrade')?.value;
       const fSport = document.getElementById('filterSport')?.value;
       
@@ -299,20 +368,29 @@
         if (fSport) matches = matches.filter(m => m.sport === fSport);
         
         grid.innerHTML += `
-          <div class="flex-shrink-0" style="min-width: 300px;">
+          <div class="flex-shrink-0" style="min-width: 320px;">
             <div class="flex items-center justify-between mb-3 px-1">
               <h2 class="font-bold text-lg flex items-center gap-2">
                 <i data-lucide="map-pin" class="w-4 h-4 text-blue-400"></i>${venue}
               </h2>
             </div>
             <div class="space-y-3">
-              ${matches.length ? matches.map(m => `
+              ${matches.length ? matches.map(m => {
+                const delay = m.delay || 0;
+                const delayBadge = delay > 0 
+                  ? `<span class="text-xs px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-400">+${delay}分 遅延</span>`
+                  : delay < 0 
+                    ? `<span class="text-xs px-2 py-0.5 rounded-full bg-blue-400/20 text-blue-400">${delay}分 巻き</span>`
+                    : '';
+                return `
                 <div class="sub-card rounded-2xl p-4 cursor-pointer ${getStatusStyle(m.status)}" data-edit-id="${m.id}">
                   <div class="flex justify-between items-start mb-2">
                     <div class="flex items-center gap-2 flex-wrap">
-                      <span class="font-mono-num font-bold text-lg">${applyDelay(m.time)}</span>
+                      <span class="font-mono-num font-bold text-lg">${applyDelay(m.time, delay)}</span>
+                      <span class="font-mono-num text-xs text-gray-500">→ ${calcEndTime(m.time, m.duration, delay)}</span>
                       ${m.grade ? `<span class="text-xs px-2 py-0.5 rounded-full bg-white/10">${m.grade}</span>` : ''}
                       ${m.sport ? `<span class="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300">${m.sport}</span>` : ''}
+                      ${delayBadge}
                     </div>
                     <span class="text-xs font-medium px-2.5 py-1 rounded-full bg-white/10 backdrop-blur">${getStatusLabel(m.status)}</span>
                   </div>
@@ -323,28 +401,17 @@
                     </span>
                     <span class="font-semibold flex-1">${m.teamB}</span>
                   </div>
+                  <p class="text-xs text-gray-500">⏱️ 所要 ${m.duration || 15}分</p>
                   ${m.note?`<p class="text-xs text-gray-400 mt-1">📝 ${m.note}</p>`:''}
                 </div>
-              `).join('') : '<p class="text-gray-500 text-sm px-2 py-4 text-center bg-white/5 rounded-xl border border-dashed border-white/10">該当試合なし</p>'}
+              `}).join('') : '<p class="text-gray-500 text-sm px-2 py-4 text-center bg-white/5 rounded-xl border border-dashed border-white/10">該当試合なし</p>'}
             </div>
           </div>
         `;
       });
       bindGridEvents();
-      updateOverview();
       calcRanking();
       lucide.createIcons();
-    }
-
-    function updateOverview() {
-      const running = data.matches.find(m => m.status === 'running');
-      const doneCount = data.matches.filter(m => m.status === 'done').length;
-      document.getElementById('nowRunning').textContent = running ? `${running.teamA} VS ${running.teamB}` : 'なし';
-      document.getElementById('timeAdjust').textContent = `${data.globalDelay >= 0 ? '+' : ''}${data.globalDelay}分`;
-      document.getElementById('timeAdjust').className = `text-xl font-bold font-mono-num ${data.globalDelay > 0 ? 'text-amber-400' : data.globalDelay < 0 ? 'text-blue-400' : 'text-white'}`;
-      document.getElementById('matchProgress').textContent = `${doneCount} / ${data.matches.length}`;
-      document.getElementById('venueCount').textContent = data.venues.length;
-      document.getElementById('globalDelay').value = data.globalDelay;
     }
 
     function calcRanking() {
@@ -397,6 +464,8 @@
       document.getElementById('modalTitle').textContent = `${m.teamA} VS ${m.teamB}`;
       document.getElementById('editMatchId').value = id;
       document.getElementById('editTime').value = m.time;
+      document.getElementById('editDuration').value = m.duration || 15;
+      document.getElementById('editDelay').value = m.delay || 0;
       document.getElementById('editStatus').value = m.status;
       document.getElementById('editScoreA').value = m.scoreA;
       document.getElementById('editScoreB').value = m.scoreB;
@@ -406,12 +475,14 @@
 
     function closeModal() { document.getElementById('editModal').classList.add('hidden'); }
 
-    // イベント
-    document.getElementById('applyDelayBtn').addEventListener('click', () => {
-      data.globalDelay = Number(document.getElementById('globalDelay').value) || 0;
-      saveData(); render();
+    // 調整ボタン
+    document.querySelectorAll('.adjust-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const input = document.getElementById('editDelay');
+        input.value = Number(input.value) + Number(btn.dataset.adjust);
+      });
     });
-    document.getElementById('resetDelayBtn').addEventListener('click', () => { data.globalDelay = 0; saveData(); render(); });
+
     document.getElementById('filterGrade')?.addEventListener('change', render);
     document.getElementById('filterSport')?.addEventListener('change', render);
     document.getElementById('exportBtn').addEventListener('click', () => {
@@ -429,6 +500,8 @@
       const m = data.matches.find(x => x.id === id);
       if (!m) return;
       m.time = document.getElementById('editTime').value;
+      m.duration = Number(document.getElementById('editDuration').value) || 15;
+      m.delay = Number(document.getElementById('editDelay').value) || 0;
       m.status = document.getElementById('editStatus').value;
       m.scoreA = Number(document.getElementById('editScoreA').value) || 0;
       m.scoreB = Number(document.getElementById('editScoreB').value) || 0;
@@ -436,8 +509,8 @@
       saveData(); render(); closeModal();
     });
 
-    // 初期化
     loadData(); render();
+    setInterval(renderVenueStatus, 30000);
   </script>
 </body>
 </html>
