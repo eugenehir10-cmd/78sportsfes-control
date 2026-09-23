@@ -6,6 +6,9 @@
   <title>入力履歴 管理｜スポーツフェスタ</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <!-- 🔥 Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -47,6 +50,12 @@
     .device-badge { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); }
     .changes-diff { background: rgba(255,255,255,0.03); border: 1px dashed rgba(255,255,255,0.1); }
     .empty-state { padding: 60px 20px; text-align: center; }
+    .sync-status { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 4px 10px; border-radius: 9999px; }
+    .sync-online { background: rgba(16,185,129,0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.3); }
+    .sync-offline { background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); }
+    .sync-syncing { background: rgba(59,130,246,0.15); color: #3b82f6; border: 1px solid rgba(59,130,246,0.3); }
+    @keyframes pulse-soft { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    .pulse-dot { animation: pulse-soft 1.2s ease-in-out infinite; }
   </style>
 </head>
 <body class="text-white max-w-4xl mx-auto px-4 py-10 md:py-14">
@@ -62,9 +71,16 @@
         </h1>
         <p class="text-gray-400 mt-3 text-sm">点数・順位・ステータスの入力履歴を閲覧</p>
       </div>
-      <div class="flex gap-2">
+      <div class="flex gap-2 items-center">
+        <span id="syncStatus" class="sync-status sync-syncing">
+          <span class="w-2 h-2 rounded-full bg-current pulse-dot"></span>
+          <span id="syncStatusText">接続中...</span>
+        </span>
+        <button id="manualSyncBtn" class="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/15 transition-colors text-sm flex items-center gap-1.5">
+          <i data-lucide="refresh-cw" class="w-4 h-4"></i><span class="hidden sm:inline">同期</span>
+        </button>
         <button id="exportCsvBtn" class="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/15 transition-colors text-sm flex items-center gap-2">
-          <i data-lucide="file-text" class="w-4 h-4"></i><span class="hidden sm:inline">CSV出力</span>
+          <i data-lucide="file-text" class="w-4 h-4"></i><span class="hidden sm:inline">CSV</span>
         </button>
         <button id="clearBtn" class="px-4 py-2 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400 transition-colors text-sm flex items-center gap-2">
           <i data-lucide="trash-2" class="w-4 h-4"></i><span class="hidden sm:inline">削除</span>
@@ -127,7 +143,70 @@
   <script>
     lucide.createIcons();
 
-    function loadHistory() { return JSON.parse(localStorage.getItem('input_history_v4') || '[]'); }
+    // 🔥 Firebase初期化
+    const FIREBASE_CONFIG = {
+      apiKey: "AIzaSyAWVUxoXbvTraGUDozLztqcJx2f2fIHQntc",
+      authDomain: "thsportsfes.firebaseapp.com",
+      projectId: "thsportsfes",
+      storageBucket: "thsportsfes.appspot.com",
+      messagingSenderId: "96596815858",
+      appId: "1:96596815858:web:5f85526bf785ccc5d8056b"
+    };
+    firebase.initializeApp(FIREBASE_CONFIG);
+    const db = firebase.firestore();
+
+    const Sync = {
+      setStatus(s, text) {
+        const el = document.getElementById('syncStatus');
+        const txt = document.getElementById('syncStatusText');
+        if (!el) return;
+        el.className = `sync-status sync-${s}`;
+        if (txt) txt.textContent = text;
+      },
+      async mergeHistoryFromFirestore() {
+        try {
+          this.setStatus('syncing', '履歴同期中...');
+          const snap = await db.collection('input_history').orderBy('timestamp', 'desc').limit(500).get();
+          const remote = [];
+          snap.forEach(doc => {
+            const d = doc.data();
+            remote.push({
+              ...d,
+              timestamp: d.timestamp?.toDate?.().toISOString() || d.timestamp || new Date().toISOString(),
+              _id: doc.id
+            });
+          });
+          const local = JSON.parse(localStorage.getItem('input_history_v4') || '[]');
+          // マージ：重複排除（タイムスタンプ+種目名+ページで判定）
+          const merged = [...local];
+          const keys = new Set(local.map(h => `${h.timestamp}-${h.eventName||h.matchName}-${h.page}`));
+          remote.forEach(r => {
+            const key = `${r.timestamp}-${r.eventName||r.matchName}-${r.page}`;
+            if (!keys.has(key)) { merged.push(r); keys.add(key); }
+          });
+          merged.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+          const trimmed = merged.slice(0, 500);
+          localStorage.setItem('input_history_v4', JSON.stringify(trimmed));
+          this.setStatus('online', 'オンライン');
+          return trimmed;
+        } catch (e) {
+          console.warn('Firestore履歴読込失敗:', e);
+          this.setStatus('offline', 'オフライン');
+          return JSON.parse(localStorage.getItem('input_history_v4') || '[]');
+        }
+      },
+      subscribeHistory(callback) {
+        return db.collection('input_history').orderBy('timestamp', 'desc').limit(100).onSnapshot(async () => {
+          const hist = await this.mergeHistoryFromFirestore();
+          callback(hist);
+        }, err => {
+          console.warn('履歴同期エラー:', err);
+          this.setStatus('offline', 'オフライン');
+        });
+      }
+    };
+
+    let historyData = [];
 
     function formatDate(iso) {
       const d = new Date(iso);
@@ -154,7 +233,7 @@
     }
 
     function renderHistory() {
-      const hist = loadHistory();
+      const hist = historyData;
       renderSummary(hist);
 
       const fPage = document.getElementById('filterPage').value;
@@ -191,7 +270,6 @@
         const grade = h.grade ? `<span class="text-xs px-2 py-0.5 rounded-full bg-white/10">${h.grade}</span>` : '';
         const venue = h.venue ? `<span class="text-xs px-2 py-0.5 rounded-full bg-white/10">${h.venue}</span>` : '';
 
-        // 変更点を表示
         const changes = [];
         if (h.after) {
           ['rank1', 'rank2', 'rank3', 'rank4'].forEach(r => {
@@ -260,14 +338,29 @@
     document.getElementById('filterType').addEventListener('change', renderHistory);
     document.getElementById('searchInput').addEventListener('input', renderHistory);
 
-    document.getElementById('clearBtn').addEventListener('click', () => {
-      if (!confirm('入力履歴を全て削除しますか？\nこの操作は取り消せません。')) return;
-      localStorage.removeItem('input_history_v4');
+    document.getElementById('manualSyncBtn').addEventListener('click', async () => {
+      historyData = await Sync.mergeHistoryFromFirestore();
       renderHistory();
     });
 
+    document.getElementById('clearBtn').addEventListener('click', async () => {
+      if (!confirm('入力履歴を全て削除しますか？\nFirebase側も削除されます。\nこの操作は取り消せません。')) return;
+      localStorage.removeItem('input_history_v4');
+      try {
+        Sync.setStatus('syncing', '削除中...');
+        const snap = await db.collection('input_history').limit(500).get();
+        const batch = db.batch();
+        snap.forEach(doc => batch.delete(doc.ref));
+        await batch.commit();
+        Sync.setStatus('online', 'オンライン');
+      } catch (e) { console.warn(e); }
+      historyData = [];
+      renderHistory();
+      alert('削除しました');
+    });
+
     document.getElementById('exportCsvBtn').addEventListener('click', () => {
-      const hist = loadHistory();
+      const hist = historyData;
       if (!hist.length) { alert('履歴がありません'); return; }
       const header = ['日時', 'ページ', '種別', '種目名', '学年', '会場', '1位', '2位', '3位', '4位', 'ステータス', '遅延', '端末', 'UserAgent'];
       const rows = hist.map(h => [
@@ -291,7 +384,17 @@
       a.click(); URL.revokeObjectURL(url);
     });
 
-    renderHistory();
+    // 🔥 初期化 + リアルタイム同期
+    async function init() {
+      Sync.setStatus('syncing', '接続中...');
+      historyData = await Sync.mergeHistoryFromFirestore();
+      renderHistory();
+      Sync.subscribeHistory(hist => {
+        historyData = hist;
+        renderHistory();
+      });
+    }
+    init();
   </script>
 </body>
 </html>
