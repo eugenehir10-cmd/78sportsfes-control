@@ -460,8 +460,11 @@
     }
 
     // ✅ 全ての選択肢を初期化するマスター関数
+    // ✅ 全ての選択肢を初期化するマスター関数
     function initAllSelects() {
       try {
+        console.log('🔧 選択肢初期化 開始');
+        
         // --- 会場選択肢 ---
         const venues = ['上グラウンド', '下グラウンド', '体育館', 'ハードコート', 'オムニコート', '卓球場'];
         const ballVenue = document.getElementById('ballVenue');
@@ -470,6 +473,7 @@
           ballVenue.innerHTML = '<option value="">会場を選択</option>' + 
             venues.map(v => `<option value="${v}">${v}</option>`).join('');
           if (currentVal && venues.includes(currentVal)) ballVenue.value = currentVal;
+          console.log('✅ 会場選択肢 OK:', venues.length, '件');
         }
 
         // --- 競技選択肢 ---
@@ -480,6 +484,7 @@
           ballSport.innerHTML = '<option value="">競技を選択</option>' + 
             sports.map(s => `<option value="${s}">${s}</option>`).join('');
           if (currentVal && sports.includes(currentVal)) ballSport.value = currentVal;
+          console.log('✅ 球技日 競技選択肢 OK:', sports.length, '件');
         }
 
         // --- 学年選択肢 ---
@@ -497,6 +502,8 @@
           teamGrade.innerHTML = '<option value="">対象学年（任意）</option>' + gradeOpts;
           if (currentVal && grades.includes(currentVal)) teamGrade.value = currentVal;
         }
+        console.log('✅ 学年選択肢 OK:', grades.length, '件');
+
         // --- 団体競技日 種目選択肢 ---
         const teamSports = [
           '開会式', '大玉送り', '竹取物語', '台風の目', 'しっぽとり',
@@ -504,14 +511,19 @@
           '100人フットボール', '選抜リレー', '騎馬戦', '団長騎馬戦', '閉会式', 'その他'
         ];
         const teamSportSelect = document.getElementById('teamSportSelect');
+        console.log('🔍 teamSportSelect 要素:', teamSportSelect);
         if (teamSportSelect) {
           const currentVal = teamSportSelect.value;
           teamSportSelect.innerHTML = '<option value="">種目を選択</option>' + 
             teamSports.map(s => `<option value="${s}">${s}</option>`).join('');
           if (currentVal && teamSports.includes(currentVal)) teamSportSelect.value = currentVal;
+          console.log('✅ 団体競技日 種目選択肢 OK:', teamSports.length, '件');
+        } else {
+          console.warn('⚠️ teamSportSelect 要素が見つかりません！HTMLのidを確認してください');
         }
+
       } catch (e) {
-        console.warn('選択肢初期化エラー:', e);
+        console.warn('❌ 選択肢初期化エラー:', e);
       }
     }
 
