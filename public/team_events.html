@@ -6,6 +6,9 @@
   <title>団体競技日 進行管理｜スポーツフェスタ</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <!-- 🔥 Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -66,6 +69,10 @@
     .group-btn.sel-2 { border-color: #9ca3af; background: rgba(156,163,175,0.2); color: #e5e7eb; }
     .group-btn.sel-3 { border-color: #b45309; background: rgba(180,83,9,0.2); color: #fbbf24; }
     .group-btn.sel-4 { border-color: #4b5563; background: rgba(75,85,99,0.2); color: #9ca3af; }
+    .sync-status { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 4px 10px; border-radius: 9999px; }
+    .sync-online { background: rgba(16,185,129,0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.3); }
+    .sync-offline { background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); }
+    .sync-syncing { background: rgba(59,130,246,0.15); color: #3b82f6; border: 1px solid rgba(59,130,246,0.3); }
   </style>
 </head>
 <body class="text-white max-w-4xl mx-auto px-4 py-10 md:py-14">
@@ -77,12 +84,21 @@
       <div>
         <p class="text-gray-500 text-xs tracking-[0.25em] uppercase mb-2">Team Events Management</p>
         <h1 class="text-3xl md:text-4xl font-bold tracking-tight glow-text flex items-center gap-3">
-          <i data-lucide="users" class="w-8 h-8 md:w-10 md:h-10 text-emerald-400"></i>🏃 団体競技日 進行管理
+          <i data-lucide="users" class="w-8 h-8 md:w-10 md:h-10 text-emerald-400"></i>🏃 団体競技日
         </h1>
       </div>
-      <button id="exportBtn" class="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/15 transition-colors text-sm flex items-center gap-1.5">
-        <i data-lucide="download" class="w-4 h-4"></i><span class="hidden sm:inline">出力</span>
-      </button>
+      <div class="flex gap-2 items-center">
+        <span id="syncStatus" class="sync-status sync-syncing">
+          <span class="w-2 h-2 rounded-full bg-current pulse-dot"></span>
+          <span id="syncStatusText">接続中...</span>
+        </span>
+        <button id="manualSyncBtn" class="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/15 transition-colors text-sm flex items-center gap-1.5">
+          <i data-lucide="refresh-cw" class="w-4 h-4"></i><span class="hidden sm:inline">同期</span>
+        </button>
+        <button id="exportBtn" class="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/15 transition-colors text-sm flex items-center gap-1.5">
+          <i data-lucide="download" class="w-4 h-4"></i><span class="hidden sm:inline">出力</span>
+        </button>
+      </div>
     </div>
     <div class="divider w-full mt-6 rounded-full"></div>
   </header>
@@ -279,6 +295,111 @@
   <script>
     lucide.createIcons();
 
+    // 🔥 Firebase初期化
+    const FIREBASE_CONFIG = {
+      apiKey: "AIzaSyAWVUxoXbvTraGUDozLztqcJx2f2fIHQntc",
+      authDomain: "thsportsfes.firebaseapp.com",
+      projectId: "thsportsfes",
+      storageBucket: "thsportsfes.appspot.com",
+      messagingSenderId: "96596815858",
+      appId: "1:96596815858:web:5f85526bf785ccc5d8056b"
+    };
+    firebase.initializeApp(FIREBASE_CONFIG);
+    const db = firebase.firestore();
+
+    // 🔥 同期ユーティリティ
+    const Sync = {
+      setStatus(s, text) {
+        const el = document.getElementById('syncStatus');
+        const txt = document.getElementById('syncStatusText');
+        if (!el) return;
+        el.className = `sync-status sync-${s}`;
+        if (txt) txt.textContent = text;
+      },
+      async save(key, data) {
+        localStorage.setItem(key, JSON.stringify(data));
+        try {
+          this.setStatus('syncing', '同期中...');
+          await db.collection('app_data').doc(key).set({
+            data: JSON.parse(JSON.stringify(data)),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            device: getDeviceInfo()
+          });
+          this.setStatus('online', 'オンライン');
+        } catch (e) {
+          console.warn('Firestore保存失敗:', e);
+          this.setStatus('offline', 'オフライン');
+        }
+      },
+      async load(key, defaultValue) {
+        const local = localStorage.getItem(key);
+        let localData = local ? JSON.parse(local) : defaultValue;
+        try {
+          this.setStatus('syncing', '読込中...');
+          const doc = await db.collection('app_data').doc(key).get();
+          if (doc.exists) {
+            const remote = doc.data().data;
+            localStorage.setItem(key, JSON.stringify(remote));
+            this.setStatus('online', 'オンライン');
+            return remote;
+          } else if (local) {
+            // 🔥 ローカル優先でFirestoreにアップロード
+            await db.collection('app_data').doc(key).set({
+              data: JSON.parse(JSON.stringify(localData)),
+              updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+              device: getDeviceInfo()
+            });
+            this.setStatus('online', 'オンライン');
+          }
+        } catch (e) {
+          console.warn('Firestore読込失敗:', e);
+          this.setStatus('offline', 'オフライン');
+        }
+        return localData;
+      },
+      subscribe(key, callback) {
+        return db.collection('app_data').doc(key).onSnapshot(snap => {
+          if (snap.exists) {
+            const data = snap.data().data;
+            localStorage.setItem(key, JSON.stringify(data));
+            this.setStatus('online', 'オンライン');
+            callback(data);
+          }
+        }, err => {
+          console.warn('同期エラー:', err);
+          this.setStatus('offline', 'オフライン');
+        });
+      },
+      async addHistory(entry) {
+        const hist = JSON.parse(localStorage.getItem('input_history_v4') || '[]');
+        hist.unshift(entry);
+        const trimmed = hist.slice(0, 500);
+        localStorage.setItem('input_history_v4', JSON.stringify(trimmed));
+        try {
+          await db.collection('input_history').add({
+            ...entry,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+          });
+        } catch (e) { console.warn('履歴保存失敗:', e); }
+      }
+    };
+
+    function getDeviceInfo() {
+      const ua = navigator.userAgent;
+      let device = 'Unknown';
+      if (/iPhone/.test(ua)) device = 'iPhone';
+      else if (/iPad/.test(ua)) device = 'iPad';
+      else if (/Android/.test(ua)) device = 'Android';
+      else if (/Mac/.test(ua)) device = 'Mac';
+      else if (/Windows/.test(ua)) device = 'Windows';
+      let browser = 'Unknown';
+      if (/Edg/.test(ua)) browser = 'Edge';
+      else if (/Chrome/.test(ua)) browser = 'Chrome';
+      else if (/Firefox/.test(ua)) browser = 'Firefox';
+      else if (/Safari/.test(ua)) browser = 'Safari';
+      return `${device} / ${browser}`;
+    }
+
     const TEAM_SCORING = {
       '大玉送り': [200, 150, 100, 50], '竹取物語': [200, 150, 100, 50], '台風の目': [200, 150, 100, 100],
       'しっぽとり': [200, 150, 100, 100], '借り人競争': [100, 90, 80, 70], '部対抗リレー': [0, 0, 0, 0],
@@ -313,42 +434,6 @@
     }
 
     let scheduleData = getDefaultData();
-    function saveSchedule() { localStorage.setItem('team_events_data_v4', JSON.stringify(scheduleData)); }
-    function loadSchedule() { const s = localStorage.getItem('team_events_data_v4'); if (s) try { scheduleData = Object.assign(getDefaultData(), JSON.parse(s)); } catch {} }
-
-    // 入力履歴
-    function addHistory(type, eventId, before, after) {
-      const hist = JSON.parse(localStorage.getItem('input_history_v4') || '[]');
-      hist.unshift({
-        timestamp: new Date().toISOString(),
-        type: type,
-        page: 'team',
-        eventId: eventId,
-        eventName: after.name,
-        grade: after.grade,
-        before: before,
-        after: { rank1: after.rank1, rank2: after.rank2, rank3: after.rank3, rank4: after.rank4, status: after.status, delay: after.delay },
-        userAgent: navigator.userAgent,
-        device: getDeviceInfo()
-      });
-      localStorage.setItem('input_history_v4', JSON.stringify(hist.slice(0, 500)));
-    }
-
-    function getDeviceInfo() {
-      const ua = navigator.userAgent;
-      let device = 'Unknown';
-      if (/iPhone/.test(ua)) device = 'iPhone';
-      else if (/iPad/.test(ua)) device = 'iPad';
-      else if (/Android/.test(ua)) device = 'Android';
-      else if (/Mac/.test(ua)) device = 'Mac';
-      else if (/Windows/.test(ua)) device = 'Windows';
-      let browser = 'Unknown';
-      if (/Edg/.test(ua)) browser = 'Edge';
-      else if (/Chrome/.test(ua)) browser = 'Chrome';
-      else if (/Firefox/.test(ua)) browser = 'Firefox';
-      else if (/Safari/.test(ua)) browser = 'Safari';
-      return `${device} / ${browser}`;
-    }
 
     function calcActualTime(event) {
       const sorted = [...scheduleData.events].sort((a, b) => a.time.localeCompare(b.time));
@@ -397,7 +482,6 @@
           </div>
         `;
       }).join('');
-      saveSchedule();
     }
 
     function renderTimetable() {
@@ -484,15 +568,41 @@
     }
 
     function bindEvents() {
-      document.querySelectorAll('.status-select').forEach(sel => sel.addEventListener('change', e => {
+      document.querySelectorAll('.status-select').forEach(sel => sel.addEventListener('change', async e => {
         const id = Number(e.target.dataset.id);
         const ev = scheduleData.events.find(x => x.id === id);
-        if (ev) { ev.status = e.target.value; saveSchedule(); renderTimetable(); }
+        if (ev) {
+          const before = ev.status;
+          ev.status = e.target.value;
+          if (before !== ev.status) {
+            await Sync.addHistory({
+              timestamp: new Date().toISOString(), type: 'status', page: 'team', eventId: id,
+              eventName: ev.name, grade: ev.grade,
+              before: { status: before }, after: { status: ev.status },
+              userAgent: navigator.userAgent, device: getDeviceInfo()
+            });
+          }
+          await Sync.save('team_events_data_v4', scheduleData);
+          renderTimetable();
+        }
       }));
-      document.querySelectorAll('.delay-input').forEach(inp => inp.addEventListener('change', e => {
+      document.querySelectorAll('.delay-input').forEach(inp => inp.addEventListener('change', async e => {
         const id = Number(e.target.dataset.id);
         const ev = scheduleData.events.find(x => x.id === id);
-        if (ev) { ev.delay = Number(e.target.value) || 0; saveSchedule(); renderTimetable(); }
+        if (ev) {
+          const before = ev.delay;
+          ev.delay = Number(e.target.value) || 0;
+          if (before !== ev.delay) {
+            await Sync.addHistory({
+              timestamp: new Date().toISOString(), type: 'delay', page: 'team', eventId: id,
+              eventName: ev.name, grade: ev.grade,
+              before: { delay: before }, after: { delay: ev.delay },
+              userAgent: navigator.userAgent, device: getDeviceInfo()
+            });
+          }
+          await Sync.save('team_events_data_v4', scheduleData);
+          renderTimetable();
+        }
       }));
       document.querySelectorAll('[data-edit]').forEach(btn => btn.addEventListener('click', () => openEdit(Number(btn.dataset.edit))));
     }
@@ -546,6 +656,10 @@
 
     document.getElementById('filterStatus')?.addEventListener('change', renderTimetable);
     document.getElementById('filterGrade')?.addEventListener('change', renderTimetable);
+    document.getElementById('manualSyncBtn').addEventListener('click', async () => {
+      scheduleData = await Sync.load('team_events_data_v4', getDefaultData());
+      renderTimetable();
+    });
     document.getElementById('exportBtn').addEventListener('click', () => {
       const blob = new Blob([JSON.stringify(scheduleData, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -555,7 +669,7 @@
     });
     document.getElementById('modalClose').addEventListener('click', closeModal);
     document.getElementById('editModal').addEventListener('click', e => { if (e.target.id === 'editModal') closeModal(); });
-    document.getElementById('eventForm').addEventListener('submit', e => {
+    document.getElementById('eventForm').addEventListener('submit', async e => {
       e.preventDefault();
       const id = Number(document.getElementById('editEventId').value);
       const ev = scheduleData.events.find(x => x.id === id);
@@ -571,13 +685,33 @@
       ev.rank3 = document.getElementById('editRank3').value;
       ev.rank4 = document.getElementById('editRank4').value;
       ev.note = document.getElementById('editNote').value.trim();
+      
       if (ev.rank1 || ev.rank2 || ev.rank3 || before.status !== ev.status || before.delay !== ev.delay) {
-        addHistory('result', id, before, ev);
+        await Sync.addHistory({
+          timestamp: new Date().toISOString(),
+          type: (ev.rank1 && before.rank1 !== ev.rank1) ? 'result' : (before.status !== ev.status ? 'status' : 'delay'),
+          page: 'team', eventId: id, eventName: ev.name, grade: ev.grade,
+          before: { rank1: before.rank1, rank2: before.rank2, rank3: before.rank3, rank4: before.rank4, status: before.status, delay: before.delay },
+          after: { rank1: ev.rank1, rank2: ev.rank2, rank3: ev.rank3, rank4: ev.rank4, status: ev.status, delay: ev.delay },
+          userAgent: navigator.userAgent, device: getDeviceInfo()
+        });
       }
-      saveSchedule(); renderTimetable(); closeModal();
+      
+      await Sync.save('team_events_data_v4', scheduleData);
+      renderTimetable(); closeModal();
     });
 
-    loadSchedule(); renderTimetable();
+    // 🔥 初期化 + リアルタイム同期
+    async function init() {
+      Sync.setStatus('syncing', '接続中...');
+      scheduleData = await Sync.load('team_events_data_v4', getDefaultData());
+      renderTimetable();
+      Sync.subscribe('team_events_data_v4', remote => {
+        scheduleData = remote;
+        renderTimetable();
+      });
+    }
+    init();
     setInterval(renderTimetable, 60000);
   </script>
 </body>
