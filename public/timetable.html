@@ -301,16 +301,46 @@
           <div id="tab-team" class="tab-content hidden">
             <div class="settings-section">
               <h4><i data-lucide="flag" class="w-4 h-4 text-emerald-400"></i>🏃 団体競技日 種目追加</h4>
-              <div class="grid gap-3 mb-4">
-                <input type="text" id="teamName" class="rounded-lg px-3 py-2 text-sm" placeholder="種目名">
-                <input type="time" id="teamTime" class="rounded-lg px-3 py-2 text-sm" placeholder="開始時刻">
-                <input type="number" id="teamDuration" value="15" min="1" class="rounded-lg px-3 py-2 text-sm" placeholder="所要時間（分）">
-                <select id="teamGrade" class="rounded-lg px-3 py-2 text-sm"></select>
-                <input type="text" id="teamPlace" class="rounded-lg px-3 py-2 text-sm" placeholder="場所（任意）">
-                <input type="text" id="teamNote" class="rounded-lg px-3 py-2 text-sm" placeholder="備考（任意）">
+              
+              <div class="form-group">
+                <label><i data-lucide="award"></i>🏷️ 種目名</label>
+                <select id="teamSportSelect">
+                  <option value="">種目を選択</option>
+                </select>
               </div>
-              <button id="addTeamEventBtn" class="w-full py-3 rounded-xl btn-primary font-medium">種目を追加</button>
-              <p class="text-xs text-gray-500 mt-3">追加した種目は団体競技日ページに即座に反映されます</p>
+              
+              <div class="form-group" id="teamCustomNameGroup" style="display:none;">
+                <label><i data-lucide="edit-3"></i>✏️ 種目名（自由入力）</label>
+                <input type="text" id="teamName" placeholder="種目名を入力">
+              </div>
+              
+              <div class="form-group">
+                <label><i data-lucide="clock"></i>🕒 開始時刻</label>
+                <input type="time" id="teamTime">
+              </div>
+              
+              <div class="form-group">
+                <label><i data-lucide="hourglass"></i>⏱️ 所要時間（分）</label>
+                <input type="number" id="teamDuration" value="15" min="1">
+              </div>
+              
+              <div class="form-group">
+                <label><i data-lucide="graduation-cap"></i>🎓 対象学年（任意）</label>
+                <select id="teamGrade"></select>
+              </div>
+              
+              <div class="form-group">
+                <label><i data-lucide="map-pin"></i>📍 場所（任意）</label>
+                <input type="text" id="teamPlace" placeholder="例：グラウンド、トラック">
+              </div>
+              
+              <div class="form-group">
+                <label><i data-lucide="sticky-note"></i>📝 備考（任意）</label>
+                <input type="text" id="teamNote" placeholder="例：前半・後半">
+              </div>
+              
+              <button id="addTeamEventBtn" class="w-full py-3 rounded-xl btn-primary font-medium mt-2">種目を追加</button>
+              <p class="form-hint text-center mt-3">追加した種目は団体競技日ページに即座に反映されます</p>
             </div>
           </div>
 
