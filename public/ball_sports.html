@@ -6,11 +6,12 @@
   <title>球技日 タイムテーブル｜スポーツフェスタ</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <!-- 🔥 Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
   <style>
     * { font-family: 'Space Grotesk', system-ui, sans-serif; }
     .font-mono-num { font-family: 'JetBrains Mono', monospace; }
@@ -67,6 +68,10 @@
     .group-btn.sel-2 { border-color: #9ca3af; background: rgba(156,163,175,0.2); color: #e5e7eb; }
     .group-btn.sel-3 { border-color: #b45309; background: rgba(180,83,9,0.2); color: #fbbf24; }
     .group-btn.sel-4 { border-color: #4b5563; background: rgba(75,85,99,0.2); color: #9ca3af; }
+    .sync-status { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 4px 10px; border-radius: 9999px; }
+    .sync-online { background: rgba(16,185,129,0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.3); }
+    .sync-offline { background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); }
+    .sync-syncing { background: rgba(59,130,246,0.15); color: #3b82f6; border: 1px solid rgba(59,130,246,0.3); }
   </style>
 </head>
 <body class="text-white min-h-screen">
@@ -75,12 +80,23 @@
       <a href="timetable.html" class="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors">
         <i data-lucide="arrow-left" class="w-4 h-4"></i><span class="hidden sm:inline">進行管理に戻る</span><span class="sm:hidden">戻る</span>
       </a>
-      <h1 class="text-lg md:text-xl font-bold flex items-center gap-2">
-        <i data-lucide="trophy" class="w-5 h-5 text-blue-400"></i>⚽ 球技日 タイムテーブル
-      </h1>
-      <button id="exportBtn" class="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/15 transition-colors text-sm flex items-center gap-1.5">
-        <i data-lucide="download" class="w-4 h-4"></i><span class="hidden sm:inline">出力</span>
-      </button>
+      <div class="flex items-center gap-3">
+        <span id="syncStatus" class="sync-status sync-syncing">
+          <span class="w-2 h-2 rounded-full bg-current pulse-dot"></span>
+          <span id="syncStatusText">接続中...</span>
+        </span>
+        <h1 class="text-lg md:text-xl font-bold flex items-center gap-2">
+          <i data-lucide="trophy" class="w-5 h-5 text-blue-400"></i>⚽ 球技日
+        </h1>
+      </div>
+      <div class="flex gap-2">
+        <button id="manualSyncBtn" class="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/15 transition-colors text-sm flex items-center gap-1.5">
+          <i data-lucide="refresh-cw" class="w-4 h-4"></i><span class="hidden sm:inline">同期</span>
+        </button>
+        <button id="exportBtn" class="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/15 transition-colors text-sm flex items-center gap-1.5">
+          <i data-lucide="download" class="w-4 h-4"></i><span class="hidden sm:inline">出力</span>
+        </button>
+      </div>
     </div>
   </header>
 
@@ -163,7 +179,7 @@
             <option value="running">🔥 進行中</option><option value="done">✅ 終了</option>
           </select>
         </div>
-        <!-- 🔴 4クラス順位入力 -->
+        <!-- 4クラス順位入力 -->
         <div class="pt-3 border-t border-white/5">
           <p class="text-sm font-medium text-gray-300 mb-3">🏆 4クラス 順位入力</p>
           <div class="space-y-3">
@@ -222,6 +238,9 @@
   </div>
 
   <script>
+    lucide.createIcons();
+
+    // 🔥 Firebase初期化
     const FIREBASE_CONFIG = {
       apiKey: "AIzaSyAWVUxoXbvTraGUDozLztqcJx2f2fIHQntc",
       authDomain: "thsportsfes.firebaseapp.com",
@@ -232,7 +251,99 @@
     };
     firebase.initializeApp(FIREBASE_CONFIG);
     const db = firebase.firestore();
-    lucide.createIcons();
+
+    // 🔥 同期ユーティリティ
+    const Sync = {
+      setStatus(s, text) {
+        const el = document.getElementById('syncStatus');
+        const txt = document.getElementById('syncStatusText');
+        if (!el) return;
+        el.className = `sync-status sync-${s}`;
+        if (txt) txt.textContent = text;
+      },
+      async save(key, data) {
+        localStorage.setItem(key, JSON.stringify(data));
+        try {
+          this.setStatus('syncing', '同期中...');
+          await db.collection('app_data').doc(key).set({
+            data: JSON.parse(JSON.stringify(data)),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            device: getDeviceInfo()
+          });
+          this.setStatus('online', 'オンライン');
+        } catch (e) {
+          console.warn('Firestore保存失敗:', e);
+          this.setStatus('offline', 'オフライン');
+        }
+      },
+      async load(key, defaultValue) {
+        const local = localStorage.getItem(key);
+        let localData = local ? JSON.parse(local) : defaultValue;
+        try {
+          this.setStatus('syncing', '読込中...');
+          const doc = await db.collection('app_data').doc(key).get();
+          if (doc.exists) {
+            const remote = doc.data().data;
+            localStorage.setItem(key, JSON.stringify(remote));
+            this.setStatus('online', 'オンライン');
+            return remote;
+          } else if (local) {
+            // 🔥 ローカル優先でFirestoreにアップロード
+            await db.collection('app_data').doc(key).set({
+              data: JSON.parse(JSON.stringify(localData)),
+              updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+              device: getDeviceInfo()
+            });
+            this.setStatus('online', 'オンライン');
+          }
+        } catch (e) {
+          console.warn('Firestore読込失敗:', e);
+          this.setStatus('offline', 'オフライン');
+        }
+        return localData;
+      },
+      subscribe(key, callback) {
+        return db.collection('app_data').doc(key).onSnapshot(snap => {
+          if (snap.exists) {
+            const data = snap.data().data;
+            localStorage.setItem(key, JSON.stringify(data));
+            this.setStatus('online', 'オンライン');
+            callback(data);
+          }
+        }, err => {
+          console.warn('同期エラー:', err);
+          this.setStatus('offline', 'オフライン');
+        });
+      },
+      async addHistory(entry) {
+        const hist = JSON.parse(localStorage.getItem('input_history_v4') || '[]');
+        hist.unshift(entry);
+        const trimmed = hist.slice(0, 500);
+        localStorage.setItem('input_history_v4', JSON.stringify(trimmed));
+        try {
+          await db.collection('input_history').add({
+            ...entry,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+          });
+        } catch (e) { console.warn('履歴保存失敗:', e); }
+      }
+    };
+
+    function getDeviceInfo() {
+      const ua = navigator.userAgent;
+      let device = 'Unknown';
+      if (/iPhone/.test(ua)) device = 'iPhone';
+      else if (/iPad/.test(ua)) device = 'iPad';
+      else if (/Android/.test(ua)) device = 'Android';
+      else if (/Mac/.test(ua)) device = 'Mac';
+      else if (/Windows/.test(ua)) device = 'Windows';
+      let browser = 'Unknown';
+      if (/Edg/.test(ua)) browser = 'Edge';
+      else if (/Chrome/.test(ua)) browser = 'Chrome';
+      else if (/Firefox/.test(ua)) browser = 'Firefox';
+      else if (/Safari/.test(ua)) browser = 'Safari';
+      return `${device} / ${browser}`;
+    }
 
     const GRADES = ['中学1年', '中学2年', '中学3年', '高校1年', '高校2年', '高校3年'];
     const BALL_SCORING = {
@@ -240,33 +351,27 @@
       'バレーボール': [150, 100, 50, 0], 'ドッジボール': [150, 100, 50, 0], 'アルティメット': [150, 100, 50, 0], '卓球': [150, 100, 50, 0]
     };
 
-    // 🔴 デフォルト初期データ（PDFタイムテーブル）
     function getDefaultData() {
       return {
         venues: ['上グラウンド', '下グラウンド', '体育館', 'ハードコート', 'オムニコート', '卓球場'],
         matches: [
-          // 第1枠
           { id: 1, venue: '上グラウンド', time: '08:20', sport: 'サッカー', grade: '中学1年', status: 'future', delay: 0, duration: 67, rank1: '', rank2: '', rank3: '', rank4: '', note: '' },
           { id: 2, venue: '下グラウンド', time: '08:20', sport: 'サッカー', grade: '中学1年', status: 'future', delay: 0, duration: 67, rank1: '', rank2: '', rank3: '', rank4: '', note: '' },
           { id: 3, venue: '体育館', time: '08:20', sport: 'バスケットボール', grade: '中学3年', status: 'future', delay: 0, duration: 57, rank1: '', rank2: '', rank3: '', rank4: '', note: '' },
           { id: 4, venue: 'オムニコート', time: '08:20', sport: 'バレーボール', grade: '高校2年', status: 'future', delay: 0, duration: 85, rank1: '', rank2: '', rank3: '', rank4: '', note: '' },
           { id: 5, venue: 'ハードコート', time: '08:20', sport: 'ドッジボール', grade: '中学2年', status: 'future', delay: 0, duration: 55, rank1: '', rank2: '', rank3: '', rank4: '', note: '' },
           { id: 6, venue: '卓球場', time: '08:20', sport: '卓球', grade: '中学1年', status: 'future', delay: 0, duration: 55, rank1: '', rank2: '', rank3: '', rank4: '', note: '' },
-          // 第2枠
           { id: 7, venue: '上グラウンド', time: '09:35', sport: 'サッカー', grade: '高校1年', status: 'future', delay: 0, duration: 67, rank1: '', rank2: '', rank3: '', rank4: '', note: '' },
           { id: 8, venue: 'ハードコート', time: '09:35', sport: 'アルティメット', grade: '中学3年', status: 'future', delay: 0, duration: 52, rank1: '', rank2: '', rank3: '', rank4: '', note: '' },
           { id: 9, venue: '体育館', time: '09:45', sport: 'バスケットボール', grade: '高校2年', status: 'future', delay: 0, duration: 57, rank1: '', rank2: '', rank3: '', rank4: '', note: '' },
           { id: 10, venue: 'オムニコート', time: '09:55', sport: 'バレーボール', grade: '高校3年', status: 'future', delay: 0, duration: 85, rank1: '', rank2: '', rank3: '', rank4: '', note: '' },
           { id: 11, venue: '卓球場', time: '09:25', sport: '卓球', grade: '高校1年', status: 'future', delay: 0, duration: 55, rank1: '', rank2: '', rank3: '', rank4: '', note: '' },
-          // 第3枠
           { id: 12, venue: '上グラウンド', time: '10:50', sport: 'サッカー', grade: '中学2年', status: 'future', delay: 0, duration: 67, rank1: '', rank2: '', rank3: '', rank4: '', note: '' },
           { id: 13, venue: '体育館', time: '10:50', sport: 'バスケットボール', grade: '中学1年', status: 'future', delay: 0, duration: 57, rank1: '', rank2: '', rank3: '', rank4: '', note: '' },
           { id: 14, venue: '卓球場', time: '10:30', sport: '卓球', grade: '高校2年', status: 'future', delay: 0, duration: 55, rank1: '', rank2: '', rank3: '', rank4: '', note: '' },
-          // 第4枠
           { id: 15, venue: '上グラウンド', time: '11:20', sport: 'サッカー', grade: '高校3年', status: 'future', delay: 0, duration: 67, rank1: '', rank2: '', rank3: '', rank4: '', note: '' },
           { id: 16, venue: '下グラウンド', time: '11:25', sport: '野球', grade: '高校3年', status: 'future', delay: 0, duration: 60, rank1: '', rank2: '', rank3: '', rank4: '', note: '' },
           { id: 17, venue: 'オムニコート', time: '11:30', sport: 'バレーボール', grade: '高校1年', status: 'future', delay: 0, duration: 85, rank1: '', rank2: '', rank3: '', rank4: '', note: '' },
-          // 第5枠
           { id: 18, venue: '上グラウンド', time: '12:35', sport: 'サッカー', grade: '高校2年', status: 'future', delay: 0, duration: 67, rank1: '', rank2: '', rank3: '', rank4: '', note: '' },
           { id: 19, venue: '体育館', time: '13:00', sport: 'バスケットボール', grade: '高校1年', status: 'future', delay: 0, duration: 57, rank1: '', rank2: '', rank3: '', rank4: '', note: '' },
           { id: 20, venue: '卓球場', time: '12:00', sport: '卓球', grade: '中学2年', status: 'future', delay: 0, duration: 55, rank1: '', rank2: '', rank3: '', rank4: '', note: '' },
@@ -279,45 +384,6 @@
     }
 
     let data = getDefaultData();
-        async function saveData() {
-      localStorage.setItem('ball_sports_data_v4', JSON.stringify(data));
-      await db.collection('app_data').doc('ball_sports_data_v4').set({ data: data });
-    }
-
-    // 🔴 入力履歴に追加
-    function addHistory(type, matchId, before, after) {
-      const hist = JSON.parse(localStorage.getItem('input_history_v4') || '[]');
-      hist.unshift({
-        timestamp: new Date().toISOString(),
-        type: type,
-        page: 'ball',
-        matchId: matchId,
-        matchName: `${after.grade} ${after.sport}`,
-        venue: after.venue,
-        before: before,
-        after: { rank1: after.rank1, rank2: after.rank2, rank3: after.rank3, rank4: after.rank4, status: after.status, delay: after.delay },
-        userAgent: navigator.userAgent,
-        device: getDeviceInfo()
-      });
-      localStorage.setItem('input_history_v4', JSON.stringify(hist.slice(0, 500)));
-    }
-
-    function getDeviceInfo() {
-      const ua = navigator.userAgent;
-      let device = 'Unknown';
-      if (/iPhone/.test(ua)) device = 'iPhone';
-      else if (/iPad/.test(ua)) device = 'iPad';
-      else if (/Android/.test(ua)) device = 'Android';
-      else if (/Mac/.test(ua)) device = 'Mac';
-      else if (/Windows/.test(ua)) device = 'Windows';
-      else if (/Linux/.test(ua)) device = 'Linux';
-      let browser = 'Unknown';
-      if (/Edg/.test(ua)) browser = 'Edge';
-      else if (/Chrome/.test(ua)) browser = 'Chrome';
-      else if (/Firefox/.test(ua)) browser = 'Firefox';
-      else if (/Safari/.test(ua)) browser = 'Safari';
-      return `${device} / ${browser}`;
-    }
 
     function applyDelay(time, delay) {
       if (!delay) return time;
@@ -455,7 +521,6 @@
           </div>
         `;
       }).join('');
-      saveData();
     }
 
     function bindGridEvents() {
@@ -491,13 +556,11 @@
       });
     }
 
-    // グループ選択ボタン
     document.addEventListener('click', e => {
       const btn = e.target.closest('.group-btn');
       if (!btn) return;
       const rank = btn.closest('.group-select').dataset.rank;
       const g = btn.dataset.g;
-      // 重複チェック
       [1,2,3,4].forEach(r => { if (r != rank && document.getElementById(`editRank${r}`).value === g) document.getElementById(`editRank${r}`).value = ''; });
       document.getElementById(`editRank${rank}`).value = g;
       updateGroupButtons();
@@ -511,6 +574,10 @@
 
     document.getElementById('filterGrade')?.addEventListener('change', render);
     document.getElementById('filterSport')?.addEventListener('change', render);
+    document.getElementById('manualSyncBtn').addEventListener('click', async () => {
+      data = await Sync.load('ball_sports_data_v4', getDefaultData());
+      render();
+    });
     document.getElementById('exportBtn').addEventListener('click', () => {
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -520,7 +587,7 @@
     });
     document.getElementById('modalClose').addEventListener('click', closeModal);
     document.getElementById('editModal').addEventListener('click', e => { if (e.target.id === 'editModal') closeModal(); });
-    document.getElementById('matchForm').addEventListener('submit', e => {
+    document.getElementById('matchForm').addEventListener('submit', async e => {
       e.preventDefault();
       const id = Number(document.getElementById('editMatchId').value);
       const m = data.matches.find(x => x.id === id);
@@ -535,13 +602,37 @@
       m.rank3 = document.getElementById('editRank3').value;
       m.rank4 = document.getElementById('editRank4').value;
       m.note = document.getElementById('editNote').value.trim();
+      
       if (m.rank1 || m.rank2 || m.rank3 || before.status !== m.status || before.delay !== m.delay) {
-        addHistory('result', id, before, m);
+        await Sync.addHistory({
+          timestamp: new Date().toISOString(),
+          type: (m.rank1 && before.rank1 !== m.rank1) ? 'result' : (before.status !== m.status ? 'status' : 'delay'),
+          page: 'ball',
+          matchId: id,
+          matchName: `${m.grade} ${m.sport}`,
+          venue: m.venue,
+          before: { rank1: before.rank1, rank2: before.rank2, rank3: before.rank3, rank4: before.rank4, status: before.status, delay: before.delay },
+          after: { rank1: m.rank1, rank2: m.rank2, rank3: m.rank3, rank4: m.rank4, status: m.status, delay: m.delay },
+          userAgent: navigator.userAgent,
+          device: getDeviceInfo()
+        });
       }
-      saveData(); render(); closeModal();
+      
+      await Sync.save('ball_sports_data_v4', data);
+      render(); closeModal();
     });
 
-    loadData(); render();
+    // 🔥 初期化 + リアルタイム同期
+    async function init() {
+      Sync.setStatus('syncing', '接続中...');
+      data = await Sync.load('ball_sports_data_v4', getDefaultData());
+      render();
+      Sync.subscribe('ball_sports_data_v4', remote => {
+        data = remote;
+        render();
+      });
+    }
+    init();
     setInterval(renderVenueStatus, 30000);
   </script>
 </body>
