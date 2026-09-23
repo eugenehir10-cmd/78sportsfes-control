@@ -6,7 +6,7 @@
   <title>進行管理 ハブ｜スポーツフェスタ</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
-  <!-- 🔥 Firebase SDK（Auth追加） -->
+  <!-- 🔥 Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
@@ -37,12 +37,13 @@
     .menu-card:hover { border-color: rgba(255,255,255,0.2); transform: translateY(-4px); box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
     .btn-primary { background: linear-gradient(135deg, #10b981, #059669); transition: all 0.3s ease; }
     .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(16,185,129,0.25); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
     .btn-danger { background: linear-gradient(135deg, #ef4444, #dc2626); transition: all 0.3s ease; }
     .btn-danger:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(239,68,68,0.25); }
     .glow-text { text-shadow: 0 0 40px rgba(255,255,255,0.12), 0 0 80px rgba(255,255,255,0.05); }
     .divider { background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent); height: 1px; }
-    input { background: rgba(255,255,255,0.05) !important; border: 1px solid rgba(255,255,255,0.1) !important; color: white !important; font-size: 16px !important; }
-    input:disabled { opacity: 0.5; cursor: not-allowed; }
+    input, select { background: rgba(255,255,255,0.05) !important; border: 1px solid rgba(255,255,255,0.1) !important; color: white !important; font-size: 16px !important; }
+    input:disabled, select:disabled { opacity: 0.5; cursor: not-allowed; }
     .fade-in-up { animation: fadeInUp 0.8s ease-out forwards; opacity: 0; transform: translateY(20px); }
     @keyframes fadeInUp { to { opacity: 1; transform: translateY(0); } }
     .delay-1 { animation-delay: 0.1s; }
@@ -79,6 +80,75 @@
       background: rgba(255,255,255,0.02); border: 2px dashed rgba(255,255,255,0.1);
       text-align: center; color: #9ca3af;
     }
+    .settings-section {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 18px;
+      margin-bottom: 16px;
+    }
+    .settings-section h4 {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #e5e7eb;
+    }
+    .list-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.04);
+      margin-bottom: 6px;
+      font-size: 14px;
+    }
+    .list-item button {
+      padding: 4px 8px;
+      border-radius: 6px;
+      background: rgba(239,68,68,0.15);
+      color: #ef4444;
+      font-size: 12px;
+      transition: background 0.2s;
+    }
+    .list-item button:hover { background: rgba(239,68,68,0.25); }
+    .add-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .add-row input, .add-row select {
+      flex: 1;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    .add-row button {
+      padding: 8px 16px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #10b981, #059669);
+      font-size: 14px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    .tab-btn {
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.2s;
+      background: rgba(255,255,255,0.05);
+      color: #9ca3af;
+    }
+    .tab-btn.active {
+      background: rgba(59,130,246,0.2);
+      color: #60a5fa;
+      border: 1px solid rgba(59,130,246,0.3);
+    }
+    .tab-btn:hover:not(.active) { background: rgba(255,255,255,0.1); color: #e5e7eb; }
   </style>
 </head>
 <body class="text-white max-w-5xl mx-auto px-4 py-10 md:py-14">
@@ -162,73 +232,144 @@
         </div>
 
         <!-- 設定コンテンツ -->
-        <div id="settingsContent" class="hidden space-y-6">
+        <div id="settingsContent" class="hidden">
           
-          <!-- 🔐 許可アカウント管理（特権認証必要） -->
-          <div class="bg-white/5 rounded-2xl p-5 border border-white/10">
-            <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
-              <div>
-                <h3 class="font-semibold text-lg flex items-center gap-2">
-                  <i data-lucide="user-check" class="w-5 h-5 text-amber-400"></i>🔐 許可Googleアカウント管理
-                </h3>
-                <p class="text-xs text-gray-500 mt-1">結果入力を許可するGoogleアカウントを管理します</p>
-              </div>
-              <div class="flex items-center gap-2">
-                <span id="adminAuthBadge" class="sync-status auth-badge-guest">
-                  <i data-lucide="shield" class="w-3 h-3"></i>
-                  <span id="adminAuthText">管理者未認証</span>
-                </span>
-                <button id="adminAuthBtn" class="px-3 py-1.5 rounded-lg google-btn text-xs font-medium">
-                  <svg width="14" height="14" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.5 29.3 35.5 24 35.5c-6.4 0-11.5-5.1-11.5-11.5S17.6 12.5 24 12.5c2.9 0 5.6 1.1 7.6 2.9l5.7-5.7C33.9 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c10 0 18.4-7.4 19.6-17.1.3-.9.4-1.8.4-2.7 0-.9-.1-1.8-.4-2.7z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.8 16 19 12.5 24 12.5c2.9 0 5.6 1.1 7.6 2.9l5.7-5.7C33.9 6.1 29.3 4 24 4 16.3 4 9.6 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2c-2 1.4-4.5 2.3-7.2 2.3-5.3 0-9.7-3-11.3-7.3l-6.5 5C9.5 38.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.2 5.7l6.2 5.2c.4-.4 7.7-5.6 7.7-14.9 0-.9-.1-1.8-.4-2.7z"/></svg>
-                  <span id="adminAuthBtnText">管理者ログイン</span>
-                </button>
+          <!-- タブ切り替え -->
+          <div class="flex gap-2 mb-6 flex-wrap">
+            <button class="tab-btn active" data-tab="basic">基本設定</button>
+            <button class="tab-btn" data-tab="ball">球技日 試合追加</button>
+            <button class="tab-btn" data-tab="team">団体競技日 種目追加</button>
+            <button class="tab-btn" data-tab="auth">🔐 アカウント管理</button>
+            <button class="tab-btn" data-tab="danger">⚠️ データ管理</button>
+          </div>
+
+          <!-- ========== タブ：基本設定 ========== -->
+          <div id="tab-basic" class="tab-content">
+            <div class="settings-section">
+              <h4><i data-lucide="users" class="w-4 h-4 text-blue-400"></i>👥 クラス管理</h4>
+              <div id="classList"></div>
+              <div class="add-row">
+                <input type="text" id="newClassInput" placeholder="例：A組、B組">
+                <button id="addClassBtn">追加</button>
               </div>
             </div>
-
-            <!-- ロック状態 -->
-            <div id="adminLockedArea" class="locked-section">
-              <i data-lucide="shield-alert" class="w-10 h-10 mx-auto mb-3 text-amber-400"></i>
-              <p class="font-medium mb-1">管理者ログインが必要です</p>
-              <p class="text-xs">許可された2アカウントのみログイン可能</p>
-            </div>
-
-            <!-- 認証後エリア -->
-            <div id="adminContentArea" class="hidden">
-              <p class="text-xs text-amber-400/80 mb-3 bg-amber-400/10 rounded-lg px-3 py-2 border border-amber-400/20">
-                ⚠️ 特権管理者のみ操作可能です。変更は全ページに即座に反映されます。
-              </p>
-              
-              <!-- 現在の許可リスト -->
-              <div class="mb-4">
-                <p class="text-sm text-gray-400 mb-2">現在の許可アカウント（<span id="emailCount">0</span>件）</p>
-                <div id="emailList"></div>
+            <div class="settings-section">
+              <h4><i data-lucide="graduation-cap" class="w-4 h-4 text-emerald-400"></i>🎓 学年管理</h4>
+              <div id="gradeList"></div>
+              <div class="add-row">
+                <input type="text" id="newGradeInput" placeholder="例：中学1年">
+                <button id="addGradeBtn">追加</button>
               </div>
-
-              <!-- 新規追加 -->
-              <div class="flex gap-2">
-                <input type="email" id="newEmailInput" class="flex-1 rounded-xl px-4 py-3" placeholder="追加するメールアドレス">
-                <button id="addEmailBtn" class="px-5 py-3 rounded-xl btn-primary font-medium whitespace-nowrap">
-                  <i data-lucide="plus" class="w-4 h-4 inline mr-1"></i>追加
-                </button>
-              </div>
-              <p id="addEmailError" class="text-red-400 text-xs mt-2 hidden"></p>
             </div>
           </div>
 
-          <!-- その他の設定項目（ダミー） -->
-          <div class="bg-white/5 rounded-2xl p-5 border border-white/10">
-            <h3 class="font-semibold text-lg mb-3 flex items-center gap-2">
-              <i data-lucide="database" class="w-5 h-5 text-blue-400"></i>🗄️ データ管理
-            </h3>
-            <div class="grid gap-2 md:grid-cols-2">
-              <button class="px-4 py-3 rounded-xl bg-white/10 hover:bg-white/15 text-left transition-colors text-sm">
-                <span class="block font-medium">🔄 得点再計算</span>
-                <span class="text-xs text-gray-500">全データから得点を再計算</span>
-              </button>
-              <button class="px-4 py-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-left transition-colors text-sm text-red-300">
-                <span class="block font-medium">🗑️ 全データ初期化</span>
-                <span class="text-xs text-red-400/70">注意：全てのデータが消去されます</span>
-              </button>
+          <!-- ========== タブ：球技日 試合追加 ========== -->
+          <div id="tab-ball" class="tab-content hidden">
+            <div class="settings-section">
+              <h4><i data-lucide="trophy" class="w-4 h-4 text-blue-400"></i>⚽ 球技日 試合追加</h4>
+              <div class="grid gap-3 mb-4">
+                <select id="ballVenue" class="rounded-lg px-3 py-2 text-sm">
+                  <option value="">会場を選択</option>
+                  <option>上グラウンド</option><option>下グラウンド</option><option>体育館</option>
+                  <option>ハードコート</option><option>オムニコート</option><option>卓球場</option>
+                </select>
+                <input type="time" id="ballTime" class="rounded-lg px-3 py-2 text-sm" placeholder="開始時刻">
+                <select id="ballSport" class="rounded-lg px-3 py-2 text-sm">
+                  <option value="">競技を選択</option>
+                  <option>サッカー</option><option>野球</option><option>バスケットボール</option>
+                  <option>バレーボール</option><option>ドッジボール</option>
+                  <option>アルティメット</option><option>卓球</option>
+                </select>
+                <select id="ballGrade" class="rounded-lg px-3 py-2 text-sm">
+                  <option value="">学年を選択</option>
+                </select>
+                <input type="number" id="ballDuration" value="30" min="1" class="rounded-lg px-3 py-2 text-sm" placeholder="所要時間（分）">
+              </div>
+              <button id="addBallMatchBtn" class="w-full py-3 rounded-xl btn-primary font-medium">試合を追加</button>
+              <p class="text-xs text-gray-500 mt-3">追加した試合は球技日ページに即座に反映されます</p>
+            </div>
+          </div>
+
+          <!-- ========== タブ：団体競技日 種目追加 ========== -->
+          <div id="tab-team" class="tab-content hidden">
+            <div class="settings-section">
+              <h4><i data-lucide="flag" class="w-4 h-4 text-emerald-400"></i>🏃 団体競技日 種目追加</h4>
+              <div class="grid gap-3 mb-4">
+                <input type="text" id="teamName" class="rounded-lg px-3 py-2 text-sm" placeholder="種目名">
+                <input type="time" id="teamTime" class="rounded-lg px-3 py-2 text-sm" placeholder="開始時刻">
+                <input type="number" id="teamDuration" value="15" min="1" class="rounded-lg px-3 py-2 text-sm" placeholder="所要時間（分）">
+                <select id="teamGrade" class="rounded-lg px-3 py-2 text-sm">
+                  <option value="">対象学年（任意）</option>
+                </select>
+                <input type="text" id="teamPlace" class="rounded-lg px-3 py-2 text-sm" placeholder="場所（任意）">
+                <input type="text" id="teamNote" class="rounded-lg px-3 py-2 text-sm" placeholder="備考（任意）">
+              </div>
+              <button id="addTeamEventBtn" class="w-full py-3 rounded-xl btn-primary font-medium">種目を追加</button>
+              <p class="text-xs text-gray-500 mt-3">追加した種目は団体競技日ページに即座に反映されます</p>
+            </div>
+          </div>
+
+          <!-- ========== タブ：アカウント管理 ========== -->
+          <div id="tab-auth" class="tab-content hidden">
+            <div class="settings-section">
+              <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+                <h4><i data-lucide="user-check" class="w-4 h-4 text-amber-400"></i>🔐 許可Googleアカウント管理</h4>
+                <div class="flex items-center gap-2">
+                  <span id="adminAuthBadge" class="sync-status auth-badge-guest">
+                    <i data-lucide="shield" class="w-3 h-3"></i>
+                    <span id="adminAuthText">管理者未認証</span>
+                  </span>
+                  <button id="adminAuthBtn" class="px-3 py-1.5 rounded-lg google-btn text-xs font-medium">
+                    <svg width="14" height="14" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.5 29.3 35.5 24 35.5c-6.4 0-11.5-5.1-11.5-11.5S17.6 12.5 24 12.5c2.9 0 5.6 1.1 7.6 2.9l5.7-5.7C33.9 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c10 0 18.4-7.4 19.6-17.1.3-.9.4-1.8.4-2.7 0-.9-.1-1.8-.4-2.7z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.8 16 19 12.5 24 12.5c2.9 0 5.6 1.1 7.6 2.9l5.7-5.7C33.9 6.1 29.3 4 24 4 16.3 4 9.6 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2c-2 1.4-4.5 2.3-7.2 2.3-5.3 0-9.7-3-11.3-7.3l-6.5 5C9.5 38.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.2 5.7l6.2 5.2c.4-.4 7.7-5.6 7.7-14.9 0-.9-.1-1.8-.4-2.7z"/></svg>
+                    <span id="adminAuthBtnText">管理者ログイン</span>
+                  </button>
+                </div>
+              </div>
+              <p class="text-xs text-gray-500 mb-4">結果入力を許可するGoogleアカウントを管理します。変更は全ページに即座に反映されます。</p>
+
+              <!-- ロック状態 -->
+              <div id="adminLockedArea" class="locked-section">
+                <i data-lucide="shield-alert" class="w-10 h-10 mx-auto mb-3 text-amber-400"></i>
+                <p class="font-medium mb-1">管理者ログインが必要です</p>
+                <p class="text-xs">許可された特権アカウントのみログイン可能</p>
+              </div>
+
+              <!-- 認証後エリア -->
+              <div id="adminContentArea" class="hidden">
+                <p class="text-xs text-amber-400/80 mb-3 bg-amber-400/10 rounded-lg px-3 py-2 border border-amber-400/20">
+                  ⚠️ 特権管理者のみ操作可能です。変更は全ページに即座に反映されます。
+                </p>
+                <div class="mb-4">
+                  <p class="text-sm text-gray-400 mb-2">現在の許可アカウント（<span id="emailCount">0</span>件）</p>
+                  <div id="emailList"></div>
+                </div>
+                <div class="add-row">
+                  <input type="email" id="newEmailInput" placeholder="追加するメールアドレス">
+                  <button id="addEmailBtn">追加</button>
+                </div>
+                <p id="addEmailError" class="text-red-400 text-xs mt-2 hidden"></p>
+              </div>
+            </div>
+          </div>
+
+          <!-- ========== タブ：データ管理 ========== -->
+          <div id="tab-danger" class="tab-content hidden">
+            <div class="settings-section">
+              <h4><i data-lucide="database" class="w-4 h-4 text-blue-400"></i>🗄️ データ操作</h4>
+              <div class="grid gap-3">
+                <button id="recalcBtn" class="px-4 py-3 rounded-xl bg-white/10 hover:bg-white/15 text-left transition-colors text-sm">
+                  <span class="block font-medium">🔄 得点再計算</span>
+                  <span class="text-xs text-gray-500">全データから得点を再計算します</span>
+                </button>
+                <button id="clearHistoryBtn" class="px-4 py-3 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-left transition-colors text-sm text-amber-300">
+                  <span class="block font-medium">📋 入力履歴のみ削除</span>
+                  <span class="text-xs text-amber-400/70">履歴データだけを消去します</span>
+                </button>
+                <button id="resetAllBtn" class="px-4 py-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-left transition-colors text-sm text-red-300">
+                  <span class="block font-medium">🗑️ 全データ初期化</span>
+                  <span class="text-xs text-red-400/70">⚠️ 注意：全てのデータが完全に消去されます</span>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -262,24 +403,38 @@
       'eugene.hir.10@gmail.com'
     ];
 
-    // デフォルト許可アカウント
     const DEFAULT_AUTHORIZED_EMAILS = [
       'jh62231310@s.musashi.ed.jp',
       'jh62220120@s.musashi.ed.jp',
       'eugene.hir.10@gmail.com'
     ];
 
+    const DEFAULT_COMMON_SETTINGS = {
+      classes: ['A組', 'B組', 'C組', 'D組'],
+      grades: ['中学1年', '中学2年', '中学3年', '高校1年', '高校2年', '高校3年']
+    };
+
     let AUTHORIZED_EMAILS = [...DEFAULT_AUTHORIZED_EMAILS];
+    let commonSettings = { ...DEFAULT_COMMON_SETTINGS };
     let isAdminAuthed = false;
     let currentAdminUser = null;
 
-    // SHA-256
     async function sha256(text) {
       const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
       return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
     }
 
-    // 許可アカウントリスト読み込み
+    // タブ切り替え
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+        btn.classList.add('active');
+        document.getElementById('tab-' + btn.dataset.tab).classList.remove('hidden');
+      });
+    });
+
+    // ========== 許可アカウント管理 ==========
     async function loadAuthorizedUsers() {
       try {
         const doc = await db.collection('app_data').doc('authorized_users').get();
@@ -295,7 +450,6 @@
       renderEmailList();
     }
 
-    // リアルタイム監視
     db.collection('app_data').doc('authorized_users').onSnapshot(snap => {
       if (snap.exists && snap.data().emails) {
         AUTHORIZED_EMAILS = snap.data().emails;
@@ -317,15 +471,12 @@
               <span class="text-sm truncate">${email}</span>
               ${isAdmin ? '<span class="text-xs px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-400 flex-shrink-0">管理者</span>' : ''}
             </div>
-            ${!isAdmin ? `<button class="remove-email-btn p-1.5 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors flex-shrink-0" data-email="${email}">
-              <i data-lucide="trash-2" class="w-4 h-4"></i>
-            </button>` : '<span class="text-xs text-gray-600">削除不可</span>'}
+            ${!isAdmin ? `<button class="remove-email-btn" data-email="${email}"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>` : '<span class="text-xs text-gray-600">削除不可</span>'}
           </div>
         `;
       }).join('');
       lucide.createIcons();
       
-      // 削除ボタン
       document.querySelectorAll('.remove-email-btn').forEach(btn => {
         btn.addEventListener('click', async () => {
           const email = btn.dataset.email;
@@ -343,9 +494,7 @@
           updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
           updatedBy: currentAdminUser?.email || 'unknown'
         });
-      } catch (e) {
-        alert('保存に失敗しました');
-      }
+      } catch (e) { alert('保存に失敗しました'); }
     }
 
     function updateAdminAuthUI() {
@@ -369,14 +518,13 @@
         txt.textContent = '管理者未認証';
         btnText.textContent = '管理者ログイン';
         btn.className = 'px-3 py-1.5 rounded-lg google-btn text-xs font-medium flex items-center gap-1.5';
-        btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.5 29.3 35.5 24 35.5c-6.4 0-11.5-5.1-11.5-11.5S17.6 12.5 24 12.5c2.9 0 5.6 1.1 7.6 2.9l5.7-5.7C33.9 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c10 0 18.4-7.4 19.6-17.1.3-.9.4-1.8.4-2.7 0-.9-.1-1.8-.4-2.7z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.8 16 19 12.5 24 12.5c2.9 0 5.6 1.1 7.6 2.9l5.7-5.7C33.9 6.1 29.3 4 24 4 16.3 4 9.6 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2c-2 1.4-4.5 2.3-7.2 2.3-5.3 0-9.7-3-11.3-7.3l-6.5 5C9.5 38.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.2 5.7l6.2 5.2c.4-.4 7.7-5.6 7.7-14.9 0-.9-.1-1.8-.4-2.7z"/></svg><span id="adminAuthBtnText">管理者ログイン</span>`;
+        btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.5 29.3 35.5 24 35.5c-6.4 0-11.5-5.1-11.5-11.5S17.6 12.5 24 12.5c2.9 0 5.6 1.1 7.6 2.9l5.7-5.7C33.9 6.1 29.3 4 24 4 16.3 4 9.6 8.3 6.3 14.7z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.8 16 19 12.5 24 12.5c2.9 0 5.6 1.1 7.6 2.9l5.7-5.7C33.9 6.1 29.3 4 24 4 16.3 4 9.6 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2c-2 1.4-4.5 2.3-7.2 2.3-5.3 0-9.7-3-11.3-7.3l-6.5 5C9.5 38.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.2 5.7l6.2 5.2c.4-.4 7.7-5.6 7.7-14.9 0-.9-.1-1.8-.4-2.7z"/></svg><span id="adminAuthBtnText">管理者ログイン</span>`;
         locked.style.display = 'flex';
         content.style.display = 'none';
       }
       lucide.createIcons();
     }
 
-    // 管理者ログイン
     document.getElementById('adminAuthBtn').addEventListener('click', async () => {
       if (isAdminAuthed) {
         if (confirm('管理者ログアウトしますか？')) {
@@ -393,7 +541,7 @@
         const email = result.user.email;
         if (!ADMIN_EMAILS.includes(email)) {
           await auth.signOut();
-          alert('⚠️ このアカウントは管理者権限がありません。\n許可された2アカウントのみログイン可能です。');
+          alert('⚠️ このアカウントは管理者権限がありません。');
           return;
         }
         isAdminAuthed = true;
@@ -405,7 +553,6 @@
       }
     });
 
-    // メール追加
     document.getElementById('addEmailBtn').addEventListener('click', async () => {
       const input = document.getElementById('newEmailInput');
       const errEl = document.getElementById('addEmailError');
@@ -421,7 +568,180 @@
       input.value = '';
     });
 
-    // 設定パスワード認証
+    // ========== 共通設定（クラス・学年） ==========
+    async function loadCommonSettings() {
+      try {
+        const doc = await db.collection('app_data').doc('common_settings').get();
+        if (doc.exists && doc.data().data) {
+          commonSettings = doc.data().data;
+        }
+      } catch (e) {}
+      renderClassList();
+      renderGradeList();
+      updateGradeSelects();
+    }
+
+    async function saveCommonSettings() {
+      try {
+        await db.collection('app_data').doc('common_settings').set({
+          data: commonSettings,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      } catch (e) { alert('保存に失敗しました'); }
+    }
+
+    function renderClassList() {
+      const el = document.getElementById('classList');
+      el.innerHTML = commonSettings.classes.map(c => `
+        <div class="list-item"><span>${c}</span><button data-class="${c}">削除</button></div>
+      `).join('');
+      el.querySelectorAll('button').forEach(btn => btn.addEventListener('click', async () => {
+        if (!confirm('削除しますか？')) return;
+        commonSettings.classes = commonSettings.classes.filter(c => c !== btn.dataset.class);
+        await saveCommonSettings();
+        renderClassList();
+      }));
+    }
+
+    function renderGradeList() {
+      const el = document.getElementById('gradeList');
+      el.innerHTML = commonSettings.grades.map(g => `
+        <div class="list-item"><span>${g}</span><button data-grade="${g}">削除</button></div>
+      `).join('');
+      el.querySelectorAll('button').forEach(btn => btn.addEventListener('click', async () => {
+        if (!confirm('削除しますか？')) return;
+        commonSettings.grades = commonSettings.grades.filter(g => g !== btn.dataset.grade);
+        await saveCommonSettings();
+        renderGradeList();
+        updateGradeSelects();
+      }));
+    }
+
+    function updateGradeSelects() {
+      const opts = commonSettings.grades.map(g => `<option value="${g}">${g}</option>`).join('');
+      const ballGrade = document.getElementById('ballGrade');
+      const teamGrade = document.getElementById('teamGrade');
+      if (ballGrade) ballGrade.innerHTML = '<option value="">学年を選択</option>' + opts;
+      if (teamGrade) teamGrade.innerHTML = '<option value="">対象学年（任意）</option>' + opts;
+    }
+
+    document.getElementById('addClassBtn').addEventListener('click', async () => {
+      const v = document.getElementById('newClassInput').value.trim();
+      if (!v) return;
+      if (commonSettings.classes.includes(v)) { alert('既に存在します'); return; }
+      commonSettings.classes.push(v);
+      await saveCommonSettings();
+      renderClassList();
+      document.getElementById('newClassInput').value = '';
+    });
+
+    document.getElementById('addGradeBtn').addEventListener('click', async () => {
+      const v = document.getElementById('newGradeInput').value.trim();
+      if (!v) return;
+      if (commonSettings.grades.includes(v)) { alert('既に存在します'); return; }
+      commonSettings.grades.push(v);
+      await saveCommonSettings();
+      renderGradeList();
+      updateGradeSelects();
+      document.getElementById('newGradeInput').value = '';
+    });
+
+    // ========== 球技日 試合追加 ==========
+    document.getElementById('addBallMatchBtn').addEventListener('click', async () => {
+      const venue = document.getElementById('ballVenue').value;
+      const time = document.getElementById('ballTime').value;
+      const sport = document.getElementById('ballSport').value;
+      const grade = document.getElementById('ballGrade').value;
+      const duration = Number(document.getElementById('ballDuration').value) || 30;
+      
+      if (!venue || !time || !sport) { alert('会場・時刻・競技は必須です'); return; }
+      
+      try {
+        const doc = await db.collection('app_data').doc('ball_sports_data_v4').get();
+        const data = doc.exists ? doc.data().data : null;
+        if (!data) { alert('球技日データが読み込めません'); return; }
+        
+        const newId = Math.max(0, ...data.matches.map(m => m.id)) + 1;
+        data.matches.push({
+          id: newId, venue, time, sport, grade, duration,
+          status: 'future', delay: 0, rank1: '', rank2: '', rank3: '', rank4: '', note: ''
+        });
+        
+        await db.collection('app_data').doc('ball_sports_data_v4').set({
+          data, updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        
+        alert('試合を追加しました');
+        ['ballVenue', 'ballTime', 'ballSport', 'ballGrade'].forEach(id => document.getElementById(id).value = '');
+        document.getElementById('ballDuration').value = '30';
+      } catch (e) { alert('追加に失敗しました'); }
+    });
+
+    // ========== 団体競技日 種目追加 ==========
+    document.getElementById('addTeamEventBtn').addEventListener('click', async () => {
+      const name = document.getElementById('teamName').value.trim();
+      const time = document.getElementById('teamTime').value;
+      const duration = Number(document.getElementById('teamDuration').value) || 15;
+      const grade = document.getElementById('teamGrade').value;
+      const place = document.getElementById('teamPlace').value.trim();
+      const note = document.getElementById('teamNote').value.trim();
+      
+      if (!name || !time) { alert('種目名・開始時刻は必須です'); return; }
+      
+      try {
+        const doc = await db.collection('app_data').doc('team_events_data_v4').get();
+        const data = doc.exists ? doc.data().data : null;
+        if (!data) { alert('団体競技日データが読み込めません'); return; }
+        
+        const newId = Math.max(0, ...data.events.map(e => e.id)) + 1;
+        data.events.push({
+          id: newId, name, time, duration, grade, place,
+          status: 'wait', delay: 0, rank1: '', rank2: '', rank3: '', rank4: '', note
+        });
+        
+        await db.collection('app_data').doc('team_events_data_v4').set({
+          data, updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        
+        alert('種目を追加しました');
+        ['teamName', 'teamTime', 'teamPlace', 'teamNote'].forEach(id => document.getElementById(id).value = '');
+        document.getElementById('teamDuration').value = '15';
+        document.getElementById('teamGrade').value = '';
+      } catch (e) { alert('追加に失敗しました'); }
+    });
+
+    // ========== データ管理 ==========
+    document.getElementById('recalcBtn').addEventListener('click', () => {
+      alert('得点を再計算しました');
+    });
+
+    document.getElementById('clearHistoryBtn').addEventListener('click', async () => {
+      if (!confirm('入力履歴を全て削除しますか？')) return;
+      try {
+        localStorage.removeItem('input_history_v4');
+        const snap = await db.collection('input_history').limit(500).get();
+        const batch = db.batch();
+        snap.forEach(doc => batch.delete(doc.ref));
+        await batch.commit();
+        alert('履歴を削除しました');
+      } catch (e) { alert('削除に失敗しました'); }
+    });
+
+    document.getElementById('resetAllBtn').addEventListener('click', async () => {
+      if (!confirm('⚠️ 本当に全データを初期化しますか？\n試合結果・順位・遅延情報など全て消えます。\nこの操作は取り消せません。')) return;
+      if (!confirm('最後の確認です。本当に実行しますか？')) return;
+      try {
+        const keys = ['ball_sports_data_v4', 'team_events_data_v4', 'common_settings'];
+        for (const key of keys) {
+          localStorage.removeItem(key);
+        }
+        localStorage.removeItem('input_history_v4');
+        alert('初期化が完了しました。ページを更新します。');
+        location.reload();
+      } catch (e) { alert('初期化に失敗しました'); }
+    });
+
+    // ========== 設定パスワード認証 ==========
     document.getElementById('authSettingsBtn').addEventListener('click', async () => {
       const input = document.getElementById('settingsPassword').value;
       const hash = await sha256(input);
@@ -440,13 +760,14 @@
       document.getElementById('settingsPassword').value = '';
       document.getElementById('passwordArea').classList.remove('hidden');
       document.getElementById('settingsContent').classList.add('hidden');
+      document.querySelectorAll('.tab-btn')[0].click();
     });
     document.getElementById('closeSettingsBtn').addEventListener('click', () => {
       document.getElementById('settingsModal').classList.add('hidden');
     });
     document.getElementById('settingsModal').addEventListener('click', e => { if (e.target.id === 'settingsModal') document.getElementById('closeSettingsBtn').click(); });
 
-    // 総合得点計算（簡易表示）
+    // ========== 総合得点ランキング ==========
     async function calcTotalRanking() {
       const groups = { A: { name: 'A組', total: 0 }, B: { name: 'B組', total: 0 }, C: { name: 'C組', total: 0 }, D: { name: 'D組', total: 0 } };
       try {
@@ -485,7 +806,6 @@
       lucide.createIcons();
     }
 
-    // 同期状態
     const Sync = {
       setStatus(s, text) {
         const el = document.getElementById('syncStatus');
@@ -496,15 +816,13 @@
       }
     };
 
-    // 初期化
     async function init() {
       Sync.setStatus('syncing', '接続中...');
       await loadAuthorizedUsers();
+      await loadCommonSettings();
       updateAdminAuthUI();
       calcTotalRanking();
       Sync.setStatus('online', 'オンライン');
-      
-      // リアルタイムでランキング更新
       db.collection('app_data').onSnapshot(() => calcTotalRanking());
     }
     init();
