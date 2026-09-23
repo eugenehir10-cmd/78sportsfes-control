@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>78th Sports Festival Portal</title>
   <!-- リンクプレビュー設定 -->
-  <meta name="description" content="第78回体育祭進行管理システム｜備品貸出・進行スケジュールを一元管理">
+  <meta name="description" content="第78回体育祭進行管理システム｜備品貸出・進行スケジュール・生徒照会を一元管理">
   <meta property="og:title" content="78th Sports Festival Portal">
-  <meta property="og:description" content="第78回体育祭進行管理システム｜備品貸出・進行スケジュールを一元管理">
+  <meta property="og:description" content="第78回体育祭進行管理システム｜備品貸出・進行スケジュール・生徒照会を一元管理">
   <meta property="og:type" content="website">
   <meta property="og:image" content="https://p16-flow-image-sign.ibyteimg.com/tos-mya-i-uo7y4d541q/a3ab12918aba45a2a2329845f6dcc9e9.jpg~tplv-0es2k971ck-image.image?rcl=202609240247184651974C1893822DA5C7&rk3s=8e244e95&rrcfp=935dee89&x-expires=1790794039&x-signature=CNjmqAzc0rP2t6PzpuA9Xa2Qioc%3D">
   <meta name="twitter:card" content="summary_large_image">
@@ -298,6 +298,13 @@
         0 0 0 1px rgba(16,185,129,0.12),
         0 0 70px rgba(16,185,129,0.08);
     }
+    .func-card-purple:hover,
+    .func-card-purple:active {
+      box-shadow: 
+        0 30px 60px rgba(0,0,0,0.6),
+        0 0 0 1px rgba(168,85,247,0.12),
+        0 0 70px rgba(168,85,247,0.08);
+    }
 
     /* ===== アイコンボックス ===== */
     .icon-box {
@@ -574,7 +581,7 @@
     }
   </style>
 </head>
-<body class="text-white max-w-5xl mx-auto px-4 py-12 md:py-16 relative z-10">
+<body class="text-white max-w-6xl mx-auto px-4 py-12 md:py-16 relative z-10">
   <!-- 星屑パーティクル背景 -->
   <div class="particles" id="particles"></div>
 
@@ -633,7 +640,8 @@
       Features
     </span>
   </div>
-  <div class="grid gap-5 md:gap-8 sm:grid-cols-2 fade-in-up delay-3 relative z-10">
+  <div class="grid gap-5 md:gap-6 sm:grid-cols-2 lg:grid-cols-3 fade-in-up delay-3 relative z-10">
+    <!-- 備品貸出管理 -->
     <a href="lend.html" class="func-card func-card-blue p-8 md:p-10 rounded-2xl block group">
       <div class="icon-box w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500/25 to-blue-700/10 border border-blue-500/25 flex items-center justify-center mb-7">
         <i data-lucide="radio" class="w-8 h-8 text-blue-400"></i>
@@ -645,12 +653,27 @@
         <i data-lucide="arrow-right" class="w-4 h-4 ml-2"></i>
       </div>
     </a>
+
+    <!-- 進行管理 -->
     <a href="timetable.html" class="func-card func-card-emerald p-8 md:p-10 rounded-2xl block group">
       <div class="icon-box w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500/25 to-emerald-700/10 border border-emerald-500/25 flex items-center justify-center mb-7">
         <i data-lucide="clipboard-list" class="w-8 h-8 text-emerald-400"></i>
       </div>
       <h3 class="font-bold text-xl md:text-2xl mb-3 text-white tracking-tight">進行管理</h3>
       <p class="text-sm text-gray-400 leading-relaxed">球技日・団体競技日のスケジュールと進捗状況を確認</p>
+      <div class="mt-8 flex items-center text-sm text-gray-500 group-hover:text-white group-hover:translate-x-2 transition-all duration-400 font-medium">
+        <span>開く</span>
+        <i data-lucide="arrow-right" class="w-4 h-4 ml-2"></i>
+      </div>
+    </a>
+
+    <!-- 生徒照会（新規追加） -->
+    <a href="student-search.html" class="func-card func-card-purple p-8 md:p-10 rounded-2xl block group sm:col-span-2 lg:col-span-1">
+      <div class="icon-box w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500/25 to-purple-700/10 border border-purple-500/25 flex items-center justify-center mb-7">
+        <i data-lucide="user-search" class="w-8 h-8 text-purple-400"></i>
+      </div>
+      <h3 class="font-bold text-xl md:text-2xl mb-3 text-white tracking-tight">生徒照会</h3>
+      <p class="text-sm text-gray-400 leading-relaxed">生徒情報・所属・役割などを素早く検索・確認</p>
       <div class="mt-8 flex items-center text-sm text-gray-500 group-hover:text-white group-hover:translate-x-2 transition-all duration-400 font-medium">
         <span>開く</span>
         <i data-lucide="arrow-right" class="w-4 h-4 ml-2"></i>
