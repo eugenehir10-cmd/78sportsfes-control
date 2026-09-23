@@ -1,1 +1,247 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>球技日 タイムテーブル</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --running: #d1fae5; --running-text: #047857;
+      --pending: #fef3c7; --pending-text: #b45309;
+      --done: #e5e7eb; --done-text: #6b7280;
+      --future: #eff6ff; --future-text: #1e40af;
+    }
+    .venue-col { min-width: 280px; }
+    .match-card { transition: all 0.2s; }
+    .match-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,.1); }
+    input, select, button { font-size: 16px !important; }
+    .scroll-h { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-800 min-h-screen">
+  <header class="bg-white shadow-sm sticky top-0 z-10 px-4 py-3">
+    <div class="max-w-7xl mx-auto flex justify-between items-center">
+      <a href="index.html" class="text-lg font-bold hover:opacity-70">← ホーム</a>
+      <h1 class="text-xl font-bold">⚽ 球技日 タイムテーブル</h1>
+      <button id="addMatchBtn" class="bg-green-600 text-white px-3 py-2 rounded-lg text-sm font-bold">＋ 試合追加</button>
+    </div>
+  </header>
 
+  <main class="max-w-7xl mx-auto p-4">
+    <!-- 会場一覧/追加 -->
+    <div class="bg-white rounded-xl shadow p-4 mb-6">
+      <div class="flex gap-2 flex-wrap mb-3">
+        <input type="text" id="newVenueName" placeholder="会場名（例：Aコート）" class="flex-1 min-w-[140px] border rounded-lg px-3 py-2">
+        <button id="addVenueBtn" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold whitespace-nowrap">会場追加</button>
+      </div>
+      <p class="text-xs text-gray-500">右端の「×」で会場ごと削除（試合がない場合のみ）</p>
+    </div>
+
+    <!-- タイムテーブル本体 -->
+    <div class="scroll-h pb-6">
+      <div id="timetableGrid" class="flex gap-4 align-start"></div>
+    </div>
+  </main>
+
+  <!-- 編集モーダル -->
+  <div id="editModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-xl p-5 w-full max-w-md max-h-[90vh] overflow-y-auto">
+      <h3 id="modalTitle" class="font-bold text-lg mb-4">試合情報</h3>
+      <form id="matchForm" class="space-y-3">
+        <input type="hidden" id="editMatchId">
+        <div>
+          <label class="block text-sm font-medium mb-1">会場</label>
+          <select id="editVenue" class="w-full border rounded-lg px-3 py-2.5" required></select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1">開始時刻</label>
+          <input type="time" id="editTime" class="w-full border rounded-lg px-3 py-2.5" required>
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1">対戦カード / 内容</label>
+          <input type="text" id="editName" class="w-full border rounded-lg px-3 py-2.5" placeholder="例：赤組 VS 青組" required>
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1">状況</label>
+          <select id="editStatus" class="w-full border rounded-lg px-3 py-2.5">
+            <option value="future">まもなく</option>
+            <option value="pending">準備中</option>
+            <option value="running">進行中</option>
+            <option value="done">終了</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1">備考・スコア</label>
+          <textarea id="editNote" rows="2" class="w-full border rounded-lg px-3 py-2.5" placeholder="スコアや連絡事項"></textarea>
+        </div>
+        <div class="flex gap-3 pt-2">
+          <button type="button" id="modalClose" class="flex-1 bg-gray-200 py-2.5 rounded-lg font-bold">キャンセル</button>
+          <button type="button" id="modalDelete" class="bg-red-500 text-white px-4 py-2.5 rounded-lg font-bold hidden">削除</button>
+          <button type="submit" class="flex-1 bg-blue-600 text-white py-2.5 rounded-lg font-bold">保存</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    let data = {
+      venues: ['Aコート', 'Bコート', 'Cコート'],
+      matches: [
+        { id: 1, venue: 'Aコート', time: '09:00', name: '赤 VS 青', status: 'done', note: '2-0' },
+        { id: 2, venue: 'Bコート', time: '09:00', name: '黄 VS 緑', status: 'done', note: '1-1' },
+        { id: 3, venue: 'Cコート', time: '09:00', name: '白 VS 黒', status: 'done', note: '3-2' },
+        { id: 4, venue: 'Aコート', time: '09:30', name: '赤 VS 黄', status: 'running', note: '前半終了 1-0' },
+        { id: 5, venue: 'Bコート', time: '09:30', name: '青 VS 緑', status: 'pending', note: 'コート整備中' },
+        { id: 6, venue: 'Cコート', time: '09:30', name: '白 VS 赤', status: 'future', note: '' },
+        { id: 7, venue: 'Aコート', time: '10:00', name: '決勝', status: 'future', note: '' },
+      ]
+    };
+
+    function saveData() {
+      localStorage.setItem('ball_sports_data', JSON.stringify(data));
+    }
+    function loadData() {
+      const s = localStorage.getItem('ball_sports_data');
+      if (s) try { data = JSON.parse(s); } catch {}
+    }
+
+    function getStatusStyle(s) {
+      switch(s) {
+        case 'running': return `background:var(--running);color:var(--running-text);border-left:4px solid #10b981;`;
+        case 'pending': return `background:var(--pending);color:var(--pending-text);border-left:4px solid #f59e0b;`;
+        case 'done': return `background:var(--done);color:var(--done-text);border-left:4px solid #9ca3af;`;
+        default: return `background:var(--future);color:var(--future-text);border-left:4px solid #3b82f6;`;
+      }
+    }
+    function getStatusLabel(s) {
+      return { future:'まもなく', pending:'準備中', running:'🔥 進行中', done:'✅ 終了' }[s] || s;
+    }
+
+    function render() {
+      const grid = document.getElementById('timetableGrid');
+      grid.innerHTML = '';
+      
+      data.venues.forEach(venue => {
+        const matches = data.matches.filter(m => m.venue === venue).sort((a,b) => a.time.localeCompare(b.time));
+        const canDel = matches.length === 0;
+
+        grid.innerHTML += `
+          <div class="venue-col flex-shrink-0">
+            <div class="flex items-center justify-between mb-3 px-1">
+              <h2 class="font-bold text-lg">${venue}</h2>
+              <button data-del-venue="${venue}" class="text-red-400 hover:text-red-600 text-sm ${!canDel?'opacity-30 cursor-not-allowed':''}" ${!canDel?'disabled':''}>×</button>
+            </div>
+            <div class="space-y-3">
+              ${matches.length ? matches.map(m => `
+                <div class="match-card rounded-lg p-3 cursor-pointer" style="${getStatusStyle(m.status)}" data-edit-id="${m.id}">
+                  <div class="flex justify-between items-start mb-1">
+                    <span class="font-mono font-bold">${m.time}</span>
+                    <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-white/60">${getStatusLabel(m.status)}</span>
+                  </div>
+                  <p class="font-bold">${m.name}</p>
+                  ${m.note?`<p class="text-xs mt-1 opacity-80">${m.note}</p>`:''}
+                </div>
+              `).join('') : '<p class="text-gray-400 text-sm px-2">試合なし</p>'}
+            </div>
+          </div>
+        `;
+      });
+
+      bindGridEvents();
+    }
+
+    function bindGridEvents() {
+      // 編集
+      document.querySelectorAll('[data-edit-id]').forEach(el => {
+        el.addEventListener('click', () => openEdit(Number(el.dataset.editId)));
+      });
+      // 会場削除
+      document.querySelectorAll('[data-del-venue]').forEach(el => {
+        el.addEventListener('click', () => {
+          if (el.disabled) return;
+          if (!confirm(`「${el.dataset.delVenue}」を削除しますか？`)) return;
+          data.venues = data.venues.filter(v => v !== el.dataset.delVenue);
+          saveData(); render();
+        });
+      });
+    }
+
+    function openEdit(id) {
+      const m = data.matches.find(x => x.id === id);
+      if (!m) return;
+      document.getElementById('modalTitle').textContent = '試合を編集';
+      document.getElementById('editMatchId').value = id;
+      document.getElementById('editVenue').innerHTML = data.venues.map(v => `<option value="${v}" ${m.venue===v?'selected':''}>${v}</option>`).join('');
+      document.getElementById('editTime').value = m.time;
+      document.getElementById('editName').value = m.name;
+      document.getElementById('editStatus').value = m.status;
+      document.getElementById('editNote').value = m.note || '';
+      document.getElementById('modalDelete').classList.remove('hidden');
+      document.getElementById('editModal').classList.remove('hidden');
+      document.getElementById('editModal').classList.add('flex');
+    }
+
+    function openAdd() {
+      document.getElementById('modalTitle').textContent = '試合を追加';
+      document.getElementById('editMatchId').value = '';
+      document.getElementById('editVenue').innerHTML = data.venues.map(v => `<option value="${v}">${v}</option>`).join('');
+      document.getElementById('editTime').value = '';
+      document.getElementById('editName').value = '';
+      document.getElementById('editStatus').value = 'future';
+      document.getElementById('editNote').value = '';
+      document.getElementById('modalDelete').classList.add('hidden');
+      document.getElementById('editModal').classList.remove('hidden');
+      document.getElementById('editModal').classList.add('flex');
+    }
+
+    function closeModal() {
+      document.getElementById('editModal').classList.add('hidden');
+      document.getElementById('editModal').classList.remove('flex');
+    }
+
+    // イベント
+    document.getElementById('addVenueBtn').addEventListener('click', () => {
+      const v = document.getElementById('newVenueName').value.trim();
+      if (!v || data.venues.includes(v)) return alert('入力が空または既に存在します');
+      data.venues.push(v);
+      saveData(); render();
+      document.getElementById('newVenueName').value = '';
+    });
+
+    document.getElementById('addMatchBtn').addEventListener('click', openAdd);
+    document.getElementById('modalClose').addEventListener('click', closeModal);
+
+    document.getElementById('modalDelete').addEventListener('click', () => {
+      const id = Number(document.getElementById('editMatchId').value);
+      if (!confirm('この試合を削除しますか？')) return;
+      data.matches = data.matches.filter(m => m.id !== id);
+      saveData(); render(); closeModal();
+    });
+
+    document.getElementById('matchForm').addEventListener('submit', e => {
+      e.preventDefault();
+      const idVal = document.getElementById('editMatchId').value;
+      const venue = document.getElementById('editVenue').value;
+      const time = document.getElementById('editTime').value;
+      const name = document.getElementById('editName').value.trim();
+      const status = document.getElementById('editStatus').value;
+      const note = document.getElementById('editNote').value.trim();
+
+      if (!name || !time || !venue) return alert('必須項目を入力');
+
+      if (idVal) {
+        const m = data.matches.find(x => x.id === Number(idVal));
+        Object.assign(m, { venue, time, name, status, note });
+      } else {
+        const newId = data.matches.length ? Math.max(...data.matches.map(x=>x.id))+1 : 1;
+        data.matches.push({ id: newId, venue, time, name, status, note });
+      }
+      saveData(); render(); closeModal();
+    });
+
+    // 初期化
+    loadData(); render();
+  </script>
+</body>
+</html>
