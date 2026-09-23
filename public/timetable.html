@@ -3,12 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>進行管理｜スポーツフェスタ</title>
+  <title>進行管理 ハブ｜スポーツフェスタ</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
-  <!-- 🔥 Firebase SDK -->
+  <!-- 🔥 Firebase SDK（Auth追加） -->
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -27,263 +28,212 @@
       backdrop-filter: blur(20px);
       box-shadow: 0 25px 80px rgba(0,0,0,0.6), 0 0 120px rgba(255,255,255,0.02), inset 0 1px 0 rgba(255,255,255,0.06);
     }
-    .hub-card {
-      background: linear-gradient(145deg, rgba(30,30,30,0.85), rgba(22,22,22,0.95));
-      border: 1px solid rgba(255,255,255,0.08);
-      backdrop-filter: blur(10px);
-      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-      position: relative;
-      overflow: hidden;
-    }
-    .hub-card:hover {
-      transform: translateY(-8px) scale(1.02);
-      border-color: rgba(255,255,255,0.18);
-      box-shadow: 0 30px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05), 0 0 60px rgba(255,255,255,0.03);
-    }
-    .hub-card.ball:hover { border-color: rgba(59, 130, 246, 0.3); }
-    .hub-card.team:hover { border-color: rgba(16, 185, 129, 0.3); }
-    .hub-card.history:hover { border-color: rgba(245, 158, 11, 0.3); }
-    .settings-btn {
-      background: linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.05));
-      border: 2px solid rgba(255,255,255,0.15);
+    .menu-card {
+      background: linear-gradient(145deg, rgba(40,40,40,0.7), rgba(25,25,25,0.9));
+      border: 1px solid rgba(255,255,255,0.06);
       transition: all 0.3s ease;
+      cursor: pointer;
     }
-    .settings-btn:hover {
-      background: linear-gradient(135deg, rgba(255,255,255,0.2), rgba(255,255,255,0.08));
-      border-color: rgba(255,255,255,0.3);
-      transform: translateY(-2px);
-    }
+    .menu-card:hover { border-color: rgba(255,255,255,0.2); transform: translateY(-4px); box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
+    .btn-primary { background: linear-gradient(135deg, #10b981, #059669); transition: all 0.3s ease; }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(16,185,129,0.25); }
+    .btn-danger { background: linear-gradient(135deg, #ef4444, #dc2626); transition: all 0.3s ease; }
+    .btn-danger:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(239,68,68,0.25); }
     .glow-text { text-shadow: 0 0 40px rgba(255,255,255,0.12), 0 0 80px rgba(255,255,255,0.05); }
     .divider { background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent); height: 1px; }
+    input { background: rgba(255,255,255,0.05) !important; border: 1px solid rgba(255,255,255,0.1) !important; color: white !important; font-size: 16px !important; }
+    input:disabled { opacity: 0.5; cursor: not-allowed; }
+    .fade-in-up { animation: fadeInUp 0.8s ease-out forwards; opacity: 0; transform: translateY(20px); }
+    @keyframes fadeInUp { to { opacity: 1; transform: translateY(0); } }
+    .delay-1 { animation-delay: 0.1s; }
+    .delay-2 { animation-delay: 0.2s; }
     .rank-1 { background: linear-gradient(135deg, rgba(251,191,36,0.2), rgba(217,119,6,0.1)); border-left: 3px solid #fbbf24; }
     .rank-2 { background: linear-gradient(135deg, rgba(156,163,175,0.2), rgba(107,114,128,0.1)); border-left: 3px solid #9ca3af; }
     .rank-3 { background: linear-gradient(135deg, rgba(180,83,9,0.2), rgba(146,64,14,0.1)); border-left: 3px solid #b45309; }
     .rank-4 { background: linear-gradient(135deg, rgba(75,85,99,0.15), rgba(55,65,81,0.08)); border-left: 3px solid #4b5563; }
     @keyframes pulse-soft { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
     .pulse-dot { animation: pulse-soft 1.2s ease-in-out infinite; }
-    @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-    .fade-in-up { animation: fadeInUp 0.8s ease-out forwards; }
-    .delay-1 { animation-delay: 0.1s; opacity: 0; }
-    .delay-2 { animation-delay: 0.2s; opacity: 0; }
-    .delay-3 { animation-delay: 0.3s; opacity: 0; }
-    input, select, textarea { background: rgba(255,255,255,0.05) !important; border: 1px solid rgba(255,255,255,0.1) !important; color: white !important; font-size: 16px !important; }
-    input::placeholder, textarea::placeholder { color: rgba(255,255,255,0.3); }
-    select option { background: #1a1a1a; color: white; }
     .sync-status { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 4px 10px; border-radius: 9999px; }
     .sync-online { background: rgba(16,185,129,0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.3); }
     .sync-offline { background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); }
     .sync-syncing { background: rgba(59,130,246,0.15); color: #3b82f6; border: 1px solid rgba(59,130,246,0.3); }
+    .auth-badge-authed { background: rgba(16,185,129,0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.3); }
+    .auth-badge-guest { background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); }
+    .admin-badge-authed { background: rgba(245,158,11,0.15); color: #f59e0b; border: 1px solid rgba(245,158,11,0.3); }
+    .google-btn {
+      background: white !important; color: #444 !important;
+      display: inline-flex; align-items: center; gap: 10px;
+      font-weight: 500; border: 1px solid rgba(0,0,0,0.1) !important;
+    }
+    .google-btn:hover { background: #f8f8f8 !important; }
+    .email-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 14px; border-radius: 10px; background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08); margin-bottom: 8px;
+    }
+    .email-item.admin {
+      background: rgba(245,158,11,0.08); border-color: rgba(245,158,11,0.25);
+    }
+    .locked-section {
+      position: relative; padding: 30px; border-radius: 16px;
+      background: rgba(255,255,255,0.02); border: 2px dashed rgba(255,255,255,0.1);
+      text-align: center; color: #9ca3af;
+    }
   </style>
 </head>
-<body class="text-white max-w-5xl mx-auto px-4 py-12 md:py-16">
-  <header class="mb-14 fade-in-up">
-    <a href="index.html" class="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-4">
-      <i data-lucide="arrow-left" class="w-4 h-4"></i>
-      <span>ホームに戻る</span>
-    </a>
-    <div class="flex items-center justify-between flex-wrap gap-4">
-      <div>
-        <p class="text-gray-500 text-xs tracking-[0.25em] uppercase mb-2">Schedule Management</p>
-        <h1 class="text-4xl md:text-5xl font-bold tracking-tight glow-text flex items-center gap-3">
-          <i data-lucide="clipboard-list" class="w-10 h-10 md:w-12 md:h-12 text-emerald-400"></i>
-          進行管理
-        </h1>
-        <p class="text-gray-400 mt-3 text-sm md:text-base tracking-wide">第78回体育祭 球技日・団体競技日 スケジュール</p>
-        <div class="flex items-center gap-3 mt-3 flex-wrap">
-          <span id="syncStatus" class="sync-status sync-syncing">
-            <span class="w-2 h-2 rounded-full bg-current pulse-dot"></span>
-            <span id="syncStatusText">接続中...</span>
-          </span>
-          <span id="lastSync" class="text-xs text-gray-500">最終同期：-</span>
-        </div>
-      </div>
-      <div class="flex gap-2 flex-wrap">
-        <button id="manualSyncBtn" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 transition-colors text-sm flex items-center gap-2">
-          <i data-lucide="refresh-cw" class="w-4 h-4"></i>
-          <span>🔄 手動同期</span>
-        </button>
-        <button id="openSettingsBtn" class="settings-btn px-5 py-3 rounded-xl font-medium flex items-center gap-2 text-base">
-          <i data-lucide="settings" class="w-5 h-5"></i>
-          <span>⚙️ 設定</span>
-          <span class="text-xs bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full">要パスワード</span>
-        </button>
-      </div>
+<body class="text-white max-w-5xl mx-auto px-4 py-10 md:py-14">
+  <header class="mb-10 fade-in-up text-center">
+    <p class="text-gray-500 text-xs tracking-[0.3em] uppercase mb-3">Sports Festival Control Hub</p>
+    <h1 class="text-4xl md:text-5xl font-bold tracking-tight glow-text mb-4">進行管理 ハブ</h1>
+    <div class="flex items-center justify-center gap-3">
+      <span id="syncStatus" class="sync-status sync-syncing">
+        <span class="w-2 h-2 rounded-full bg-current pulse-dot"></span>
+        <span id="syncStatusText">接続中...</span>
+      </span>
     </div>
-    <div class="divider w-full mt-8 rounded-full"></div>
+    <div class="divider w-full max-w-md mx-auto mt-8 rounded-full"></div>
   </header>
 
-  <!-- 総合得点ランキング（ABCD組合算） -->
-  <div class="card rounded-3xl p-6 md:p-8 mb-12 fade-in-up delay-1">
-    <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
-      <div class="flex items-center gap-2">
-        <i data-lucide="trophy" class="w-5 h-5 text-amber-400"></i>
-        <h2 class="text-lg font-semibold">🏆 総合得点ランキング（組別合算）</h2>
-      </div>
-      <button id="refreshTotalBtn" class="text-xs px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 transition-colors flex items-center gap-1.5">
-        <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
-        更新
-      </button>
-    </div>
-    <div id="totalRanking" class="space-y-2"></div>
-    <p class="text-xs text-gray-500 mt-4 text-center">※ 球技日（PDF得点割） + 団体競技日（PDF得点割）をABCD組ごとに合算</p>
+  <!-- 総合得点ランキング -->
+  <div class="card rounded-3xl p-6 md:p-8 mb-8 fade-in-up delay-1">
+    <h2 class="text-lg font-semibold mb-5 flex items-center gap-2 justify-center">
+      <i data-lucide="trophy" class="w-5 h-5 text-amber-400"></i>🏆 総合得点ランキング
+    </h2>
+    <div id="totalRanking" class="grid gap-3 md:grid-cols-2 max-w-2xl mx-auto"></div>
+    <p class="text-xs text-gray-500 mt-6 text-center">※ 球技日 + 団体競技日 合算</p>
   </div>
 
   <!-- メニューカード -->
-  <h2 class="text-lg md:text-xl font-semibold mb-8 text-center text-gray-300 tracking-wide fade-in-up delay-2">
-    <span class="inline-flex items-center gap-2"><i data-lucide="layout-grid" class="w-5 h-5"></i>メニュー</span>
-  </h2>
-
-  <div class="grid gap-6 md:grid-cols-3 mb-12 fade-in-up delay-3">
-    <a href="ball_sports.html" class="hub-card ball p-6 rounded-2xl block group">
-      <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500/20 to-blue-600/10 border border-blue-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-all duration-500">
+  <div class="grid gap-5 md:grid-cols-3 mb-8 fade-in-up delay-2">
+    <a href="ball_sports.html" class="menu-card rounded-3xl p-6 block">
+      <div class="w-14 h-14 rounded-2xl bg-blue-500/20 flex items-center justify-center mb-4">
         <i data-lucide="trophy" class="w-7 h-7 text-blue-400"></i>
       </div>
-      <h3 class="font-bold text-xl md:text-2xl mb-2 text-white">⚽ 球技日</h3>
-      <p class="text-sm text-gray-400 mb-4">6会場並行 タイムテーブル</p>
-      <div class="text-xs text-gray-500 space-y-0.5">
-        <p>📅 8:10 〜 15:00</p>
-        <p>🏟️ 上グラ・下グラ・体育館 他</p>
-        <p id="ballProgress" class="pt-1 text-white">消化状況：-</p>
-      </div>
+      <h3 class="text-xl font-bold mb-2">⚽ 球技日</h3>
+      <p class="text-sm text-gray-400">6会場並列タイムテーブル・順位入力・得点計算</p>
     </a>
-    <a href="team_events.html" class="hub-card team p-6 rounded-2xl block group">
-      <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border border-emerald-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-all duration-500">
+    <a href="team_events.html" class="menu-card rounded-3xl p-6 block">
+      <div class="w-14 h-14 rounded-2xl bg-emerald-500/20 flex items-center justify-center mb-4">
         <i data-lucide="users" class="w-7 h-7 text-emerald-400"></i>
       </div>
-      <h3 class="font-bold text-xl md:text-2xl mb-2 text-white">🏃 団体競技日</h3>
-      <p class="text-sm text-gray-400 mb-4">種目別進行 タイムテーブル</p>
-      <div class="text-xs text-gray-500 space-y-0.5">
-        <p>📅 8:20 〜 15:27</p>
-        <p>🎯 開会式 → 閉会式 全15種目</p>
-        <p id="teamProgress" class="pt-1 text-white">消化状況：-</p>
-      </div>
+      <h3 class="text-xl font-bold mb-2">🏃 団体競技日</h3>
+      <p class="text-sm text-gray-400">全日程タイムテーブル・時間調整・順位入力</p>
     </a>
-    <a href="history.html" class="hub-card history p-6 rounded-2xl block group">
-      <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500/20 to-amber-600/10 border border-amber-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-all duration-500">
+    <a href="history.html" class="menu-card rounded-3xl p-6 block">
+      <div class="w-14 h-14 rounded-2xl bg-amber-500/20 flex items-center justify-center mb-4">
         <i data-lucide="history" class="w-7 h-7 text-amber-400"></i>
       </div>
-      <h3 class="font-bold text-xl md:text-2xl mb-2 text-white">📋 入力履歴</h3>
-      <p class="text-sm text-gray-400 mb-4">点数入力の記録を閲覧</p>
-      <div class="text-xs text-gray-500 space-y-0.5">
-        <p>🕐 タイムスタンプ</p>
-        <p>💻 端末情報</p>
-        <p id="historyCount" class="pt-1 text-white">登録履歴：-</p>
-      </div>
+      <h3 class="text-xl font-bold mb-2">📋 入力履歴</h3>
+      <p class="text-sm text-gray-400">誰がいつどこを編集したか・CSV出力</p>
     </a>
+  </div>
+
+  <!-- 設定ボタン -->
+  <div class="text-center fade-in-up delay-2 mb-8">
+    <button id="openSettingsBtn" class="px-8 py-4 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10 transition-all font-medium flex items-center gap-2 mx-auto">
+      <i data-lucide="settings" class="w-5 h-5"></i>⚙️ 設定画面を開く
+    </button>
   </div>
 
   <!-- 設定モーダル -->
-  <div id="settingsModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
-    <div class="card rounded-3xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
-      <h3 class="text-xl font-bold mb-6 flex items-center gap-2">
-        <i data-lucide="settings" class="w-5 h-5 text-gray-400"></i>
-        ⚙️ 設定管理
-      </h3>
-      <div id="passwordArea" class="space-y-4">
-        <div class="p-3 bg-amber-500/10 rounded-xl border border-amber-500/20">
-          <p class="text-amber-400 text-sm">🔐 管理者パスワードが必要です</p>
-        </div>
-        <input type="password" id="settingsPassword" placeholder="パスワード" class="w-full rounded-xl px-4 py-3">
-        <button id="authBtn" class="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 transition-all font-medium">認証</button>
-      </div>
-      <div id="settingsContent" class="hidden space-y-6">
-        <div class="p-3 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
-          <p class="text-emerald-400 text-sm font-medium">✅ 管理者モード</p>
-        </div>
-        <div class="pt-4 border-t border-white/5 space-y-3">
-          <button id="addBallMatchBtn" class="w-full py-3 rounded-xl bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 transition-colors text-sm flex items-center justify-center gap-2">
-            <i data-lucide="plus-circle" class="w-4 h-4"></i>⚽ 球技日 試合を追加
-          </button>
-          <button id="addTeamEventBtn" class="w-full py-3 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 transition-colors text-sm flex items-center justify-center gap-2">
-            <i data-lucide="plus-circle" class="w-4 h-4"></i>🏃 団体競技日 種目を追加
-          </button>
-          <button id="clearHistoryBtn" class="w-full py-3 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 transition-colors text-sm flex items-center justify-center gap-2">
-            <i data-lucide="eraser" class="w-4 h-4"></i>📋 入力履歴を削除
-          </button>
-          <button id="recalcAllBtn" class="w-full py-3 rounded-xl bg-white/10 hover:bg-white/15 transition-colors text-sm flex items-center justify-center gap-2">
-            <i data-lucide="calculator" class="w-4 h-4"></i>全得点を再計算
-          </button>
-          <button id="backupBtn" class="w-full py-3 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 transition-colors text-sm flex items-center justify-center gap-2">
-            <i data-lucide="download" class="w-4 h-4"></i>💾 データバックアップ
-          </button>
-          <button id="resetAllBtn" class="w-full py-3 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-400 transition-colors text-sm flex items-center justify-center gap-2">
-            <i data-lucide="trash-2" class="w-4 h-4"></i>全データを初期化
+  <div id="settingsModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden z-50 overflow-y-auto">
+    <div class="min-h-screen px-4 py-8 flex items-start justify-center">
+      <div class="card rounded-3xl p-6 md:p-8 w-full max-w-2xl">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-2xl font-bold flex items-center gap-2">
+            <i data-lucide="settings" class="w-6 h-6 text-emerald-400"></i>⚙️ 設定画面
+          </h2>
+          <button id="closeSettingsBtn" class="p-2 rounded-lg hover:bg-white/10 transition-colors">
+            <i data-lucide="x" class="w-5 h-5"></i>
           </button>
         </div>
-      </div>
-      <button id="closeSettingsBtn" class="w-full mt-6 py-3 rounded-xl bg-white/10 hover:bg-white/15 transition-colors font-medium">閉じる</button>
-    </div>
-  </div>
 
-  <!-- 球技日 試合追加モーダル -->
-  <div id="ballModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
-    <div class="card rounded-3xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-      <h3 class="text-xl font-bold mb-6">⚽ 球技日 試合追加</h3>
-      <form id="ballForm" class="space-y-4">
-        <div><label class="block text-sm text-gray-400 mb-1.5">会場</label>
-          <select id="ballVenue" class="w-full rounded-xl px-4 py-3">
-            <option value="上グラウンド">上グラウンド</option><option value="下グラウンド">下グラウンド</option>
-            <option value="体育館">体育館</option><option value="ハードコート">ハードコート</option>
-            <option value="オムニコート">オムニコート</option><option value="卓球場">卓球場</option>
-          </select>
+        <!-- 設定パスワード認証 -->
+        <div id="passwordArea">
+          <div class="bg-white/5 rounded-2xl p-6 border border-white/10 text-center">
+            <i data-lucide="lock" class="w-12 h-12 mx-auto text-gray-500 mb-4"></i>
+            <p class="text-gray-400 mb-4">設定画面を開くにはパスワードが必要です</p>
+            <div class="flex gap-2 max-w-sm mx-auto">
+              <input type="password" id="settingsPassword" class="flex-1 rounded-xl px-4 py-3" placeholder="パスワードを入力" onkeypress="if(event.key==='Enter')document.getElementById('authSettingsBtn').click()">
+              <button id="authSettingsBtn" class="px-5 py-3 rounded-xl btn-primary font-medium">開く</button>
+            </div>
+            <p id="settingsAuthError" class="text-red-400 text-sm mt-3 hidden">パスワードが違います</p>
+          </div>
         </div>
-        <div><label class="block text-sm text-gray-400 mb-1.5">開始時刻</label><input type="time" id="ballTime" class="w-full rounded-xl px-4 py-3" required></div>
-        <div><label class="block text-sm text-gray-400 mb-1.5">競技種別</label>
-          <select id="ballSport" class="w-full rounded-xl px-4 py-3">
-            <option value="サッカー">サッカー</option><option value="野球">野球</option><option value="バスケットボール">バスケットボール</option>
-            <option value="バレーボール">バレーボール</option><option value="ドッジボール">ドッジボール</option>
-            <option value="アルティメット">アルティメット</option><option value="卓球">卓球</option>
-          </select>
-        </div>
-        <div><label class="block text-sm text-gray-400 mb-1.5">対象学年</label>
-          <select id="ballGrade" class="w-full rounded-xl px-4 py-3">
-            <option value="中学1年">中学1年</option><option value="中学2年">中学2年</option><option value="中学3年">中学3年</option>
-            <option value="高校1年">高校1年</option><option value="高校2年">高校2年</option><option value="高校3年">高校3年</option>
-          </select>
-        </div>
-        <div><label class="block text-sm text-gray-400 mb-1.5">ステータス</label>
-          <select id="ballStatus" class="w-full rounded-xl px-4 py-3">
-            <option value="future">まもなく</option><option value="pending">準備中</option>
-            <option value="running">🔥 進行中</option><option value="done">✅ 終了</option>
-          </select>
-        </div>
-        <div class="flex gap-3 pt-2">
-          <button type="button" id="ballModalClose" class="flex-1 py-3 rounded-xl bg-white/10 hover:bg-white/15 transition-colors font-medium">キャンセル</button>
-          <button type="submit" class="flex-1 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 font-medium">追加</button>
-        </div>
-      </form>
-    </div>
-  </div>
 
-  <!-- 団体競技日 種目追加モーダル -->
-  <div id="teamModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
-    <div class="card rounded-3xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-      <h3 class="text-xl font-bold mb-6">🏃 団体競技日 種目追加</h3>
-      <form id="teamForm" class="space-y-4">
-        <div><label class="block text-sm text-gray-400 mb-1.5">種目名</label>
-          <select id="teamName" class="w-full rounded-xl px-4 py-3">
-            <option value="大玉送り">大玉送り</option><option value="竹取物語">竹取物語</option><option value="台風の目">台風の目</option>
-            <option value="しっぽとり">しっぽとり</option><option value="借り人競争">借り人競争</option><option value="部対抗リレー">部対抗リレー</option>
-            <option value="綱引き">綱引き</option><option value="二人三脚">二人三脚</option><option value="100人フットボール">100人フットボール</option>
-            <option value="選抜リレー">選抜リレー</option><option value="騎馬戦">騎馬戦</option><option value="団長騎馬戦">団長騎馬戦</option>
-          </select>
+        <!-- 設定コンテンツ -->
+        <div id="settingsContent" class="hidden space-y-6">
+          
+          <!-- 🔐 許可アカウント管理（特権認証必要） -->
+          <div class="bg-white/5 rounded-2xl p-5 border border-white/10">
+            <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+              <div>
+                <h3 class="font-semibold text-lg flex items-center gap-2">
+                  <i data-lucide="user-check" class="w-5 h-5 text-amber-400"></i>🔐 許可Googleアカウント管理
+                </h3>
+                <p class="text-xs text-gray-500 mt-1">結果入力を許可するGoogleアカウントを管理します</p>
+              </div>
+              <div class="flex items-center gap-2">
+                <span id="adminAuthBadge" class="sync-status auth-badge-guest">
+                  <i data-lucide="shield" class="w-3 h-3"></i>
+                  <span id="adminAuthText">管理者未認証</span>
+                </span>
+                <button id="adminAuthBtn" class="px-3 py-1.5 rounded-lg google-btn text-xs font-medium">
+                  <svg width="14" height="14" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.5 29.3 35.5 24 35.5c-6.4 0-11.5-5.1-11.5-11.5S17.6 12.5 24 12.5c2.9 0 5.6 1.1 7.6 2.9l5.7-5.7C33.9 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c10 0 18.4-7.4 19.6-17.1.3-.9.4-1.8.4-2.7 0-.9-.1-1.8-.4-2.7z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.8 16 19 12.5 24 12.5c2.9 0 5.6 1.1 7.6 2.9l5.7-5.7C33.9 6.1 29.3 4 24 4 16.3 4 9.6 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2c-2 1.4-4.5 2.3-7.2 2.3-5.3 0-9.7-3-11.3-7.3l-6.5 5C9.5 38.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.2 5.7l6.2 5.2c.4-.4 7.7-5.6 7.7-14.9 0-.9-.1-1.8-.4-2.7z"/></svg>
+                  <span id="adminAuthBtnText">管理者ログイン</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- ロック状態 -->
+            <div id="adminLockedArea" class="locked-section">
+              <i data-lucide="shield-alert" class="w-10 h-10 mx-auto mb-3 text-amber-400"></i>
+              <p class="font-medium mb-1">管理者ログインが必要です</p>
+              <p class="text-xs">許可された2アカウントのみログイン可能</p>
+            </div>
+
+            <!-- 認証後エリア -->
+            <div id="adminContentArea" class="hidden">
+              <p class="text-xs text-amber-400/80 mb-3 bg-amber-400/10 rounded-lg px-3 py-2 border border-amber-400/20">
+                ⚠️ 特権管理者のみ操作可能です。変更は全ページに即座に反映されます。
+              </p>
+              
+              <!-- 現在の許可リスト -->
+              <div class="mb-4">
+                <p class="text-sm text-gray-400 mb-2">現在の許可アカウント（<span id="emailCount">0</span>件）</p>
+                <div id="emailList"></div>
+              </div>
+
+              <!-- 新規追加 -->
+              <div class="flex gap-2">
+                <input type="email" id="newEmailInput" class="flex-1 rounded-xl px-4 py-3" placeholder="追加するメールアドレス">
+                <button id="addEmailBtn" class="px-5 py-3 rounded-xl btn-primary font-medium whitespace-nowrap">
+                  <i data-lucide="plus" class="w-4 h-4 inline mr-1"></i>追加
+                </button>
+              </div>
+              <p id="addEmailError" class="text-red-400 text-xs mt-2 hidden"></p>
+            </div>
+          </div>
+
+          <!-- その他の設定項目（ダミー） -->
+          <div class="bg-white/5 rounded-2xl p-5 border border-white/10">
+            <h3 class="font-semibold text-lg mb-3 flex items-center gap-2">
+              <i data-lucide="database" class="w-5 h-5 text-blue-400"></i>🗄️ データ管理
+            </h3>
+            <div class="grid gap-2 md:grid-cols-2">
+              <button class="px-4 py-3 rounded-xl bg-white/10 hover:bg-white/15 text-left transition-colors text-sm">
+                <span class="block font-medium">🔄 得点再計算</span>
+                <span class="text-xs text-gray-500">全データから得点を再計算</span>
+              </button>
+              <button class="px-4 py-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-left transition-colors text-sm text-red-300">
+                <span class="block font-medium">🗑️ 全データ初期化</span>
+                <span class="text-xs text-red-400/70">注意：全てのデータが消去されます</span>
+              </button>
+            </div>
+          </div>
+
         </div>
-        <div class="grid grid-cols-2 gap-3">
-          <div><label class="block text-sm text-gray-400 mb-1.5">開始時刻</label><input type="time" id="teamTime" class="w-full rounded-xl px-4 py-3" required></div>
-          <div><label class="block text-sm text-gray-400 mb-1.5">所要時間</label><input type="number" id="teamDuration" value="15" min="1" class="w-full rounded-xl px-4 py-3 text-center"></div>
-        </div>
-        <div><label class="block text-sm text-gray-400 mb-1.5">対象学年</label>
-          <select id="teamGrade" class="w-full rounded-xl px-4 py-3">
-            <option value="">指定なし</option>
-            <option value="中学1年">中学1年</option><option value="中学2年">中学2年</option><option value="中学3年">中学3年</option>
-            <option value="高校1年">高校1年</option><option value="高校2年">高校2年</option><option value="高校3年">高校3年</option>
-          </select>
-        </div>
-        <div class="flex gap-3 pt-2">
-          <button type="button" id="teamModalClose" class="flex-1 py-3 rounded-xl bg-white/10 hover:bg-white/15 transition-colors font-medium">キャンセル</button>
-          <button type="submit" class="flex-1 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 font-medium">追加</button>
-        </div>
-      </form>
+      </div>
     </div>
   </div>
 
@@ -292,7 +242,7 @@
 
     // 🔥 Firebase初期化
     const FIREBASE_CONFIG = {
-      apiKey: "AIzaSyCVYfQSmKyPvbDWrAp6FNMUmuu3_GyrM00",
+      apiKey: "AIzaSyAWVUxoXbvTraGUDozLztqcJx2f2fIHQntc",
       authDomain: "thsportsfes.firebaseapp.com",
       projectId: "thsportsfes",
       storageBucket: "thsportsfes.appspot.com",
@@ -301,304 +251,263 @@
     };
     firebase.initializeApp(FIREBASE_CONFIG);
     const db = firebase.firestore();
+    const auth = firebase.auth();
 
-    // 🔥 同期ユーティリティ
+    // 🔐 設定パスワード（ハッシュ化：admin123）
+    const SETTINGS_PASSWORD_HASH = '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9';
+    
+    // 👑 特権管理者アカウント（この2人だけが許可アカウントを管理可能）
+    const ADMIN_EMAILS = [
+      'jh62231310@s.musashi.ed.jp',
+      'eugene.hir.10@gmail.com'
+    ];
+
+    // デフォルト許可アカウント
+    const DEFAULT_AUTHORIZED_EMAILS = [
+      'jh62231310@s.musashi.ed.jp',
+      'jh62220120@s.musashi.ed.jp',
+      'eugene.hir.10@gmail.com'
+    ];
+
+    let AUTHORIZED_EMAILS = [...DEFAULT_AUTHORIZED_EMAILS];
+    let isAdminAuthed = false;
+    let currentAdminUser = null;
+
+    // SHA-256
+    async function sha256(text) {
+      const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+      return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    // 許可アカウントリスト読み込み
+    async function loadAuthorizedUsers() {
+      try {
+        const doc = await db.collection('app_data').doc('authorized_users').get();
+        if (doc.exists && doc.data().emails) {
+          AUTHORIZED_EMAILS = doc.data().emails;
+        } else {
+          await db.collection('app_data').doc('authorized_users').set({
+            emails: DEFAULT_AUTHORIZED_EMAILS,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+        }
+      } catch (e) { console.warn(e); }
+      renderEmailList();
+    }
+
+    // リアルタイム監視
+    db.collection('app_data').doc('authorized_users').onSnapshot(snap => {
+      if (snap.exists && snap.data().emails) {
+        AUTHORIZED_EMAILS = snap.data().emails;
+        renderEmailList();
+      }
+    });
+
+    function renderEmailList() {
+      const listEl = document.getElementById('emailList');
+      const countEl = document.getElementById('emailCount');
+      if (!listEl) return;
+      countEl.textContent = AUTHORIZED_EMAILS.length;
+      listEl.innerHTML = AUTHORIZED_EMAILS.map(email => {
+        const isAdmin = ADMIN_EMAILS.includes(email);
+        return `
+          <div class="email-item ${isAdmin ? 'admin' : ''}">
+            <div class="flex items-center gap-2 min-w-0">
+              <i data-lucide="${isAdmin ? 'shield-check' : 'user'}" class="w-4 h-4 ${isAdmin ? 'text-amber-400' : 'text-gray-400'} flex-shrink-0"></i>
+              <span class="text-sm truncate">${email}</span>
+              ${isAdmin ? '<span class="text-xs px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-400 flex-shrink-0">管理者</span>' : ''}
+            </div>
+            ${!isAdmin ? `<button class="remove-email-btn p-1.5 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors flex-shrink-0" data-email="${email}">
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>` : '<span class="text-xs text-gray-600">削除不可</span>'}
+          </div>
+        `;
+      }).join('');
+      lucide.createIcons();
+      
+      // 削除ボタン
+      document.querySelectorAll('.remove-email-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const email = btn.dataset.email;
+          if (!confirm(`このアカウントを許可リストから削除しますか？\n${email}`)) return;
+          const newList = AUTHORIZED_EMAILS.filter(e => e !== email);
+          await saveAuthorizedUsers(newList);
+        });
+      });
+    }
+
+    async function saveAuthorizedUsers(list) {
+      try {
+        await db.collection('app_data').doc('authorized_users').set({
+          emails: list,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          updatedBy: currentAdminUser?.email || 'unknown'
+        });
+      } catch (e) {
+        alert('保存に失敗しました');
+      }
+    }
+
+    function updateAdminAuthUI() {
+      const badge = document.getElementById('adminAuthBadge');
+      const txt = document.getElementById('adminAuthText');
+      const btn = document.getElementById('adminAuthBtn');
+      const btnText = document.getElementById('adminAuthBtnText');
+      const locked = document.getElementById('adminLockedArea');
+      const content = document.getElementById('adminContentArea');
+      
+      if (isAdminAuthed) {
+        badge.className = 'sync-status admin-badge-authed';
+        txt.textContent = currentAdminUser?.email || '管理者';
+        btnText.textContent = 'ログアウト';
+        btn.className = 'px-3 py-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400 text-xs font-medium flex items-center gap-1.5';
+        btn.innerHTML = `<i data-lucide="log-out" class="w-3.5 h-3.5"></i><span id="adminAuthBtnText">ログアウト</span>`;
+        locked.style.display = 'none';
+        content.style.display = 'block';
+      } else {
+        badge.className = 'sync-status auth-badge-guest';
+        txt.textContent = '管理者未認証';
+        btnText.textContent = '管理者ログイン';
+        btn.className = 'px-3 py-1.5 rounded-lg google-btn text-xs font-medium flex items-center gap-1.5';
+        btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.5 29.3 35.5 24 35.5c-6.4 0-11.5-5.1-11.5-11.5S17.6 12.5 24 12.5c2.9 0 5.6 1.1 7.6 2.9l5.7-5.7C33.9 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c10 0 18.4-7.4 19.6-17.1.3-.9.4-1.8.4-2.7 0-.9-.1-1.8-.4-2.7z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.8 16 19 12.5 24 12.5c2.9 0 5.6 1.1 7.6 2.9l5.7-5.7C33.9 6.1 29.3 4 24 4 16.3 4 9.6 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2c-2 1.4-4.5 2.3-7.2 2.3-5.3 0-9.7-3-11.3-7.3l-6.5 5C9.5 38.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.2 5.7l6.2 5.2c.4-.4 7.7-5.6 7.7-14.9 0-.9-.1-1.8-.4-2.7z"/></svg><span id="adminAuthBtnText">管理者ログイン</span>`;
+        locked.style.display = 'flex';
+        content.style.display = 'none';
+      }
+      lucide.createIcons();
+    }
+
+    // 管理者ログイン
+    document.getElementById('adminAuthBtn').addEventListener('click', async () => {
+      if (isAdminAuthed) {
+        if (confirm('管理者ログアウトしますか？')) {
+          await auth.signOut();
+          isAdminAuthed = false;
+          currentAdminUser = null;
+          updateAdminAuthUI();
+        }
+        return;
+      }
+      try {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        const result = await auth.signInWithPopup(provider);
+        const email = result.user.email;
+        if (!ADMIN_EMAILS.includes(email)) {
+          await auth.signOut();
+          alert('⚠️ このアカウントは管理者権限がありません。\n許可された2アカウントのみログイン可能です。');
+          return;
+        }
+        isAdminAuthed = true;
+        currentAdminUser = result.user;
+        updateAdminAuthUI();
+      } catch (err) {
+        if (err.code === 'auth/popup-closed-by-user') return;
+        alert('ログインに失敗しました');
+      }
+    });
+
+    // メール追加
+    document.getElementById('addEmailBtn').addEventListener('click', async () => {
+      const input = document.getElementById('newEmailInput');
+      const errEl = document.getElementById('addEmailError');
+      const email = input.value.trim().toLowerCase();
+      errEl.classList.add('hidden');
+      
+      if (!email) { errEl.textContent = 'メールアドレスを入力してください'; errEl.classList.remove('hidden'); return; }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { errEl.textContent = 'メールアドレスの形式が正しくありません'; errEl.classList.remove('hidden'); return; }
+      if (AUTHORIZED_EMAILS.includes(email)) { errEl.textContent = '既に登録されています'; errEl.classList.remove('hidden'); return; }
+      
+      const newList = [...AUTHORIZED_EMAILS, email];
+      await saveAuthorizedUsers(newList);
+      input.value = '';
+    });
+
+    // 設定パスワード認証
+    document.getElementById('authSettingsBtn').addEventListener('click', async () => {
+      const input = document.getElementById('settingsPassword').value;
+      const hash = await sha256(input);
+      if (hash === SETTINGS_PASSWORD_HASH) {
+        document.getElementById('passwordArea').classList.add('hidden');
+        document.getElementById('settingsContent').classList.remove('hidden');
+        document.getElementById('settingsAuthError').classList.add('hidden');
+      } else {
+        document.getElementById('settingsAuthError').classList.remove('hidden');
+      }
+    });
+
+    // モーダル開閉
+    document.getElementById('openSettingsBtn').addEventListener('click', () => {
+      document.getElementById('settingsModal').classList.remove('hidden');
+      document.getElementById('settingsPassword').value = '';
+      document.getElementById('passwordArea').classList.remove('hidden');
+      document.getElementById('settingsContent').classList.add('hidden');
+    });
+    document.getElementById('closeSettingsBtn').addEventListener('click', () => {
+      document.getElementById('settingsModal').classList.add('hidden');
+    });
+    document.getElementById('settingsModal').addEventListener('click', e => { if (e.target.id === 'settingsModal') document.getElementById('closeSettingsBtn').click(); });
+
+    // 総合得点計算（簡易表示）
+    async function calcTotalRanking() {
+      const groups = { A: { name: 'A組', total: 0 }, B: { name: 'B組', total: 0 }, C: { name: 'C組', total: 0 }, D: { name: 'D組', total: 0 } };
+      try {
+        const ballDoc = await db.collection('app_data').doc('ball_sports_data_v4').get();
+        const teamDoc = await db.collection('app_data').doc('team_events_data_v4').get();
+        const BALL_SCORING = { 'サッカー': [150,100,50,0], '野球': [150,100,0,0], 'バスケットボール': [150,100,50,0], 'バレーボール': [150,100,50,0], 'ドッジボール': [150,100,50,0], 'アルティメット': [150,100,50,0], '卓球': [150,100,50,0] };
+        const TEAM_SCORING = { '大玉送り': [200,150,100,50], '竹取物語': [200,150,100,50], '台風の目': [200,150,100,100], 'しっぽとり': [200,150,100,100], '借り人競争': [100,90,80,70], '綱引き': [200,150,100,100], '二人三脚': [200,150,100,50], '100人フットボール': [200,150,100,100], '選抜リレー': [634,434,334,234], '騎馬戦': [200,150,100,100], '団長騎馬戦': [376,276,176,76] };
+        
+        if (ballDoc.exists) {
+          ballDoc.data().data.matches.filter(m => m.status === 'done' && m.rank1).forEach(m => {
+            const table = BALL_SCORING[m.sport] || [150,100,50,0];
+            [m.rank1, m.rank2, m.rank3, m.rank4].forEach((g, i) => { if (g && groups[g]) groups[g].total += table[i]; });
+          });
+        }
+        if (teamDoc.exists) {
+          teamDoc.data().data.events.filter(e => e.status === 'done' && e.rank1).forEach(e => {
+            const table = TEAM_SCORING[e.name] || [200,150,100,50];
+            [e.rank1, e.rank2, e.rank3, e.rank4].forEach((g, i) => { if (g && groups[g]) groups[g].total += table[i]; });
+          });
+        }
+      } catch (e) {}
+      
+      const ranking = Object.values(groups).sort((a, b) => b.total - a.total);
+      const el = document.getElementById('totalRanking');
+      el.innerHTML = ranking.map((t, i) => {
+        const rc = ['rank-1', 'rank-2', 'rank-3', 'rank-4'][i];
+        const medal = ['🥇', '🥈', '🥉', '4位'][i];
+        return `
+          <div class="menu-card rounded-xl p-4 flex items-center gap-4 ${rc}">
+            <div class="w-12 text-center font-bold text-2xl">${medal}</div>
+            <div class="flex-1"><p class="font-bold text-lg">${t.name}</p></div>
+            <div class="text-right"><p class="font-mono-num font-bold text-2xl">${t.total}</p><p class="text-xs text-gray-500">pt</p></div>
+          </div>
+        `;
+      }).join('');
+      lucide.createIcons();
+    }
+
+    // 同期状態
     const Sync = {
-      status: 'connecting',
       setStatus(s, text) {
-        this.status = s;
         const el = document.getElementById('syncStatus');
         const txt = document.getElementById('syncStatusText');
         if (!el) return;
         el.className = `sync-status sync-${s}`;
         if (txt) txt.textContent = text;
-      },
-      updateLastSync() {
-        const el = document.getElementById('lastSync');
-        if (el) {
-          const d = new Date();
-          el.textContent = `最終同期：${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
-        }
-      },
-      async save(key, data) {
-        localStorage.setItem(key, JSON.stringify(data));
-        try {
-          this.setStatus('syncing', '同期中...');
-          await db.collection('app_data').doc(key).set({
-            data: JSON.parse(JSON.stringify(data)),
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-            device: getDeviceInfo()
-          });
-          this.setStatus('online', 'オンライン');
-          this.updateLastSync();
-        } catch (e) {
-          console.warn('Firestore保存失敗:', e);
-          this.setStatus('offline', 'オフライン');
-        }
-      },
-      async load(key, defaultValue) {
-        const local = localStorage.getItem(key);
-        let localData = local ? JSON.parse(local) : defaultValue;
-        try {
-          this.setStatus('syncing', '読込中...');
-          const doc = await db.collection('app_data').doc(key).get();
-          if (doc.exists) {
-            const remote = doc.data().data;
-            localStorage.setItem(key, JSON.stringify(remote));
-            this.setStatus('online', 'オンライン');
-            this.updateLastSync();
-            return remote;
-          } else if (local) {
-            // 🔥 ローカルにしかない → Firestoreにアップロード（データ消失防止）
-            await db.collection('app_data').doc(key).set({
-              data: JSON.parse(JSON.stringify(localData)),
-              updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-              device: getDeviceInfo(),
-              migrated: true
-            });
-            this.setStatus('online', 'オンライン');
-            this.updateLastSync();
-          }
-        } catch (e) {
-          console.warn('Firestore読込失敗:', e);
-          this.setStatus('offline', 'オフライン');
-        }
-        return localData;
-      },
-      subscribe(key, callback) {
-        return db.collection('app_data').doc(key).onSnapshot(snap => {
-          if (snap.exists) {
-            const data = snap.data().data;
-            localStorage.setItem(key, JSON.stringify(data));
-            this.setStatus('online', 'オンライン');
-            this.updateLastSync();
-            callback(data);
-          }
-        }, err => {
-          console.warn('同期エラー:', err);
-          this.setStatus('offline', 'オフライン');
-        });
       }
     };
 
-    function getDeviceInfo() {
-      const ua = navigator.userAgent;
-      let device = 'Unknown';
-      if (/iPhone/.test(ua)) device = 'iPhone';
-      else if (/iPad/.test(ua)) device = 'iPad';
-      else if (/Android/.test(ua)) device = 'Android';
-      else if (/Mac/.test(ua)) device = 'Mac';
-      else if (/Windows/.test(ua)) device = 'Windows';
-      let browser = 'Unknown';
-      if (/Edg/.test(ua)) browser = 'Edge';
-      else if (/Chrome/.test(ua)) browser = 'Chrome';
-      else if (/Firefox/.test(ua)) browser = 'Firefox';
-      else if (/Safari/.test(ua)) browser = 'Safari';
-      return `${device} / ${browser}`;
-    }
-
-    const SETTINGS_PASSWORD = 'admin123';
-    const GRADES = ['中学1年', '中学2年', '中学3年', '高校1年', '高校2年', '高校3年'];
-    const GROUPS = ['A', 'B', 'C', 'D'];
-
-    const BALL_SCORING = {
-      'サッカー': [150, 100, 50, 0], '野球': [150, 100, 0, 0], 'バスケットボール': [150, 100, 50, 0],
-      'バレーボール': [150, 100, 50, 0], 'ドッジボール': [150, 100, 50, 0], 'アルティメット': [150, 100, 50, 0], '卓球': [150, 100, 50, 0]
-    };
-    const TEAM_SCORING = {
-      '大玉送り': [200, 150, 100, 50], 'しっぽとり': [200, 150, 100, 100], '台風の目': [200, 150, 100, 100],
-      '綱引き': [200, 150, 100, 100], '100人フットボール': [200, 150, 100, 100], '竹取物語': [200, 150, 100, 50],
-      '通常騎馬戦': [200, 150, 100, 100], '団長騎馬戦': [376, 276, 176, 76], '選抜リレー': [634, 434, 334, 234],
-      '部対抗リレー': [0, 0, 0, 0], '二人三脚': [200, 150, 100, 50], '借り人競争': [100, 90, 80, 70],
-      '騎馬戦': [200, 150, 100, 100], '開会式': [0, 0, 0, 0], '閉会式': [0, 0, 0, 0], '昼休み': [0, 0, 0, 0]
-    };
-
-    function getDefaultBallData() { return { venues: ['上グラウンド','下グラウンド','体育館','ハードコート','オムニコート','卓球場'], matches: [] }; }
-    function getDefaultTeamData() { return { events: [] }; }
-
-    // 🔥 データ読み込み + リアルタイム同期購読
+    // 初期化
     async function init() {
       Sync.setStatus('syncing', '接続中...');
-      
-      // リアルタイム同期：他端末の変更を自動反映
-      Sync.subscribe('ball_sports_data_v4', () => renderTotalRanking());
-      Sync.subscribe('team_events_data_v4', () => renderTotalRanking());
-      
-      renderTotalRanking();
+      await loadAuthorizedUsers();
+      updateAdminAuthUI();
+      calcTotalRanking();
       Sync.setStatus('online', 'オンライン');
-      Sync.updateLastSync();
+      
+      // リアルタイムでランキング更新
+      db.collection('app_data').onSnapshot(() => calcTotalRanking());
     }
-
-    function calcGroupTotal() {
-      const ballData = JSON.parse(localStorage.getItem('ball_sports_data_v4') || 'null');
-      const teamData = JSON.parse(localStorage.getItem('team_events_data_v4') || 'null');
-      const groups = { A: { name: 'A組', total: 0, ball: 0, team: 0, details: [] }, B: { name: 'B組', total: 0, ball: 0, team: 0, details: [] }, C: { name: 'C組', total: 0, ball: 0, team: 0, details: [] }, D: { name: 'D組', total: 0, ball: 0, team: 0, details: [] } };
-
-      if (ballData && ballData.matches) {
-        ballData.matches.filter(m => m.status === 'done' && m.rank1).forEach(m => {
-          const table = BALL_SCORING[m.sport] || [150, 100, 50, 0];
-          [m.rank1, m.rank2, m.rank3, m.rank4].forEach((g, i) => {
-            if (g && groups[g] && table[i] !== undefined) {
-              groups[g].ball += table[i]; groups[g].total += table[i];
-              groups[g].details.push(`${m.grade}${m.sport}:${table[i]}`);
-            }
-          });
-        });
-      }
-      if (teamData && teamData.events) {
-        teamData.events.filter(e => e.status === 'done' && e.rank1).forEach(e => {
-          const table = TEAM_SCORING[e.name] || [200, 150, 100, 50];
-          [e.rank1, e.rank2, e.rank3, e.rank4].forEach((g, i) => {
-            if (g && groups[g] && table[i] !== undefined) {
-              groups[g].team += table[i]; groups[g].total += table[i];
-              groups[g].details.push(`${e.name}:${table[i]}`);
-            }
-          });
-        });
-      }
-      return Object.values(groups).sort((a, b) => b.total - a.total);
-    }
-
-    function renderTotalRanking() {
-      const ranking = calcGroupTotal();
-      document.getElementById('totalRanking').innerHTML = ranking.map((t, i) => {
-        const rc = ['rank-1', 'rank-2', 'rank-3', 'rank-4'][i] || 'bg-white/5 border border-white/5';
-        const medal = ['🥇', '🥈', '🥉', '4位'][i] || `${i + 1}位`;
-        return `
-          <div class="rounded-xl p-4 flex items-center gap-4 ${rc}">
-            <div class="w-14 text-center font-bold text-2xl">${medal}</div>
-            <div class="flex-1 min-w-0">
-              <p class="font-bold text-xl">${t.name}</p>
-              <p class="text-xs text-gray-400 truncate">${t.details.slice(0, 5).join(' / ')}${t.details.length > 5 ? '...' : ''}</p>
-            </div>
-            <div class="text-right">
-              <p class="font-mono-num font-bold text-3xl">${t.total}</p>
-              <p class="text-xs text-gray-500">球技 ${t.ball} + 団体 ${t.team}</p>
-            </div>
-          </div>
-        `;
-      }).join('');
-
-      const bd = JSON.parse(localStorage.getItem('ball_sports_data_v4') || 'null');
-      const td = JSON.parse(localStorage.getItem('team_events_data_v4') || 'null');
-      const hist = JSON.parse(localStorage.getItem('input_history_v4') || '[]');
-      if (bd?.matches) { const done = bd.matches.filter(m => m.status === 'done').length; document.getElementById('ballProgress').textContent = `消化：${done} / ${bd.matches.length}`; }
-      if (td?.events) { const done = td.events.filter(e => e.status === 'done').length; document.getElementById('teamProgress').textContent = `消化：${done} / ${td.events.length}`; }
-      document.getElementById('historyCount').textContent = `登録履歴：${hist.length}件`;
-      lucide.createIcons();
-    }
-
-    // 🔥 手動同期
-    document.getElementById('manualSyncBtn').addEventListener('click', async () => {
-      Sync.setStatus('syncing', '強制同期中...');
-      await Sync.load('ball_sports_data_v4', getDefaultBallData());
-      await Sync.load('team_events_data_v4', getDefaultTeamData());
-      renderTotalRanking();
-    });
-
-    // 設定モーダル
-    document.getElementById('openSettingsBtn').addEventListener('click', () => {
-      document.getElementById('settingsModal').classList.remove('hidden');
-      document.getElementById('settingsModal').classList.add('flex');
-    });
-    document.getElementById('closeSettingsBtn').addEventListener('click', () => {
-      document.getElementById('settingsModal').classList.add('hidden');
-      document.getElementById('passwordArea').classList.remove('hidden');
-      document.getElementById('settingsContent').classList.add('hidden');
-      document.getElementById('settingsPassword').value = '';
-    });
-    document.getElementById('settingsModal').addEventListener('click', e => { if (e.target.id === 'settingsModal') document.getElementById('closeSettingsBtn').click(); });
-    document.getElementById('authBtn').addEventListener('click', () => {
-      if (document.getElementById('settingsPassword').value === SETTINGS_PASSWORD) {
-        document.getElementById('passwordArea').classList.add('hidden');
-        document.getElementById('settingsContent').classList.remove('hidden');
-      } else { alert('パスワードが違います'); }
-    });
-
-    document.getElementById('recalcAllBtn').addEventListener('click', () => { renderTotalRanking(); alert('再計算しました'); });
-    document.getElementById('refreshTotalBtn').addEventListener('click', renderTotalRanking);
-    document.getElementById('clearHistoryBtn').addEventListener('click', async () => {
-      if (!confirm('入力履歴を全て削除しますか？')) return;
-      localStorage.removeItem('input_history_v4');
-      // Firestore側も削除
-      try {
-        const snap = await db.collection('input_history').limit(500).get();
-        const batch = db.batch();
-        snap.forEach(doc => batch.delete(doc.ref));
-        await batch.commit();
-      } catch (e) { console.warn(e); }
-      renderTotalRanking(); alert('削除しました');
-    });
-
-    // 💾 バックアップ機能
-    document.getElementById('backupBtn').addEventListener('click', () => {
-      const backup = {
-        exportedAt: new Date().toISOString(),
-        ball_sports_data_v4: JSON.parse(localStorage.getItem('ball_sports_data_v4') || 'null'),
-        team_events_data_v4: JSON.parse(localStorage.getItem('team_events_data_v4') || 'null'),
-        input_history_v4: JSON.parse(localStorage.getItem('input_history_v4') || '[]')
-      };
-      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = `sportsfes_backup_${new Date().toISOString().slice(0,10)}.json`;
-      a.click(); URL.revokeObjectURL(url);
-      alert('バックアップをダウンロードしました');
-    });
-
-    document.getElementById('resetAllBtn').addEventListener('click', async () => {
-      if (!confirm('⚠️ 全データを初期化しますか？')) return;
-      if (!confirm('もう一度確認：Firebase含め全て消去されます')) return;
-      ['ball_sports_data_v4', 'team_events_data_v4', 'input_history_v4'].forEach(k => localStorage.removeItem(k));
-      try {
-        await db.collection('app_data').doc('ball_sports_data_v4').delete();
-        await db.collection('app_data').doc('team_events_data_v4').delete();
-      } catch (e) { console.warn(e); }
-      location.reload();
-    });
-
-    // 球技日追加
-    document.getElementById('addBallMatchBtn').addEventListener('click', () => { document.getElementById('ballModal').classList.remove('hidden'); });
-    document.getElementById('ballModalClose').addEventListener('click', () => document.getElementById('ballModal').classList.add('hidden'));
-    document.getElementById('ballForm').addEventListener('submit', async e => {
-      e.preventDefault();
-      const data = await Sync.load('ball_sports_data_v4', getDefaultBallData());
-      const newId = data.matches.length ? Math.max(...data.matches.map(m => m.id)) + 1 : 1;
-      data.matches.push({
-        id: newId, venue: document.getElementById('ballVenue').value, time: document.getElementById('ballTime').value,
-        sport: document.getElementById('ballSport').value, grade: document.getElementById('ballGrade').value,
-        status: document.getElementById('ballStatus').value, delay: 0, duration: 30,
-        rank1: '', rank2: '', rank3: '', rank4: '', note: ''
-      });
-      await Sync.save('ball_sports_data_v4', data);
-      document.getElementById('ballModal').classList.add('hidden');
-      document.getElementById('ballForm').reset();
-      renderTotalRanking();
-      alert('追加しました');
-    });
-
-    // 団体競技日追加
-    document.getElementById('addTeamEventBtn').addEventListener('click', () => { document.getElementById('teamModal').classList.remove('hidden'); });
-    document.getElementById('teamModalClose').addEventListener('click', () => document.getElementById('teamModal').classList.add('hidden'));
-    document.getElementById('teamForm').addEventListener('submit', async e => {
-      e.preventDefault();
-      const data = await Sync.load('team_events_data_v4', getDefaultTeamData());
-      const newId = data.events.length ? Math.max(...data.events.map(ev => ev.id)) + 1 : 1;
-      data.events.push({
-        id: newId, name: document.getElementById('teamName').value, time: document.getElementById('teamTime').value,
-        duration: Number(document.getElementById('teamDuration').value) || 15, grade: document.getElementById('teamGrade').value,
-        place: '', status: 'wait', delay: 0,
-        rank1: '', rank2: '', rank3: '', rank4: '', note: ''
-      });
-      await Sync.save('team_events_data_v4', data);
-      document.getElementById('teamModal').classList.add('hidden');
-      document.getElementById('teamForm').reset();
-      renderTotalRanking();
-      alert('追加しました');
-    });
-
     init();
-    setInterval(renderTotalRanking, 30000);
   </script>
 </body>
 </html>
