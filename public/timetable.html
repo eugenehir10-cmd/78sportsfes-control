@@ -3,33 +3,34 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>進行管理｜スポーツフェスタ</title>
+  <title>進行管理</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     .card { 
       background: #fff; 
       border-radius: 12px; 
-      padding: 1rem; 
+      padding: 1.25rem; 
       margin-bottom: 1rem; 
       box-shadow: 0 2px 8px rgba(0,0,0,.12); 
     }
-    .btn { 
-      border: none; 
-      border-radius: 8px; 
-      padding: .6rem 1rem; 
-      font-weight: bold; 
-      cursor: pointer; 
-      transition: .2s; 
+    .menu-card {
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
-    .btn:hover { transform: translateY(-1px); }
-    .btn.primary { background: #2563eb; color: #fff; }
-    .btn.small { padding: .4rem .8rem; font-size: .9rem; }
-    .status-wait { background: #e5e7eb; color: #374151; }
-    .status-ready { background: #dbeafe; color: #1d4ed8; }
-    .status-running { background: #d1fae5; color: #047857; }
-    .status-delay { background: #fef3c7; color: #b45309; }
-    .status-done { background: #e5e7eb; color: #6b7280; text-decoration: line-through; }
-    input, select { font-size: 16px !important; }
+    .menu-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 24px rgba(0,0,0,.15);
+    }
+    .progress-bar {
+      height: 8px;
+      border-radius: 4px;
+      background: #e5e7eb;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.3s ease;
+    }
   </style>
 </head>
 <body class="bg-gray-50 text-gray-800 max-w-3xl mx-auto p-3 md:p-6 pb-8">
@@ -41,209 +42,115 @@
     <h1 class="text-2xl font-bold">📋 進行管理</h1>
   </header>
 
-  <!-- 現在の状況 -->
-  <div class="card bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100">
-    <h2 class="font-bold text-lg mb-3">📍 現在の状況</h2>
-    <p class="mb-1">
-      <span class="text-gray-500">進行中：</span>
-      <span id="nowRunning" class="font-bold text-lg">なし</span>
-    </p>
-    <p>
-      <span class="text-gray-500">次の種目：</span>
-      <span id="nextUp" class="font-medium">-</span>
-    </p>
+  <!-- 全体概要 -->
+  <div class="card bg-gradient-to-r from-indigo-50 to-blue-50 border border-blue-100 mb-6">
+    <h2 class="font-bold text-lg mb-4">📊 全体の状況</h2>
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <p class="text-sm text-gray-500 mb-1">球技日</p>
+        <p class="font-bold text-xl" id="ballProgress">読込中...</p>
+        <div class="progress-bar mt-2">
+          <div id="ballBar" class="progress-fill bg-blue-500" style="width:0%"></div>
+        </div>
+      </div>
+      <div>
+        <p class="text-sm text-gray-500 mb-1">団体競技日</p>
+        <p class="font-bold text-xl" id="teamProgress">読込中...</p>
+        <div class="progress-bar mt-2">
+          <div id="teamBar" class="progress-fill bg-green-500" style="width:0%"></div>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <!-- 種目追加ボタン -->
-  <div class="flex justify-between items-center mb-4">
-    <p class="text-sm text-gray-500">登録種目：<span id="eventCount">0</span>件</p>
-    <button id="addEventBtn" class="btn primary small">＋ 種目を追加</button>
+  <!-- ページ分岐メニュー -->
+  <h2 class="text-lg font-bold mb-3">📂 日程を選択</h2>
+  <div class="grid gap-4 md:grid-cols-2">
+    <a href="ball-sports.html" class="menu-card card block">
+      <div class="text-3xl mb-2">⚽</div>
+      <h3 class="font-bold text-lg mb-1">球技日 タイムテーブル</h3>
+      <p class="text-sm text-gray-500 mb-3">複数会場で同時進行される試合を見やすく管理</p>
+      <div class="flex items-center text-sm font-medium text-blue-600">
+        開く →
+      </div>
+    </a>
+
+    <a href="team-events.html" class="menu-card card block">
+      <div class="text-3xl mb-2">🏃</div>
+      <h3 class="font-bold text-lg mb-1">団体競技日 進行管理</h3>
+      <p class="text-sm text-gray-500 mb-3">種目別のスケジュール・遅延管理・全体の進捗を把握</p>
+      <div class="flex items-center text-sm font-medium text-green-600">
+        開く →
+      </div>
+    </a>
   </div>
 
-  <!-- 種目一覧 -->
-  <div id="eventList"></div>
+  <!-- 最新の状況サマリー -->
+  <div class="card mt-8">
+    <h2 class="font-bold text-lg mb-3">📌 最新の状況</h2>
+    <div id="summary" class="space-y-4 text-sm">
+      <p class="text-gray-400">データを読み込んでいます...</p>
+    </div>
+  </div>
 
   <script>
-    // ===== データ定義 =====
-    let scheduleData = {
-      events: [
-        { id: 1, name: '開会式', time: '09:00', place: 'グラウンド', status: 'done', delay: 0, category: 'general' },
-        { id: 2, name: '100m走 予選', time: '09:20', place: 'トラック', status: 'running', delay: 0, category: 'male' },
-        { id: 3, name: '玉入れ', time: '10:00', place: 'グラウンド', status: 'wait', delay: 0, category: 'general' },
-        { id: 4, name: '綱引き 決勝', time: '10:30', place: 'グラウンド', status: 'wait', delay: 0, category: 'general' },
-      ]
-    };
-
-    const STATUS_LABEL = {
-      wait: '未開始',
-      ready: '準備中',
-      running: '進行中',
-      delay: '遅延',
-      done: '終了'
-    };
-    const STATUS_CLASS = {
-      wait: 'status-wait',
-      ready: 'status-ready',
-      running: 'status-running',
-      delay: 'status-delay',
-      done: 'status-done'
-    };
-
-    // ===== ローカルストレージ保存/読込 =====
-    function saveSchedule() {
-      localStorage.setItem('schedule_data', JSON.stringify(scheduleData));
+    function loadBallData() {
+      try { return JSON.parse(localStorage.getItem('ball_sports_data') || '{"venues":[],"matches":[]}'); }
+      catch { return { venues:[], matches:[] }; }
     }
-    function loadSchedule() {
-      const saved = localStorage.getItem('schedule_data');
-      if (saved) {
-        try {
-          scheduleData = JSON.parse(saved);
-        } catch (e) {
-          console.error('データ読込エラー:', e);
-        }
+    function loadTeamData() {
+      try { return JSON.parse(localStorage.getItem('team_events_data') || '{"events":[]}'); }
+      catch { return { events:[] }; }
+    }
+
+    function render() {
+      const ball = loadBallData();
+      const team = loadTeamData();
+
+      // 球技日の進捗計算
+      const ballDone = ball.matches.filter(m => m.status === 'done').length;
+      const ballTotal = ball.matches.length;
+      const ballPct = ballTotal ? Math.round(ballDone / ballTotal * 100) : 0;
+      document.getElementById('ballProgress').textContent = `${ballDone}/${ballTotal} 試合終了`;
+      document.getElementById('ballBar').style.width = `${ballPct}%`;
+
+      // 団体競技日の進捗計算
+      const teamDone = team.events.filter(e => e.status === 'done').length;
+      const teamTotal = team.events.length;
+      const teamPct = teamTotal ? Math.round(teamDone / teamTotal * 100) : 0;
+      document.getElementById('teamProgress').textContent = `${teamDone}/${teamTotal} 種目終了`;
+      document.getElementById('teamBar').style.width = `${teamPct}%`;
+
+      // サマリー作成
+      const summary = document.getElementById('summary');
+      let html = '';
+
+      // 球技：進行中の試合
+      const ballRunning = ball.matches.filter(m => m.status === 'running');
+      html += `<div><p class="font-bold text-blue-600 mb-1">⚽ 球技日 進行中</p>`;
+      if (ballRunning.length) {
+        html += ballRunning.map(m => `<p class="ml-3">・${m.venue}：${m.name}（${m.time}）</p>`).join('');
+      } else {
+        html += `<p class="ml-3 text-gray-400">現在進行中の試合はありません</p>`;
       }
-    }
+      html += `</div>`;
 
-    // ===== 実際の時刻計算 =====
-    function calcActualTime(event) {
-      // 時間順に並べて前の種目の遅延を累積
-      const sorted = [...scheduleData.events].sort((a, b) => a.time.localeCompare(b.time));
-      let totalDelayBefore = 0;
-      for (const e of sorted) {
-        if (e.id === event.id) break;
-        totalDelayBefore += e.delay || 0;
+      // 団体：進行中の種目
+      const teamRunning = team.events.filter(e => e.status === 'running' || e.status === 'delay');
+      html += `<div><p class="font-bold text-green-600 mb-1">🏃 団体競技日 進行中</p>`;
+      if (teamRunning.length) {
+        html += teamRunning.map(e => `<p class="ml-3">・${e.name}（${e.time}${e.delay?` +${e.delay}分`:''}）</p>`).join('');
+      } else {
+        html += `<p class="ml-3 text-gray-400">現在進行中の種目はありません</p>`;
       }
-      const [h, m] = event.time.split(':').map(Number);
-      const totalMin = h * 60 + m + totalDelayBefore + (event.delay || 0);
-      const nh = Math.floor(totalMin / 60);
-      const nm = totalMin % 60;
-      return `${String(nh).padStart(2, '0')}:${String(nm).padStart(2, '0')}`;
+      html += `</div>`;
+
+      summary.innerHTML = html;
     }
 
-    // ===== 描画 =====
-    function renderTimetable() {
-      const listEl = document.getElementById('eventList');
-      if (!listEl) return;
-
-      // 状況更新
-      const running = scheduleData.events.find(e => e.status === 'running' || e.status === 'delay');
-      const nextUp = scheduleData.events.find(e => ['wait', 'ready'].includes(e.status));
-      
-      document.getElementById('nowRunning').textContent = running ? running.name : 'なし';
-      document.getElementById('nextUp').textContent = nextUp 
-        ? `${nextUp.name}（${calcActualTime(nextUp)}）` 
-        : '予定なし';
-      document.getElementById('eventCount').textContent = scheduleData.events.length;
-
-      // 時間順に描画
-      listEl.innerHTML = '';
-      scheduleData.events.sort((a, b) => a.time.localeCompare(b.time)).forEach(event => {
-        const actualTime = calcActualTime(event);
-        const delayText = event.delay > 0 ? `<span class="text-amber-600 text-sm ml-2">+${event.delay}分</span>` : '';
-
-        listEl.innerHTML += `
-          <div class="card">
-            <div class="flex justify-between items-start mb-3 flex-wrap gap-2">
-              <h3 class="font-bold text-lg">${event.name}</h3>
-              <span class="px-3 py-1 rounded-full text-sm font-medium ${STATUS_CLASS[event.status]}">
-                ${STATUS_LABEL[event.status]}
-              </span>
-            </div>
-            
-            <div class="text-sm text-gray-600 mb-3 space-y-1">
-              <p>🕒 予定：${event.time} → 実際：${actualTime} ${delayText}</p>
-              <p>📍 場所：${event.place || '未設定'}</p>
-            </div>
-
-            <div class="flex gap-2 items-center flex-wrap">
-              <select class="status-select border rounded-lg px-3 py-2 text-sm" data-id="${event.id}">
-                ${Object.entries(STATUS_LABEL).map(([val, label]) => 
-                  `<option value="${val}" ${event.status === val ? 'selected' : ''}>${label}</option>`
-                ).join('')}
-              </select>
-              <div class="flex items-center gap-1">
-                <label class="text-sm text-gray-500">遅延：</label>
-                <input type="number" class="delay-input border rounded-lg px-2 py-2 w-16 text-sm" 
-                  data-id="${event.id}" value="${event.delay || 0}" min="0" placeholder="分">
-                <span class="text-sm text-gray-500">分</span>
-              </div>
-              <button class="delete-event-btn text-red-500 hover:text-red-700 text-sm ml-auto" data-id="${event.id}">
-                🗑️ 削除
-              </button>
-            </div>
-          </div>
-        `;
-      });
-
-      // イベントバインド
-      bindEvents();
-    }
-
-    // ===== イベント処理 =====
-    function bindEvents() {
-      // ステータス変更
-      document.querySelectorAll('.status-select').forEach(sel => {
-        sel.addEventListener('change', e => {
-          const id = Number(e.target.dataset.id);
-          const event = scheduleData.events.find(ev => ev.id === id);
-          if (event) {
-            event.status = e.target.value;
-            saveSchedule();
-            renderTimetable();
-          }
-        });
-      });
-
-      // 遅延時間変更
-      document.querySelectorAll('.delay-input').forEach(inp => {
-        inp.addEventListener('change', e => {
-          const id = Number(e.target.dataset.id);
-          const event = scheduleData.events.find(ev => ev.id === id);
-          if (event) {
-            event.delay = Number(e.target.value) || 0;
-            saveSchedule();
-            renderTimetable();
-          }
-        });
-      });
-
-      // 削除
-      document.querySelectorAll('.delete-event-btn').forEach(btn => {
-        btn.addEventListener('click', e => {
-          if (!confirm('この種目を削除してもよろしいですか？')) return;
-          const id = Number(e.target.dataset.id);
-          scheduleData.events = scheduleData.events.filter(ev => ev.id !== id);
-          saveSchedule();
-          renderTimetable();
-        });
-      });
-    }
-
-    // 種目追加
-    document.getElementById('addEventBtn').addEventListener('click', () => {
-      const maxId = scheduleData.events.length 
-        ? Math.max(...scheduleData.events.map(e => e.id)) 
-        : 0;
-      
-      scheduleData.events.push({
-        id: maxId + 1,
-        name: '新しい種目',
-        time: '00:00',
-        place: '',
-        status: 'wait',
-        delay: 0,
-        category: 'general'
-      });
-      
-      saveSchedule();
-      renderTimetable();
-    });
-
-    // ===== 初期化 =====
-    document.addEventListener('DOMContentLoaded', () => {
-      loadSchedule();
-      renderTimetable();
-    });
+    render();
+    // 定期的に更新
+    setInterval(render, 2000);
   </script>
 </body>
 </html>
