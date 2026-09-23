@@ -33,9 +33,7 @@
       </span>
     </div>
   </header>
-
   <h1 class="text-2xl font-bold mb-4">📻 備品貸出管理</h1>
-
   <!-- タブ -->
   <nav class="tab-scroll mb-4">
     <div class="flex gap-2 pb-1 min-w-max">
@@ -148,7 +146,6 @@
       <div class="p-3 bg-green-50 rounded-lg border border-green-200">
         <p class="text-green-700 text-sm font-medium">✅ クラウド接続済 — データは永続保存</p>
       </div>
-
       <!-- 品目種別管理 -->
       <div class="p-3 bg-white rounded-lg shadow">
         <h3 class="font-medium mb-2 text-sm">📦 品目種別管理</h3>
@@ -158,7 +155,6 @@
         </div>
         <ul id="categoryList" class="space-y-1.5 text-sm"></ul>
       </div>
-
       <!-- 利用者管理 -->
       <div class="p-3 bg-white rounded-lg shadow">
         <h3 class="font-medium mb-2 text-sm">👤 利用者管理</h3>
@@ -168,7 +164,6 @@
         </div>
         <ul id="userList" class="space-y-1.5 text-sm"></ul>
       </div>
-
       <!-- 一括登録 -->
       <div class="p-3 bg-white rounded-lg shadow">
         <h3 class="font-medium mb-2 text-sm">📋 機器一括登録</h3>
@@ -182,7 +177,6 @@
         </div>
         <button id="bulkAdd" class="w-full bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 font-medium">一括追加</button>
       </div>
-
       <!-- 機器編集・削除 -->
       <div class="p-3 bg-white rounded-lg shadow">
         <h3 class="font-medium mb-2 text-sm">🔧 機器編集・削除</h3>
@@ -193,7 +187,6 @@
           <p class="text-gray-400">読み込み中…</p>
         </div>
       </div>
-
       <!-- データ初期化 -->
       <div class="p-3 bg-red-50 rounded-lg border border-red-200">
         <h3 class="font-medium mb-2 text-sm text-red-700">⚠️ データ初期化</h3>
@@ -232,7 +225,7 @@
     function showPopup(msg, type = 'success') {
       const col = { success: 'bg-green-500', error: 'bg-red-500', warning: 'bg-amber-500' };
       const el = Object.assign(document.createElement('div'), {
-        className: `fixed top-4 left-1/2 -translate-x-1/2 ${col[type]} text-white px-5 py-2.5 rounded-lg shadow-lg z-50 text-sm`,
+        className: `fixed top-4 left-1/2 -translate-x-1/2 ${col[type]} text-white px-5 py-2.5 rounded-lg shadow-lg z-50 text-sm whitespace-pre-line`,
         textContent: msg
       });
       document.body.appendChild(el);
@@ -247,48 +240,59 @@
     async function initFirebase() {
       try {
         if (!window.firebase) {
-          setSync(false, 'Firebase読込待ち');
+          setSync(false, 'Firebase読み込み待ち');
+          setTimeout(() => {
+            if (!window.firebase) {
+              setSync(false, '読み込み失敗・再読み込み推奨');
+            }
+          }, 5000);
           return;
         }
         const app = firebase.initializeApp(FIREBASE_CONFIG);
         db = firebase.firestore(app);
-        
-        db.collection('equipment').onSnapshot(snap => {
-          items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-          renderAll();
-          setSync(true, '✅ 接続完了');
-        }, err => {
-          console.error('DBエラー:', err);
-          showPopup('データ取得失敗: ' + err.message, 'error');
-          setSync(false, '権限/接続エラー');
-        });
-        
-        db.collection('history').orderBy('timestamp', 'desc').limit(100).onSnapshot(snap => {
-          history = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-          renderHistory();
-        }, err => console.error('履歴取得エラー:', err));
-        
-        db.collection('settings').doc('master').onSnapshot(snap => {
-          if (snap.exists) {
-            const d = snap.data();
-            categories = d.categories || [];
-            users = d.users || [];
+
+        db.collection('equipment').onSnapshot(
+          snap => {
+            items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            renderAll();
+            setSync(true, '✅ 接続完了');
+          },
+          err => {
+            console.error('DBエラー:', err);
+            if (err.code === 'permission-denied') {
+              setSync(false, '❌ 権限エラー／ルール確認');
+            } else {
+              setSync(false, '❌ ' + (err.code || err.message));
+            }
           }
-          renderAll();
-        }, err => console.error('設定取得エラー:', err));
+        );
+
+        db.collection('history').orderBy('timestamp', 'desc').limit(100).onSnapshot(
+          snap => { history = snap.docs.map(d => ({ id: d.id, ...d.data() })); renderHistory(); },
+          err => console.error('履歴取得エラー:', err)
+        );
+
+        db.collection('settings').doc('master').onSnapshot(
+          snap => {
+            if (snap.exists) {
+              const d = snap.data();
+              categories = d.categories || [];
+              users = d.users || [];
+            }
+            renderAll();
+          },
+          err => console.error('設定取得エラー:', err)
+        );
       } catch (e) {
         console.error('Firebase初期化エラー:', e);
-        showPopup('Firebase接続失敗: ' + e.message, 'error');
-        setSync(false, '接続失敗');
+        setSync(false, '❌ 初期化失敗');
       }
     }
 
     // ===== データ操作 =====
     async function saveSettings() {
       if (!db) return;
-      await db.collection('settings').doc('master').set(
-        { categories, users }, { merge: true }
-      );
+      await db.collection('settings').doc('master').set({ categories, users }, { merge: true });
     }
     async function addEquipment(category, id) {
       if (!db) return;
@@ -339,94 +343,54 @@
       return true;
     }
 
-    // ===== 機器削除（関連履歴も削除）=====
-    // ===== 機器削除（完全抹消：他に引き継がない）=====
-    // ===== 機器削除（完全削除・復活防止）=====
+    // ===== 機器削除（完全削除）=====
     async function deleteDeviceWithHistory(deviceId) {
-      if (!db) {
-        showPopup('DB未接続', 'error');
-        return false;
-      }
-
-      // 貸出中チェック
+      if (!db) return false;
       const targetItem = items.find(i => i.id === deviceId);
       if (targetItem && targetItem.status === 'lend') {
-        showPopup('貸出中のため削除不可', 'error');
+        showPopup('貸出中の機器は削除できません。先に返却してください', 'error');
         return false;
       }
-
       try {
-        // 1. 機器を削除
         await db.collection('equipment').doc(deviceId).delete();
-        console.log('✅ 機器削除成功:', deviceId);
-
-        // 2. 関連履歴削除
-        const histSnap = await db.collection('history').get();
-        const batch = db.batch();
-        histSnap.docs.forEach(doc => {
-          const d = doc.data();
-          if (d.ids && d.ids.includes(deviceId)) {
-            batch.delete(doc.ref);
-          }
-        });
-        await batch.commit();
-
-        // 3. 画面から確実に消す
+        try {
+          const histSnap = await db.collection('history').get();
+          const batch = db.batch();
+          histSnap.docs.forEach(doc => {
+            const d = doc.data();
+            if (d.ids && d.ids.includes(deviceId)) batch.delete(doc.ref);
+          });
+          await batch.commit();
+        } catch (e) { console.warn('履歴削除エラー:', e); }
         items = items.filter(i => i.id !== deviceId);
         renderAll();
-
-        showPopup(`✅ ${deviceId} 削除完了`);
+        showPopup(`✅ ${deviceId} を削除しました`);
         return true;
-
       } catch (err) {
-        console.error('❌ 削除失敗:', err);
+        console.error('削除失敗:', err);
         showPopup('削除失敗: ' + err.message, 'error');
         return false;
       }
     }
-        // ===== 全データ初期化 =====
+
+    // ===== 全データ初期化 =====
     async function resetAllData() {
-      if (!db) {
-        showPopup('未接続です', 'warning');
-        return false;
-      }
-      
+      if (!db) { showPopup('未接続です', 'warning'); return false; }
       if (!confirm('⚠️ 本当に全てのデータを削除しますか？\n機器・履歴・設定すべて消去されます。')) return false;
       if (!confirm('もう一度確認：完全に消去しますか？')) return false;
-      
       try {
-        let count = 0;
-        
-        // 1. 機器全削除
         const equipSnap = await db.collection('equipment').get();
         const batch = db.batch();
-        equipSnap.docs.forEach(d => { batch.delete(d.ref); count++; });
+        equipSnap.docs.forEach(d => batch.delete(d.ref));
         await batch.commit();
-        console.log(`機器 ${count}件 削除`);
-        
-        // 2. 履歴全削除
         const histSnap = await db.collection('history').get();
         const batch2 = db.batch();
-        histSnap.docs.forEach(d => { batch2.delete(d.ref); });
+        histSnap.docs.forEach(d => batch2.delete(d.ref));
         await batch2.commit();
-        console.log('履歴 削除完了');
-        
-        // 3. 設定リセット
-        await db.collection('settings').doc('master').set({
-          categories: [],
-          users: []
-        });
-        console.log('設定 リセット完了');
-        
-        // 4. ローカルも空に
-        items = [];
-        history = [];
-        categories = [];
-        users = [];
-        
+        await db.collection('settings').doc('master').set({ categories: [], users: [] });
+        items = []; history = []; categories = []; users = [];
         showPopup('✅ 全データを初期化しました');
         return true;
-        
       } catch (err) {
         console.error('初期化エラー:', err);
         showPopup('❌ 初期化失敗: ' + err.message, 'error');
@@ -442,10 +406,8 @@
       renderSettings();
     }
     function renderSelects() {
-      const catOpt = '<option value="">選択してください</option>' +
-        categories.map(c => `<option value="${c}">${c}</option>`).join('');
-      const userOpt = '<option value="">選択してください</option>' +
-        users.map(u => `<option value="${u}">${u}</option>`).join('');
+      const catOpt = '<option value="">選択してください</option>' + categories.map(c => `<option value="${c}">${c}</option>`).join('');
+      const userOpt = '<option value="">選択してください</option>' + users.map(u => `<option value="${u}">${u}</option>`).join('');
       const lendCat = document.getElementById('lendCategory');
       const bulkCat = document.getElementById('bulkCategory');
       const lendUser = document.getElementById('lendUser');
@@ -453,10 +415,7 @@
       if (lendCat) lendCat.innerHTML = catOpt;
       if (bulkCat) bulkCat.innerHTML = catOpt;
       if (lendUser) lendUser.innerHTML = userOpt;
-      if (retFilter) retFilter.innerHTML =
-        '<option value="">全て表示</option>' +
-        [...new Set(items.filter(i => i.status === 'lend').map(i => i.user))]
-          .filter(Boolean).map(u => `<option value="${u}">${u}</option>`).join('');
+      if (retFilter) retFilter.innerHTML = '<option value="">全て表示</option>' + [...new Set(items.filter(i => i.status === 'lend').map(i => i.user))].filter(Boolean).map(u => `<option value="${u}">${u}</option>`).join('');
     }
     function updateAssignPreview() {
       const cat = document.getElementById('lendCategory')?.value;
@@ -500,8 +459,7 @@
     }
     function updateReturnCount() {
       const el = document.getElementById('returnCount');
-      if (el) el.textContent =
-        `(${document.querySelectorAll('input[name="returnId"]:checked').length}台選択中)`;
+      if (el) el.textContent = `(${document.querySelectorAll('input[name="returnId"]:checked').length}台選択中)`;
     }
     function renderList() {
       const cont = document.getElementById('categoryTables');
@@ -582,7 +540,6 @@
             </button>
           </li>`;
       }).join('');
-
       const userList = document.getElementById('userList');
       if (userList) userList.innerHTML = users.map(u => {
         const usingCount = items.filter(i => i.user === u && i.status === 'lend').length;
@@ -594,11 +551,8 @@
             </button>
           </li>`;
       }).join('');
-
-      const catOpt = '<option value="">全て表示</option>' +
-        categories.map(c => `<option value="${c}">${c}</option>`).join('');
       const filterSelect = document.getElementById('editFilterCategory');
-      if (filterSelect) filterSelect.innerHTML = catOpt;
+      if (filterSelect) filterSelect.innerHTML = '<option value="">全て表示</option>' + categories.map(c => `<option value="${c}">${c}</option>`).join('');
       const filterCat = filterSelect?.value || '';
       const list = filterCat ? items.filter(i => i.category === filterCat) : [...items];
       const devListEl = document.getElementById('editDeviceList');
@@ -629,6 +583,7 @@
           </button>
         </label>`).join('')}
       `;
+    }
 
     // ===== イベント =====
     document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -644,10 +599,8 @@
         btn.classList.add('bg-blue-500', 'text-white');
       });
     });
-
     document.getElementById('lendCategory')?.addEventListener('change', updateAssignPreview);
     document.getElementById('lendCount')?.addEventListener('input', updateAssignPreview);
-
     document.getElementById('lendForm')?.addEventListener('submit', async e => {
       e.preventDefault();
       const cat = document.getElementById('lendCategory')?.value;
@@ -663,10 +616,8 @@
       showPopup(`✅ ${assigned.join(', ')} 貸出完了`);
       e.target.reset();
       document.getElementById('assignPreview')?.classList.add('hidden');
-      const availInfo = document.getElementById('availableInfo');
-      if (availInfo) availInfo.textContent = '貸出可能台数: -';
+      document.getElementById('availableInfo').textContent = '貸出可能台数: -';
     });
-
     document.getElementById('returnUserFilter')?.addEventListener('change', renderReturnCheckList);
     document.getElementById('returnSelectAll')?.addEventListener('change', e => {
       document.querySelectorAll('input[name="returnId"]').forEach(cb => cb.checked = e.target.checked);
@@ -674,6 +625,11 @@
     });
     document.addEventListener('change', e => {
       if (e.target.name === 'returnId') updateReturnCount();
+      if (e.target.id === 'checkAllDevices') {
+        document.querySelectorAll('input[name="selectDevice"]:not(:disabled)').forEach(cb => {
+          cb.checked = e.target.checked;
+        });
+      }
     });
     document.getElementById('returnForm')?.addEventListener('submit', async e => {
       e.preventDefault();
@@ -686,7 +642,6 @@
       e.target.reset();
       renderReturnCheckList();
     });
-
     document.getElementById('authBtn')?.addEventListener('click', () => {
       if (document.getElementById('passwordInput')?.value === PASSWORD) {
         document.getElementById('passwordArea')?.classList.add('hidden');
@@ -696,7 +651,6 @@
         showPopup('パスワードが違います', 'warning');
       }
     });
-
     document.getElementById('addCategory')?.addEventListener('click', async () => {
       const v = document.getElementById('newCategory')?.value.trim();
       if (!v || categories.includes(v)) return showPopup('無効または既存です', 'warning');
@@ -704,7 +658,6 @@
       showPopup(`✅ ${v} 追加`);
       document.getElementById('newCategory').value = '';
     });
-
     document.getElementById('addUser')?.addEventListener('click', async () => {
       const v = document.getElementById('newUser')?.value.trim();
       if (!v || users.includes(v)) return showPopup('無効または既存です', 'warning');
@@ -712,53 +665,46 @@
       showPopup(`✅ ${v} 追加`);
       document.getElementById('newUser').value = '';
     });
-
     document.getElementById('bulkAdd')?.addEventListener('click', async () => {
       const cat = document.getElementById('bulkCategory')?.value;
       const pre = document.getElementById('bulkPrefix')?.value.trim();
       const s = parseInt(document.getElementById('bulkStart')?.value);
       const e = parseInt(document.getElementById('bulkEnd')?.value);
-      
-      if (!cat || !pre || !s || !e || s > e) {
-        return showPopup('入力値が不正です', 'warning');
-      }
-      
-      let added = 0;
-      let skipped = 0;
-      
+      if (!cat || !pre || !s || !e || s > e) return showPopup('入力値が不正です', 'warning');
+      let added = 0, skipped = 0;
       for (let i = s; i <= e; i++) {
         const id = pre + String(i).padStart(3, '0');
-        
-        // ✅ 既存IDと重複する場合はスキップ（削除済み番号も新規扱いで登録可）
-        if (items.some(x => x.id === id)) {
-          skipped++;
-          continue;
-        }
-        
-        await addEquipment(cat, id);
-        added++;
+        if (items.some(x => x.id === id)) { skipped++; continue; }
+        await addEquipment(cat, id); added++;
       }
-      
       let msg = `✅ ${added}台 新規登録完了`;
-      if (skipped > 0) {
-        msg += `\n⚠️ ${skipped}件 既存番号のためスキップ`;
-      }
+      if (skipped > 0) msg += `\n⚠️ ${skipped}件 既存番号のためスキップ`;
       showPopup(msg);
     });
-
     document.getElementById('editFilterCategory')?.addEventListener('change', renderSettings);
-
-    // ===== 全データ初期化ボタン =====
     document.getElementById('resetAllBtn')?.addEventListener('click', async () => {
       if (!db) return showPopup('未接続です', 'warning');
-      if (await resetAllData()) {
-        showPopup('✅ 全データを初期化しました');
-      }
+      await resetAllData();
     });
 
-    // ===== 削除系 =====
-      
+    // ===== 統合イベント：削除系 =====
     document.addEventListener('click', async e => {
+      // 一括削除
+      if (e.target.id === 'deleteSelectedBtn') {
+        const selectedIds = Array.from(document.querySelectorAll('input[name="selectDevice"]:checked')).map(cb => cb.value);
+        if (!selectedIds.length) return showPopup('削除する機器を選択してください', 'warning');
+        if (!confirm(`⚠️ ${selectedIds.length}台 を一括削除します\nデータは復元できません。よろしいですか？`)) return;
+        if (!db) return showPopup('未接続です', 'warning');
+        let success = 0, fail = 0;
+        for (const id of selectedIds) {
+          (await deleteDeviceWithHistory(id)) ? success++ : fail++;
+        }
+        let msg = `✅ ${success}台 削除完了`;
+        if (fail > 0) msg += `\n⚠️ ${fail}台 失敗`;
+        showPopup(msg);
+        return;
+      }
+      // カテゴリ削除
       const delCat = e.target.getAttribute('data-del-cat');
       if (delCat && !e.target.disabled) {
         if (!confirm(`「${delCat}」を削除してもよろしいですか？`)) return;
@@ -767,6 +713,7 @@
         showPopup(`✅ ${delCat} を削除しました`);
         return;
       }
+      // 利用者削除
       const delUser = e.target.getAttribute('data-del-user');
       if (delUser && !e.target.disabled) {
         if (!confirm(`「${delUser}」を削除してもよろしいですか？`)) return;
@@ -775,22 +722,11 @@
         showPopup(`✅ ${delUser} を削除しました`);
         return;
       }
+      // 個別削除
       const delDevice = e.target.getAttribute('data-del-device');
       if (delDevice && !e.target.disabled) {
-        if (!confirm(
-          `⚠️ 機器を完全削除します\n` +
-          `管理番号：${delDevice}\n` +
-          `データは復元できません。よろしいですか？`
-        )) return;
-        
+        if (!confirm(`⚠️ 機器「${delDevice}」を完全削除します。復元できません。\nよろしいですか？`)) return;
         if (!db) return showPopup('未接続です', 'warning');
-        
-        // ✅ 貸出中は削除不可
-        const targetItem = items.find(i => i.id === delDevice);
-        if (targetItem && targetItem.status === 'lend') {
-          return showPopup('貸出中の機器は削除できません。先に返却してください', 'error');
-        }
-        
         await deleteDeviceWithHistory(delDevice);
         return;
       }
