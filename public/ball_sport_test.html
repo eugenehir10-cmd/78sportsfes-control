@@ -1,928 +1,768 @@
-<!DOCTYPE html>
-<html lang="ja" class="dark">
+html_content = '''<!DOCTYPE html>
+<html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>第78回体育祭 球技日 進行管理システム</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        darkbg: '#090d16',
-                        darkcard: '#131b2e',
-                        darkborder: '#2a364f',
-                        accent: '#3b82f6',
-                        delayred: '#ef4444',
-                        successgreen: '#10b981'
-                    }
-                }
-            }
-        }
-    </script>
-    <!-- FontAwesome & Chart.js -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            background-color: #090d16;
-            color: #f1f5f9;
-        }
-        /* 遅延時の点滅アニメーション */
-        @keyframes pulse-red {
-            0%, 100% { background-color: rgba(239, 68, 68, 0.2); border-color: #ef4444; }
-            50% { background-color: rgba(239, 68, 68, 0.45); border-color: #f87171; }
-        }
-        .delay-alert-active {
-            animation: pulse-red 1.5s infinite;
-        }
-        /* スクロールバーカスタマイズ */
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #0f172a;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #334155;
-            border-radius: 4px;
-        }
-        /* 高コントラストモード */
-        .high-contrast {
-            background-color: #000000 !important;
-            color: #ffffff !important;
-        }
-        .high-contrast .bg-card {
-            background-color: #111111 !important;
-            border-color: #ffffff !important;
-        }
-        .high-contrast button {
-            border-width: 2px !important;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第78回 体育祭 球技日進行管理 | 78th Sports Festival</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #f8fafc;
+      --bg-card: #ffffff;
+      --text-main: #0f172a;
+      --text-sub: #64748b;
+      --navy-primary: #1e293b;
+      --navy-dark: #0f172a;
+      --accent-gold: #d97706;
+      --accent-gold-light: #fef3c7;
+      --danger-red: #ef4444;
+      --danger-light: #fee2e2;
+      --success-green: #10b981;
+      --success-light: #d1fae5;
+      --border-color: #e2e8f0;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+      --radius: 12px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Noto Sans JP', sans-serif; }
+    body { background-color: var(--bg-primary); color: var(--text-main); line-height: 1.5; padding-bottom: 60px; }
+
+    /* Header */
+    header {
+      background: linear-gradient(135deg, var(--navy-dark) 0%, #1e293b 100%);
+      color: #ffffff;
+      padding: 24px 16px;
+      text-align: center;
+      position: relative;
+      box-shadow: 0 4px 20px rgba(15, 23, 42, 0.15);
+    }
+    header p.sub { font-size: 0.85rem; letter-spacing: 0.1em; color: #94a3b8; text-transform: uppercase; }
+    header h1 { font-size: 1.6rem; font-weight: 900; margin: 6px 0 2px; color: #ffffff; letter-spacing: 0.05em; }
+    header p.tagline { font-size: 0.9rem; color: #cbd5e1; }
+
+    /* Container */
+    .container { max-width: 1000px; margin: 0 auto; padding: 16px; }
+
+    /* Navigation Tabs */
+    .tab-nav {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      border-bottom: 2px solid var(--border-color);
+    }
+    .tab-btn {
+      padding: 10px 18px;
+      border: none;
+      background: #e2e8f0;
+      color: var(--text-sub);
+      font-weight: 700;
+      font-size: 0.95rem;
+      border-radius: 20px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s ease;
+    }
+    .tab-btn.active {
+      background: var(--navy-primary);
+      color: #ffffff;
+      box-shadow: var(--shadow-sm);
+    }
+    .tab-btn.admin-tab {
+      background: #fef3c7;
+      color: #b45309;
+      margin-left: auto;
+    }
+    .tab-btn.admin-tab.active {
+      background: var(--accent-gold);
+      color: #ffffff;
+    }
+
+    /* Banners & Alerts */
+    .alert-banner {
+      background: var(--danger-red);
+      color: #ffffff;
+      padding: 12px 16px;
+      border-radius: var(--radius);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-weight: 700;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.85; } 100% { opacity: 1; } }
+
+    /* Control Panel */
+    .control-card {
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--border-color);
+    }
+    .filter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-top: 12px; }
+    select, input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      font-size: 0.9rem;
+      background-color: #fff;
+    }
+
+    /* Score Summary Board */
+    .score-board {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .team-card {
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      padding: 14px;
+      text-align: center;
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow-sm);
+    }
+    .team-card.team-A { border-top: 5px solid #ef4444; }
+    .team-card.team-B { border-top: 5px solid #3b82f6; }
+    .team-card.team-C { border-top: 5px solid #10b981; }
+    .team-card.team-D { border-top: 5px solid #f59e0b; }
+    .team-name { font-weight: 900; font-size: 1.1rem; }
+    .team-score { font-size: 1.6rem; font-weight: 900; color: var(--navy-dark); margin-top: 4px; }
+
+    /* Match Cards */
+    .match-list { display: flex; flex-direction: column; gap: 14px; }
+    .match-card {
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      padding: 16px;
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow-sm);
+      position: relative;
+      transition: border-color 0.2s;
+    }
+    .match-card.delayed { border: 2px solid var(--danger-red); background-color: #fff5f5; }
+    .match-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+    .badge-court { background: #e2e8f0; color: var(--navy-dark); }
+    .badge-status-NOW { background: var(--danger-red); color: #fff; }
+    .badge-status-NEXT { background: var(--accent-gold); color: #fff; }
+    .badge-status-FIN { background: var(--success-green); color: #fff; }
+    .badge-status-UPCOMING { background: #cbd5e1; color: var(--text-sub); }
+    .badge-delay { background: var(--danger-light); color: var(--danger-red); border: 1px solid var(--danger-red); }
+
+    .match-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 8px; }
+    .match-time { font-size: 0.85rem; color: var(--text-sub); margin-bottom: 12px; }
+
+    .staff-info {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      background: #f1f5f9;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      margin-bottom: 12px;
+    }
+    .staff-info div span { font-weight: 700; color: var(--text-sub); display: block; }
+
+    .match-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px dashed var(--border-color);
+    }
+    .btn {
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: none;
+      font-weight: 700;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .btn:hover { opacity: 0.85; }
+    .btn-delay { background: var(--danger-light); color: var(--danger-red); }
+    .btn-restore-time { background: #e2e8f0; color: var(--text-main); }
+    .btn-score { background: var(--navy-primary); color: #fff; }
+    .btn-delete { background: #fef2f2; color: var(--danger-red); margin-left: auto; }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 16px;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal {
+      background: #fff;
+      border-radius: var(--radius);
+      max-width: 500px;
+      width: 100%;
+      padding: 20px;
+      box-shadow: var(--shadow-md);
+    }
+    .modal-header { font-size: 1.2rem; font-weight: 700; margin-bottom: 14px; }
+
+    /* Headquarters Dashboard */
+    .hq-clock {
+      text-align: center;
+      background: var(--navy-dark);
+      color: #fff;
+      padding: 16px;
+      border-radius: var(--radius);
+      margin-bottom: 20px;
+    }
+    .hq-clock .time { font-size: 2.2rem; font-weight: 900; font-family: monospace; color: #f59e0b; }
+    .court-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+    .court-monitor { background: #fff; padding: 14px; border-radius: var(--radius); border: 1px solid var(--border-color); }
+    .court-monitor h4 { font-size: 1rem; color: var(--navy-dark); border-bottom: 2px solid var(--border-color); padding-bottom: 6px; margin-bottom: 10px; }
+
+    footer { text-align: center; padding: 24px 16px 0; color: var(--text-sub); font-size: 0.8rem; }
+  </style>
 </head>
-<body class="min-h-screen flex flex-col">
+<body>
 
-    <!-- 緊急アナウンス・テロップバー -->
-    <div id="ticker-container" class="hidden bg-red-600 text-white px-4 py-1.5 font-bold text-sm overflow-hidden whitespace-nowrap shadow-md">
-        <div id="ticker-text" class="inline-block animate-marquee pl-[100%]"></div>
+  <header>
+    <p class="sub">78th Sports Festival</p>
+    <h1>球技日 進行管理ポータル</h1>
+    <p class="tagline">2026.10.01 (Thu) - 全6会場 リアルタイム進行・スコア管理</p>
+  </header>
+
+  <div class="container">
+    <!-- Tab Navigation -->
+    <div class="tab-nav">
+      <button class="tab-btn active" onclick="switchTab('main')">🏆 進行・スコア一覧</button>
+      <button class="tab-btn" onclick="switchTab('scores')">📊 組別総合順位</button>
+      <button class="tab-btn" onclick="openTrashModal()">🗑️ ゴミ箱 (<span id="trashCount">0</span>)</button>
+      <button class="tab-btn admin-tab" onclick="switchTab('hq')">🔒 本部監視タブ</button>
     </div>
 
-    <!-- ヘッダー -->
-    <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-40 shadow-xl">
-        <div class="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-2">
-            <div class="flex items-center space-x-3">
-                <div class="bg-blue-600 text-white font-black rounded-lg px-2.5 py-1 text-lg shadow-lg">78th</div>
-                <div>
-                    <h1 class="text-base sm:text-xl font-bold tracking-tight text-white flex items-center gap-2">
-                        体育祭 球技日 進行・得点管理
-                        <span class="text-xs font-normal bg-slate-800 text-blue-400 px-2 py-0.5 rounded border border-blue-500/30">黒基調Ver</span>
-                    </h1>
-                </div>
-            </div>
+    <!-- Alert Banner -->
+    <div id="emergencyBanner" class="alert-banner" style="display: none;">
+      <span id="emergencyMsg">🚨 雨天・進行変更アラート発令中</span>
+      <button onclick="dismissEmergency()" style="background:none; border:none; color:#fff; cursor:pointer; font-size:1rem;">✕</button>
+    </div>
 
-            <!-- 時間 & モード切り替え -->
-            <div class="flex items-center space-x-2 text-xs sm:text-sm">
-                <button id="contrast-toggle-btn" onclick="toggleContrast()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-2.5 py-1.5 rounded-lg border border-slate-700 transition flex items-center gap-1.5">
-                    <i class="fa-solid fa-sun text-yellow-400"></i>
-                    <span class="hidden sm:inline">高コントラスト</span>
-                </button>
-                <div class="bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800 font-mono text-blue-400 font-semibold shadow-inner flex items-center gap-2">
-                    <i class="fa-regular fa-clock text-slate-400"></i>
-                    <span id="header-clock">00:00:00</span>
-                </div>
-            </div>
+    <!-- Main View -->
+    <div id="viewMain">
+      <!-- Teams Score Summary -->
+      <div class="score-board">
+        <div class="team-card team-A">
+          <div class="team-name">A 組</div>
+          <div class="team-score" id="scoreA">0 <span style="font-size:0.8rem;">pt</span></div>
+        </div>
+        <div class="team-card team-B">
+          <div class="team-name">B 組</div>
+          <div class="team-score" id="scoreB">0 <span style="font-size:0.8rem;">pt</span></div>
+        </div>
+        <div class="team-card team-C">
+          <div class="team-name">C 組</div>
+          <div class="team-score" id="scoreC">0 <span style="font-size:0.8rem;">pt</span></div>
+        </div>
+        <div class="team-card team-D">
+          <div class="team-name">D 組</div>
+          <div class="team-score" id="scoreD">0 <span style="font-size:0.8rem;">pt</span></div>
+        </div>
+      </div>
+
+      <!-- Controls -->
+      <div class="control-card">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <strong style="font-size:0.95rem;">🔍 表示フィルター & 検索</strong>
+          <button class="btn btn-score" onclick="openAddMatchModal()">+ 新規試合追加</button>
+        </div>
+        <div class="filter-grid">
+          <select id="filterCourt" onchange="renderMatches()">
+            <option value="ALL">全会場 (6コート)</option>
+            <option value="上グラ">上グラウンド</option>
+            <option value="下グラ">下グラウンド</option>
+            <option value="体育館">体育館</option>
+            <option value="ハード">ハードコート</option>
+            <option value="オムニ">オムニコート</option>
+            <option value="卓球場">卓球場</option>
+          </select>
+          <select id="filterStatus" onchange="renderMatches()">
+            <option value="ALL">全ステータス</option>
+            <option value="NOW">NOW (進行中)</option>
+            <option value="NEXT">NEXT (次試合)</option>
+            <option value="UPCOMING">未開始</option>
+            <option value="FIN">終了</option>
+          </select>
+          <input type="text" id="searchKeyword" placeholder="学年・競技・クラスで検索..." oninput="renderMatches()">
+        </div>
+      </div>
+
+      <!-- Match Cards List -->
+      <div id="matchList" class="match-list"></div>
+    </div>
+
+    <!-- Scores Detailed View -->
+    <div id="viewScores" style="display: none;">
+      <div class="control-card">
+        <h3>🏆 総合順位 & 得点計算ルール</h3>
+        <p style="font-size:0.85rem; color:var(--text-sub); margin-top:6px;">各学年・各競技の順位に応じた獲得ポイント合計：1位: 100pt / 2位: 70pt / 3位: 50pt / 4位: 30pt</p>
+      </div>
+      <div id="detailedScoreTable" class="control-card"></div>
+    </div>
+
+    <!-- HQ Dashboard View (Protected) -->
+    <div id="viewHQ" style="display: none;">
+      <div id="hqAuthLock" class="control-card" style="text-align: center; padding: 40px 20px;">
+        <h3>🔒 本部専用ダッシュボード認証</h3>
+        <p style="font-size:0.85rem; color:var(--text-sub); margin:8px 0 16px;">実行委員会・本部役員パスワードを入力してください (初期: 7878)</p>
+        <div style="max-width:260px; margin:0 auto; display:flex; gap:8px;">
+          <input type="password" id="hqPassword" placeholder="パスワード">
+          <button class="btn btn-score" onclick="authenticateHQ()">解除</button>
+        </div>
+      </div>
+
+      <div id="hqContent" style="display: none;">
+        <div class="hq-clock">
+          <div>HQ REALTIME HIGH-PRECISION MONITOR</div>
+          <div class="time" id="hqClock">00:00:00.000</div>
+          <div style="font-size:0.8rem; color:#94a3b8; margin-top:4px;">現在時刻（ミリ秒表示）</div>
         </div>
 
-        <!-- タブナビゲーション -->
-        <div class="max-w-7xl mx-auto px-2 sm:px-6 flex space-x-1 border-t border-slate-800/80 overflow-x-auto">
-            <button onclick="switchTab('cards')" id="tab-btn-cards" class="tab-btn active text-blue-400 border-b-2 border-blue-500 py-2.5 px-3 font-semibold text-xs sm:text-sm flex items-center gap-2 whitespace-nowrap">
-                <i class="fa-solid fa-list-check"></i> コート別タイムテーブル
-            </button>
-            <button onclick="switchTab('timeline')" id="tab-btn-timeline" class="tab-btn text-slate-400 hover:text-slate-200 py-2.5 px-3 font-medium text-xs sm:text-sm flex items-center gap-2 whitespace-nowrap">
-                <i class="fa-solid fa-chart-gantt"></i> 全体タイムライン (ガント)
-            </button>
-            <button onclick="switchTab('scoring')" id="tab-btn-scoring" class="tab-btn text-slate-400 hover:text-slate-200 py-2.5 px-3 font-medium text-xs sm:text-sm flex items-center gap-2 whitespace-nowrap">
-                <i class="fa-solid fa-trophy text-amber-400"></i> 対戦・結果・総合得点
-            </button>
-            <button onclick="switchTab('admin')" id="tab-btn-admin" class="tab-btn text-slate-400 hover:text-slate-200 py-2.5 px-3 font-medium text-xs sm:text-sm flex items-center gap-2 whitespace-nowrap ml-auto">
-                <i class="fa-solid fa-shield-halved text-purple-400"></i> 本部ダッシュボード
-            </button>
+        <div class="control-card">
+          <h4>📢 全校緊急アラート発信</h4>
+          <div style="display:flex; gap:8px; margin-top:8px;">
+            <input type="text" id="emergencyInput" placeholder="例：雨天のため一時中断します。各待機所に移動してください。">
+            <button class="btn btn-delay" onclick="triggerEmergency()">全画面発信</button>
+          </div>
         </div>
-    </header>
 
-    <!-- メインコンテンツ -->
-    <main class="flex-1 max-w-7xl w-full mx-auto px-2 sm:px-6 py-4 space-y-4">
+        <div class="control-card">
+          <h4>⚡ 一括遅延処理（コート別）</h4>
+          <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">
+            <select id="bulkCourtSelect" style="max-width:160px;">
+              <option value="上グラ">上グラウンド</option>
+              <option value="下グラ">下グラウンド</option>
+              <option value="体育館">体育館</option>
+              <option value="ハード">ハードコート</option>
+              <option value="オムニ">オムニコート</option>
+              <option value="卓球場">卓球場</option>
+            </select>
+            <button class="btn btn-delay" onclick="applyBulkDelay(5)">一括 +5分</button>
+            <button class="btn btn-delay" onclick="applyBulkDelay(10)">一括 +10分</button>
+            <button class="btn btn-delay" onclick="applyBulkDelay(15)">一括 +15分</button>
+          </div>
+        </div>
 
-        <!-- ================= タブ1: コート別タイムテーブル ================= -->
-        <section id="tab-cards" class="tab-content space-y-4">
-            <!-- フィルタ & 一括操作 -->
-            <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-wrap items-center justify-between gap-3 shadow-lg">
-                <div class="flex flex-wrap items-center gap-2">
-                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">コート絞り込み:</span>
-                    <button onclick="filterCourt('ALL')" class="court-filter-btn bg-blue-600 text-white text-xs px-3 py-1.5 rounded-lg font-medium transition shadow">すべて</button>
-                    <button onclick="filterCourt('上グラ')" class="court-filter-btn bg-slate-800 text-slate-300 hover:bg-slate-700 text-xs px-3 py-1.5 rounded-lg font-medium transition border border-slate-700">上グラ</button>
-                    <button onclick="filterCourt('下グラ')" class="court-filter-btn bg-slate-800 text-slate-300 hover:bg-slate-700 text-xs px-3 py-1.5 rounded-lg font-medium transition border border-slate-700">下グラ</button>
-                    <button onclick="filterCourt('体育館')" class="court-filter-btn bg-slate-800 text-slate-300 hover:bg-slate-700 text-xs px-3 py-1.5 rounded-lg font-medium transition border border-slate-700">体育館</button>
-                    <button onclick="filterCourt('ハード')" class="court-filter-btn bg-slate-800 text-slate-300 hover:bg-slate-700 text-xs px-3 py-1.5 rounded-lg font-medium transition border border-slate-700">ハード</button>
-                    <button onclick="filterCourt('オムニ')" class="court-filter-btn bg-slate-800 text-slate-300 hover:bg-slate-700 text-xs px-3 py-1.5 rounded-lg font-medium transition border border-slate-700">オムニ</button>
-                    <button onclick="filterCourt('卓球場')" class="court-filter-btn bg-slate-800 text-slate-300 hover:bg-slate-700 text-xs px-3 py-1.5 rounded-lg font-medium transition border border-slate-700">卓球場</button>
-                </div>
-                <div class="text-xs text-slate-400 flex items-center gap-3">
-                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> 進行中</span>
-                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-red-500"></span> 遅延発生</span>
-                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-slate-600"></span> 終了/予定</span>
-                </div>
-            </div>
+        <h3 style="margin:20px 0 10px;">📡 各コートリアルタイム監視</h3>
+        <div class="court-grid" id="courtMonitorGrid"></div>
+      </div>
+    </div>
 
-            <!-- 試合カードグリッド -->
-            <div id="cards-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <!-- JS動的生成 -->
-            </div>
-        </section>
+  </div>
 
-        <!-- ================= タブ2: 全体タイムライン ================= -->
-        <section id="tab-timeline" class="tab-content hidden space-y-4">
-            <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-lg overflow-x-auto">
-                <div class="flex items-center justify-between mb-3 min-w-[700px]">
-                    <h2 class="text-sm font-bold text-slate-200 flex items-center gap-2">
-                        <i class="fa-solid fa-clock text-blue-400"></i> 全コート進行状況（ガントチャート）
-                    </h2>
-                    <span class="text-xs text-slate-400">赤垂直線 ＝ 現在時刻</span>
-                </div>
-                <!-- ガントチャートコンテナ -->
-                <div id="timeline-chart-container" class="relative min-w-[800px] border-t border-slate-800 pt-2">
-                    <!-- JS動的描画 -->
-                </div>
-            </div>
-        </section>
+  <!-- Score Input Modal -->
+  <div id="scoreModal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">🏆 試合結果・順位確定</div>
+      <p id="modalMatchTitle" style="font-weight:700; margin-bottom:12px;"></p>
+      <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:16px;">
+        <div><label style="font-size:0.8rem; font-weight:700;">1位 (100pt)</label><select id="rank1"><option value="A">A組</option><option value="B">B組</option><option value="C">C組</option><option value="D">D組</option></select></div>
+        <div><label style="font-size:0.8rem; font-weight:700;">2位 (70pt)</label><select id="rank2"><option value="B">B組</option><option value="A">A組</option><option value="C">C組</option><option value="D">D組</option></select></div>
+        <div><label style="font-size:0.8rem; font-weight:700;">3位 (50pt)</label><select id="rank3"><option value="C">C組</option><option value="A">A組</option><option value="B">B組</option><option value="D">D組</option></select></div>
+        <div><label style="font-size:0.8rem; font-weight:700;">4位 (30pt)</label><select id="rank4"><option value="D">D組</option><option value="A">A組</option><option value="B">B組</option><option value="C">C組</option></select></div>
+      </div>
+      <div style="display:flex; justify-content:flex-end; gap:8px;">
+        <button class="btn btn-restore-time" onclick="closeModal('scoreModal')">キャンセル</button>
+        <button class="btn btn-score" onclick="saveScoreResult()">保存・確定</button>
+      </div>
+    </div>
+  </div>
 
-        <!-- ================= タブ3: 対戦・結果・総合得点 ================= -->
-        <section id="tab-scoring" class="tab-content hidden space-y-4">
-            <!-- 組別総合得点サマリー -->
-            <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-lg">
-                <h2 class="text-base font-bold text-white mb-3 flex items-center gap-2">
-                    <i class="fa-solid fa-trophy text-amber-400"></i> A・B・C・D組 総合得点リアルタイム集計
-                </h2>
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-                    <div class="bg-gradient-to-br from-red-950/60 to-slate-900 border border-red-500/30 rounded-xl p-3 text-center shadow">
-                        <div class="text-xs font-bold text-red-400">A組</div>
-                        <div id="score-A" class="text-2xl sm:text-3xl font-black text-white my-1">0 <span class="text-xs font-normal text-slate-400">pt</span></div>
-                        <div id="rank-A" class="text-xs text-slate-400">順位: -位</div>
-                    </div>
-                    <div class="bg-gradient-to-br from-blue-950/60 to-slate-900 border border-blue-500/30 rounded-xl p-3 text-center shadow">
-                        <div class="text-xs font-bold text-blue-400">B組</div>
-                        <div id="score-B" class="text-2xl sm:text-3xl font-black text-white my-1">0 <span class="text-xs font-normal text-slate-400">pt</span></div>
-                        <div id="rank-B" class="text-xs text-slate-400">順位: -位</div>
-                    </div>
-                    <div class="bg-gradient-to-br from-amber-950/60 to-slate-900 border border-amber-500/30 rounded-xl p-3 text-center shadow">
-                        <div class="text-xs font-bold text-amber-400">C組</div>
-                        <div id="score-C" class="text-2xl sm:text-3xl font-black text-white my-1">0 <span class="text-xs font-normal text-slate-400">pt</span></div>
-                        <div id="rank-C" class="text-xs text-slate-400">順位: -位</div>
-                    </div>
-                    <div class="bg-gradient-to-br from-emerald-950/60 to-slate-900 border border-emerald-500/30 rounded-xl p-3 text-center shadow">
-                        <div class="text-xs font-bold text-emerald-400">D組</div>
-                        <div id="score-D" class="text-2xl sm:text-3xl font-black text-white my-1">0 <span class="text-xs font-normal text-slate-400">pt</span></div>
-                        <div id="rank-D" class="text-xs text-slate-400">順位: -位</div>
-                    </div>
-                </div>
+  <!-- Staff Input Modal -->
+  <div id="staffModal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">👤 担当者登録・編集</div>
+      <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:16px;">
+        <div><label style="font-size:0.8rem; font-weight:700;">審判担当</label><input type="text" id="inputRef" placeholder="例: 相山 誠道 (H2A)"></div>
+        <div><label style="font-size:0.8rem; font-weight:700;">競技担当</label><input type="text" id="inputComp" placeholder="例: 神作 大樹 (H2B)"></div>
+        <div><label style="font-size:0.8rem; font-weight:700;">出席担当</label><input type="text" id="inputAtt" placeholder="例: 宗行 一樹 (H1C)"></div>
+      </div>
+      <div style="display:flex; justify-content:flex-end; gap:8px;">
+        <button class="btn btn-restore-time" onclick="closeModal('staffModal')">キャンセル</button>
+        <button class="btn btn-score" onclick="saveStaffInfo()">保存</button>
+      </div>
+    </div>
+  </div>
 
-                <!-- グラフ -->
-                <div class="h-44 w-full bg-slate-950/50 rounded-lg p-2 border border-slate-800">
-                    <canvas id="scoreChart"></canvas>
-                </div>
-            </div>
+  <!-- Trash Modal -->
+  <div id="trashModal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">🗑️ ゴミ箱 (削除された試合)</div>
+      <div id="trashList" style="max-height:300px; overflow-y:auto; display:flex; flex-direction:column; gap:8px; margin-bottom:16px;"></div>
+      <div style="display:flex; justify-content:flex-end;">
+        <button class="btn btn-restore-time" onclick="closeModal('trashModal')">閉じる</button>
+      </div>
+    </div>
+  </div>
 
-            <!-- 学年・競技別 順位登録パネル -->
-            <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-lg">
-                <h3 class="text-sm font-bold text-slate-200 mb-3 flex items-center gap-2">
-                    <i class="fa-solid fa-pen-to-square text-blue-400"></i> 各競技の最終順位決定・点数反映
-                </h3>
-                <div id="score-input-list" class="space-y-3">
-                    <!-- JSで各競技の順位入力フォーム生成 -->
-                </div>
-            </div>
-        </section>
+  <footer>
+    <p>© 第78回 体育祭 実行委員会 (78th Sports Festival Executive Committee)</p>
+  </footer>
 
-        <!-- ================= タブ4: 本部ダッシュボード ================= -->
-        <section id="tab-admin" class="tab-content hidden space-y-4">
-            <!-- ロック解除画面 -->
-            <div id="admin-lock-screen" class="bg-slate-900 border border-slate-800 rounded-xl p-8 max-w-md mx-auto text-center space-y-4 shadow-2xl my-8">
-                <div class="w-16 h-16 bg-purple-500/10 text-purple-400 rounded-full flex items-center justify-center mx-auto text-2xl border border-purple-500/20">
-                    <i class="fa-solid fa-lock"></i>
-                </div>
-                <div>
-                    <h2 class="text-lg font-bold text-white">本部用エリア（認証が必要）</h2>
-                    <p class="text-xs text-slate-400 mt-1">本部スタッフ専用の管理機能です</p>
-                </div>
-                <div class="space-y-2">
-                    <input type="password" id="admin-password" placeholder="パスワードを入力 (初期: admin123)" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-center text-white focus:outline-none focus:border-purple-500 transition">
-                    <button onclick="unlockAdmin()" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-2 rounded-lg text-sm transition shadow-lg">ログイン</button>
-                </div>
-            </div>
+  <script>
+    // PDF資料に基づく球技日初期データ
+    const initialMatches = [
+      { id: 'm1', court: '体育館', time: '08:45', title: '中3 バレーボール', status: 'FIN', ref: '相山 誠道', comp: '神作 大樹', att: '宗行 一樹', delay: 0, isDeleted: false, result: { A:100, B:70, C:50, D:30 } },
+      { id: 'm2', court: 'オムニ', time: '08:45', title: '中2 ドッジボール', status: 'FIN', ref: '相山 誠道', comp: '神作 大樹', att: '宗行 一樹', delay: 0, isDeleted: false, result: { A:70, B:100, C:30, D:50 } },
+      { id: 'm3', court: '卓球場', time: '08:45', title: '中1 卓球', status: 'FIN', ref: '相山 誠道', comp: '神作 大樹', att: '宗行 一樹', delay: 0, isDeleted: false, result: { A:50, B:30, C:100, D:70 } },
+      { id: 'm4', court: '上グラ', time: '08:50', title: '中3 サッカー', status: 'NOW', ref: 'H2A1 審判係', comp: 'H2B10 競技係', att: 'H1C39 出席係', delay: 0, isDeleted: false, result: null },
+      { id: 'm5', court: '下グラ', time: '08:50', title: '中1 サッカー', status: 'NOW', ref: 'H2A 審判係', comp: 'H2B 競技係', att: 'H1C 出席係', delay: 0, isDeleted: false, result: null },
+      { id: 'm6', court: 'ハード', time: '08:50', title: '高2 バレーボール', status: 'NOW', ref: 'H2A 審判係', comp: 'H2B 競技係', att: 'H1C 出席係', delay: 0, isDeleted: false, result: null },
+      { id: 'm7', court: '体育館', time: '09:20', title: '対教師戦 バスケットボール', status: 'NEXT', ref: '実行委員有志', comp: '菅野 晟太郎', att: '宗行 一樹', delay: 0, isDeleted: false, result: null },
+      { id: 'm8', court: '卓球場', time: '09:50', title: '高1 卓球', status: 'UPCOMING', ref: 'H2A 審判係', comp: 'H2B 競技係', att: 'H1C 出席係', delay: 0, isDeleted: false, result: null },
+      { id: 'm9', court: '上グラ', time: '10:05', title: '高1 サッカー', status: 'UPCOMING', ref: 'H2A 審判係', comp: 'H2B 競技係', att: 'H1C 出席係', delay: 0, isDeleted: false, result: null },
+      { id: 'm10', court: '下グラ', time: '10:05', title: '中3 アルティメット', status: 'UPCOMING', ref: 'H2A 審判係', comp: 'H2B 競技係', att: 'H1C 出席係', delay: 0, isDeleted: false, result: null },
+      { id: 'm11', court: 'ハード', time: '10:05', title: '高3 バレーボール', status: 'UPCOMING', ref: 'H2A 審判係', comp: 'H2B 競技係', att: 'H1C 出席係', delay: 0, isDeleted: false, result: null },
+      { id: 'm12', court: 'オムニ', time: '10:35', title: '対教師戦 ドッジボール', status: 'UPCOMING', ref: '実行委員有志', comp: '神作 大樹', att: '宗行 一樹', delay: 0, isDeleted: false, result: null },
+      { id: 'm13', court: '下グラ', time: '14:15', title: '対教師戦 野球', status: 'UPCOMING', ref: '相山 誠道', comp: '神作 大樹', att: '宗行 一樹', delay: 0, isDeleted: false, result: null }
+    ];
 
-            <!-- 本部ダッシュボード本体 (ログイン後) -->
-            <div id="admin-content" class="hidden space-y-4">
-                <!-- ミリ秒時計 & 全体ステータス -->
-                <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-lg flex flex-wrap items-center justify-between gap-4">
-                    <div>
-                        <span class="text-xs text-slate-400 block">本部リアルタイム基準時刻 (ミリ秒表示)</span>
-                        <div id="admin-ms-clock" class="text-2xl sm:text-4xl font-black font-mono text-purple-400 tracking-wider">00:00:00.000</div>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <button onclick="lockAdmin()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs px-3 py-2 rounded-lg border border-slate-700">
-                            <i class="fa-solid fa-lock me-1"></i> ロックする
-                        </button>
-                        <button onclick="exportData()" class="bg-slate-800 hover:bg-slate-700 text-blue-400 text-xs px-3 py-2 rounded-lg border border-slate-700">
-                            <i class="fa-solid fa-download me-1"></i> JSON保存
-                        </button>
-                        <label class="bg-slate-800 hover:bg-slate-700 text-emerald-400 text-xs px-3 py-2 rounded-lg border border-slate-700 cursor-pointer">
-                            <i class="fa-solid fa-upload me-1"></i> 復元
-                            <input type="file" id="import-file" onchange="importData(event)" class="hidden" accept=".json">
-                        </label>
-                    </div>
-                </div>
+    let matches = JSON.parse(localStorage.getItem('78fes_matches')) || initialMatches;
+    let selectedMatchId = null;
 
-                <!-- 緊急テロップ配信制御 -->
-                <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-lg space-y-2">
-                    <h3 class="text-sm font-bold text-red-400 flex items-center gap-2">
-                        <i class="fa-solid fa-bullhorn"></i> 全体本部アナウンス・緊急テロップ配信
-                    </h3>
-                    <div class="flex gap-2">
-                        <input type="text" id="announcement-input" placeholder="例: 【本部より】上グラウンドサッカー試合順が10分全体遅延しています。" class="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
-                        <button onclick="updateAnnouncement()" class="bg-red-600 hover:bg-red-500 text-white text-xs font-bold px-4 py-2 rounded-lg transition">配信・更新</button>
-                        <button onclick="clearAnnouncement()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs px-3 py-2 rounded-lg border border-slate-700">消去</button>
-                    </div>
-                </div>
+    function saveState() {
+      localStorage.setItem('78fes_matches', JSON.stringify(matches));
+      renderMatches();
+      updateScoreSummary();
+      updateTrashCount();
+    }
 
-                <!-- 各コート進行一覧モニタ -->
-                <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-lg space-y-3">
-                    <h3 class="text-sm font-bold text-slate-200">全コートリアルタイム遅延・進行モニタ</h3>
-                    <div id="admin-court-summary" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                        <!-- JSで動的生成 -->
-                    </div>
-                </div>
-            </div>
-        </section>
+    function renderMatches() {
+      const container = document.getElementById('matchList');
+      const courtFilter = document.getElementById('filterCourt').value;
+      const statusFilter = document.getElementById('filterStatus').value;
+      const keyword = document.getElementById('searchKeyword').value.toLowerCase();
 
-    </main>
+      container.innerHTML = '';
 
-    <!-- モーダル: 試合詳細・担当者・遅延調整 -->
-    <div id="edit-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-slate-900 border border-slate-700 rounded-xl max-w-lg w-full p-5 space-y-4 shadow-2xl relative">
-            <button onclick="closeModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
-            
-            <div class="border-b border-slate-800 pb-3">
-                <span id="modal-court-badge" class="bg-blue-600 text-white text-xs font-bold px-2 py-0.5 rounded">コート</span>
-                <h3 id="modal-match-title" class="text-lg font-bold text-white mt-1">試合タイトル</h3>
-                <p id="modal-match-time" class="text-xs text-slate-400 font-mono mt-0.5">予定時間</p>
-            </div>
+      const filtered = matches.filter(m => {
+        if (m.isDeleted) return false;
+        if (courtFilter !== 'ALL' && m.court !== courtFilter) return false;
+        if (statusFilter !== 'ALL' && m.status !== statusFilter) return false;
+        if (keyword && !m.title.toLowerCase().includes(keyword) && !m.court.toLowerCase().includes(keyword)) return false;
+        return true;
+      });
 
-            <!-- 遅延1分単位調整 -->
-            <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 space-y-2">
-                <label class="text-xs font-bold text-slate-300 block">遅延時間調整 (1分単位)</label>
-                <div class="flex items-center gap-2">
-                    <button onclick="adjustModalDelay(-5)" class="bg-slate-800 hover:bg-slate-700 text-red-400 font-bold px-3 py-1.5 rounded border border-slate-700 text-xs">-5分</button>
-                    <button onclick="adjustModalDelay(-1)" class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold px-3 py-1.5 rounded border border-slate-700 text-xs">-1分</button>
-                    <div class="flex-1 text-center font-mono font-bold text-lg text-amber-400" id="modal-delay-display">+0分</div>
-                    <button onclick="adjustModalDelay(1)" class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold px-3 py-1.5 rounded border border-slate-700 text-xs">+1分</button>
-                    <button onclick="adjustModalDelay(5)" class="bg-slate-800 hover:bg-slate-700 text-red-400 font-bold px-3 py-1.5 rounded border border-slate-700 text-xs">+5分</button>
-                </div>
-                <div class="flex items-center gap-2 pt-1">
-                    <input type="checkbox" id="modal-cascade-delay" class="rounded bg-slate-900 border-slate-700 text-blue-600 focus:ring-0">
-                    <label for="modal-cascade-delay" class="text-xs text-slate-400">このコートの以降の試合も連動してシフト調整する</label>
-                </div>
-            </div>
+      filtered.forEach(m => {
+        const card = document.createElement('div');
+        const isDelayed = m.delay > 0;
+        card.className = `match-card ${isDelayed ? 'delayed' : ''}`;
 
-            <!-- 担当者入力 (審判・競技・出席) -->
-            <div class="space-y-2">
-                <label class="text-xs font-bold text-slate-300 block">担当パート員入力</label>
-                <div class="grid grid-cols-3 gap-2">
-                    <div>
-                        <span class="text-[10px] text-slate-400 block mb-0.5">審判担当</span>
-                        <input type="text" id="modal-referee" placeholder="氏名" class="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1.5 text-xs text-white">
-                    </div>
-                    <div>
-                        <span class="text-[10px] text-slate-400 block mb-0.5">競技担当</span>
-                        <input type="text" id="modal-event" placeholder="氏名" class="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1.5 text-xs text-white">
-                    </div>
-                    <div>
-                        <span class="text-[10px] text-slate-400 block mb-0.5">出席担当</span>
-                        <input type="text" id="modal-attendance" placeholder="氏名" class="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1.5 text-xs text-white">
-                    </div>
-                </div>
-            </div>
+        const delayedTimeText = isDelayed ? ` ➔ 変更: ${calcShiftedTime(m.time, m.delay)} (+${m.delay}分)` : '';
 
-            <!-- ステータス変更 -->
+        card.innerHTML = `
+          <div class="match-header">
             <div>
-                <label class="text-xs font-bold text-slate-300 block mb-1">進行ステータス</label>
-                <select id="modal-status" class="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1.5 text-xs text-white">
-                    <option value="PLANNED">未開始 (予定通り)</option>
-                    <option value="IN_PROGRESS">進行中 (試合中)</option>
-                    <option value="FINISHED">終了</option>
-                </select>
+              <span class="badge badge-court">${m.court}</span>
+              <span class="badge badge-status-${m.status}">${getStatusLabel(m.status)}</span>
+              ${isDelayed ? `<span class="badge badge-delay">🔴 +${m.delay}分遅延</span>` : ''}
             </div>
-
-            <div class="flex gap-2 pt-2">
-                <button onclick="saveModalChanges()" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 rounded-lg text-xs transition">保存・更新</button>
-                <button onclick="closeModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold px-4 py-2 rounded-lg text-xs border border-slate-700">キャンセル</button>
+            <div style="font-size:0.8rem; font-weight:700; color:var(--text-sub);">
+              予定: ${m.time}${delayedTimeText}
             </div>
-        </div>
-    </div>
+          </div>
+          <div class="match-title">${m.title}</div>
+          <div class="staff-info">
+            <div><span>審判</span>${m.ref || '-'}</div>
+            <div><span>競技</span>${m.comp || '-'}</div>
+            <div><span>出席</span>${m.att || '-'}</div>
+          </div>
+          <div class="match-actions">
+            <button class="btn btn-delay" onclick="adjustDelay('${m.id}', 1)">+1分</button>
+            <button class="btn btn-delay" onclick="adjustDelay('${m.id}', 5)">+5分</button>
+            <button class="btn btn-delay" onclick="adjustDelay('${m.id}', 10)">+10分</button>
+            ${isDelayed ? `<button class="btn btn-restore-time" onclick="resetDelay('${m.id}')">遅延リセット</button>` : ''}
+            <button class="btn btn-score" onclick="openStaffModal('${m.id}')">👤 担当編集</button>
+            <button class="btn btn-score" onclick="openScoreModal('${m.id}')">🏆 勝敗結果</button>
+            <button class="btn btn-delete" onclick="deleteMatch('${m.id}')">🗑️ 削除</button>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
 
-    <!-- JSアプリケーションロジック -->
-    <script>
-        // PDFデータに基づく初期タイムテーブル
-        const initialMatches = [
-            // 上グラ
-            { id: 101, court: '上グラ', grade: '中3', sport: 'サッカー', startTime: '08:50', duration: 67, delayMinutes: 0, status: 'PLANNED', referee: '', eventStaff: '', attendanceStaff: '' },
-            { id: 102, court: '上グラ', grade: '高1', sport: 'サッカー', startTime: '10:10', duration: 67, delayMinutes: 0, status: 'PLANNED', referee: '', eventStaff: '', attendanceStaff: '' },
-            { id: 103, court: '上グラ', grade: '中2', sport: 'サッカー', startTime: '11:30', duration: 67, delayMinutes: 0, status: 'PLANNED', referee: '', eventStaff: '', attendanceStaff: '' },
-            { id: 104, court: '上グラ', grade: '対教師', sport: 'サッカー', startTime: '12:20', duration: 20, delayMinutes: 0, status: 'PLANNED', referee: '', eventStaff: '', attendanceStaff: '' },
-            { id: 105, court: '上グラ', grade: '高2', sport: 'サッカー', startTime: '13:15', duration: 67, delayMinutes: 0, status: 'PLANNED', referee: '', eventStaff: '', attendanceStaff: '' },
-            { id: 106, court: '上グラ', grade: '高3', sport: 'サッカー', startTime: '14:30', duration: 67, delayMinutes: 0, status: 'PLANNED', referee: '', eventStaff: '', attendanceStaff: '' },
+    function calcShiftedTime(baseTime, delayMinutes) {
+      const [h, m] = baseTime.split(':').map(Number);
+      const total = h * 60 + m + delayMinutes;
+      const newH = String(Math.floor(total / 60)).padStart(2, '0');
+      const newM = String(total % 60).padStart(2, '0');
+      return `${newH}:${newM}`;
+    }
 
-            // 下グラ
-            { id: 201, court: '下グラ', grade: '中1', sport: 'サッカー', startTime: '08:50', duration: 67, delayMinutes: 0, status: 'PLANNED', referee: '', eventStaff: '', attendanceStaff: '' },
-            { id: 202, court: '下グラ', grade: '中3', sport: 'アルティメット', startTime: '10:10', duration: 52, delayMinutes: 0, status: 'PLANNED', referee: '', eventStaff: '', attendanceStaff: '' },
-            { id: 203, court: '下グラ', grade: '高2', sport: 'アルティメット', startTime: '11:15', duration: 52, delayMinutes: 0, status: 'PLANNED', referee: '', eventStaff: '', attendanceStaff: '' },
-            { id: 204, court: '下グラ', grade: '高1', sport: 'アルティメット', startTime: '12:25', duration: 52, delayMinutes: 0, status: 'PLANNED', referee: '', eventStaff: '', attendanceStaff: '' },
-            { id: 205, court: '下グラ', grade: '中3・高3', sport: '野球', startTime: '13:30', duration: 60, delayMinutes: 0, status: 'PLANNED', referee: '', eventStaff: '', attendanceStaff: '' },
-            { id: 206, court: '下グラ', grade: '対教師', sport: '野球', startTime: '14:35', duration: 60, delayMinutes: 0, status: 'PLANNED', referee: '', eventStaff: '', attendanceStaff: '' },
+    function getStatusLabel(s) {
+      switch(s) {
+        case 'NOW': return '🔴 NOW 進行中';
+        case 'NEXT': return '🟡 NEXT 次試合';
+        case 'FIN': return '🟢 FIN 完了';
+        default: return '⚪ 未開始';
+      }
+    }
 
-            // 体育館
-            { id: 301, court: '体育館', grade: '中3', sport: 'バスケ', startTime: '08:45', duration: 55, delayMinutes: 0, status: 'PLANNED', referee: '', eventStaff: '', attendanceStaff: '' },
-            { id: 302, court: '体育館', grade: '対教師', sport: 'バスケ', startTime: '09:20', duration: 15, delayMinutes: 0, status: 'PLANNED', referee: '', eventStaff: '', attendanceStaff: '' },
-            { id: 303, court: '体育館', grade: '中2', sport: 'バスケ', startTime: '10:10', duration: 55, delayMinutes: 0, status: 'PLANNED', referee: '', eventStaff: '', attendanceStaff: '' },
-            { id: 304, court: '体育館', grade: '中1', sport: 'バスケ', startTime: '11:15', duration: 55, delayMinutes: 0, status: 'PLANNED', referee: '', eventStaff: '', attendanceStaff: '' },
-            { id: 305, court: '体育館', grade: '中2', sport: 'バスケ', startTime: '12:25', duration: 55, delayMinutes: 0, status: 'PLANNED', referee: '', eventStaff: '', attendanceStaff: '' },
-            { id: 306, court: '体育館', grade: '高1', sport: 'バスケ', startTime: '13:30', duration: 55, delayMinutes: 0, status: 'PLANNED', referee: '', eventStaff: '', attendanceStaff: '' },
-            { id: 307, court: '体育館', grade: '高3', sport: 'バスケ', startTime: '14:30', duration: 55, delayMinutes: 0, status: 'PLANNED', referee: '', eventStaff: '', attendanceStaff: '' },
+    function adjustDelay(id, min) {
+      const m = matches.find(x => x.id === id);
+      if (m) {
+        m.delay += min;
+        saveState();
+      }
+    }
 
-            // ハードコート
-            { id: 401, court: 'ハード', grade: '高2', sport: 'バレー', startTime: '08:50', duration: 71, delayMinutes: 0, status: 'PLANNED', referee: '', eventStaff: '', attendanceStaff: '' },
-            { id: 402, court: 'ハード', grade: '高3', sport: 'バレー', startTime: '10:10', duration: 71, delayMinutes: 0, status: 'PLANNED', referee: '', eventStaff: '', attendanceStaff: '' },
-            { id: 403, court: 'ハード', grade: '高1', sport: 'バレー', startTime: '12:05', duration: 71, delayMinutes: 0, status: 'PLANNED', referee: '', eventStaff: '', attendanceStaff: '' },
-            { id: 404, court: 'ハード', grade: '対教師', sport: 'バレー', startTime: '13:10', duration: 45, delayMinutes: 0, status: 'PLANNED', referee: '', eventStaff: '', attendanceStaff: '' },
-            { id: 405, court: 'ハード', grade: '中3', sport: 'バレー', startTime: '14:20', duration: 71, delayMinutes: 0, status: 'PLANNED', referee: '', eventStaff: '', attendanceStaff: '' },
+    function resetDelay(id) {
+      const m = matches.find(x => x.id === id);
+      if (m) {
+        m.delay = 0;
+        saveState();
+      }
+    }
 
-            // オムニコート
-            { id: 501, court: 'オムニ', grade: '中2', sport: 'ドッジ', startTime: '08:45', duration: 55, delayMinutes: 0, status: 'PLANNED', referee: '', eventStaff: '', attendanceStaff: '' },
-            { id: 502, court: 'オムニ', grade: '中1', sport: 'ドッジ', startTime: '09:55', duration: 55, delayMinutes: 0, status: 'PLANNED', referee: '', eventStaff: '', attendanceStaff: '' },
-            { id: 503, court: 'オムニ', grade: '対教師', sport: 'ドッジ', startTime: '10:35', duration: 15, delayMinutes: 0, status: 'PLANNED', referee: '', eventStaff: '', attendanceStaff: '' },
-            { id: 504, court: 'オムニ', grade: '中2', sport: 'アルティメット', startTime: '11:30', duration: 20, delayMinutes: 0, status: 'PLANNED', referee: '', eventStaff: '', attendanceStaff: '' },
-            { id: 505, court: 'オムニ', grade: '中1', sport: 'アルティメット', startTime: '12:35', duration: 85, delayMinutes: 0, status: 'PLANNED', referee: '', eventStaff: '', attendanceStaff: '' },
-            { id: 506, court: 'オムニ', grade: '中2', sport: 'アルティメット', startTime: '14:10', duration: 85, delayMinutes: 0, status: 'PLANNED', referee: '', eventStaff: '', attendanceStaff: '' },
+    function deleteMatch(id) {
+      if (confirm('この試合を削除（ゴミ箱へ移動）してもよろしいですか？')) {
+        const m = matches.find(x => x.id === id);
+        if (m) {
+          m.isDeleted = true;
+          saveState();
+        }
+      }
+    }
 
-            // 卓球場
-            { id: 601, court: '卓球場', grade: '中1', sport: '卓球', startTime: '08:45', duration: 55, delayMinutes: 0, status: 'PLANNED', referee: '', eventStaff: '', attendanceStaff: '' },
-            { id: 602, court: '卓球場', grade: '高1', sport: '卓球', startTime: '09:50', duration: 55, delayMinutes: 0, status: 'PLANNED', referee: '', eventStaff: '', attendanceStaff: '' },
-            { id: 603, court: '卓球場', grade: '高2', sport: '卓球', startTime: '10:50', duration: 55, delayMinutes: 0, status: 'PLANNED', referee: '', eventStaff: '', attendanceStaff: '' },
-            { id: 604, court: '卓球場', grade: '対教師', sport: '卓球', startTime: '11:30', duration: 20, delayMinutes: 0, status: 'PLANNED', referee: '', eventStaff: '', attendanceStaff: '' },
-            { id: 605, court: '卓球場', grade: '中2', sport: '卓球', startTime: '12:25', duration: 55, delayMinutes: 0, status: 'PLANNED', referee: '', eventStaff: '', attendanceStaff: '' },
-            { id: 606, court: '卓球場', grade: '中3', sport: '卓球', startTime: '13:30', duration: 55, delayMinutes: 0, status: 'PLANNED', referee: '', eventStaff: '', attendanceStaff: '' },
-            { id: 607, court: '卓球場', grade: '高3', sport: '卓球', startTime: '14:30', duration: 55, delayMinutes: 0, status: 'PLANNED', referee: '', eventStaff: '', attendanceStaff: '' }
-        ];
+    function updateScoreSummary() {
+      const totals = { A: 0, B: 0, C: 0, D: 0 };
+      matches.forEach(m => {
+        if (!m.isDeleted && m.result) {
+          totals.A += m.result.A || 0;
+          totals.B += m.result.B || 0;
+          totals.C += m.result.C || 0;
+          totals.D += m.result.D || 0;
+        }
+      });
+      document.getElementById('scoreA').innerText = totals.A;
+      document.getElementById('scoreB').innerText = totals.B;
+      document.getElementById('scoreC').innerText = totals.C;
+      document.getElementById('scoreD').innerText = totals.D;
+    }
 
-        // 競技リスト（得点設定用）
-        const sportsCategories = [
-            "中1 サッカー", "中1 バスケ", "中1 ドッジ", "中1 アルティメット", "中1 卓球",
-            "中2 サッカー", "中2 バスケ", "中2 ドッジ", "中2 アルティメット", "中2 卓球",
-            "中3 サッカー", "中3 バスケ", "中3 バレー", "中3 アルティメット", "中3 卓球",
-            "高1 サッカー", "高1 バスケ", "高1 バレー", "高1 アルティメット", "高1 卓球",
-            "高2 サッカー", "高2 バスケ", "高2 バレー", "高2 アルティメット", "高2 卓球",
-            "高3 サッカー", "高3 野球", "高3 バスケ", "高3 バレー", "高3 卓球"
-        ];
+    function updateTrashCount() {
+      const trash = matches.filter(m => m.isDeleted);
+      document.getElementById('trashCount').innerText = trash.length;
+    }
 
-        // アプリケーション状態
-        let matches = [];
-        let scores = {}; // category -> {1: 'A', 2: 'B', 3: 'C', 4: 'D'}
-        let currentFilter = 'ALL';
-        let editingMatchId = null;
-        let isAdminUnlocked = false;
-        let chartInstance = null;
-
-        // 初期化
-        window.addEventListener('DOMContentLoaded', () => {
-            loadLocalStorage();
-            initClock();
-            renderMatchesCards();
-            renderTimeline();
-            initScoringSection();
-            updateScoresAndChart();
-            renderAdminSummary();
+    function openTrashModal() {
+      const trash = matches.filter(m => m.isDeleted);
+      const container = document.getElementById('trashList');
+      container.innerHTML = '';
+      if (trash.length === 0) {
+        container.innerHTML = '<p style="text-align:center; color:var(--text-sub);">ゴミ箱は空です。</p>';
+      } else {
+        trash.forEach(m => {
+          const item = document.createElement('div');
+          item.style.cssText = 'display:flex; justify-content:space-between; align-items:center; background:#f1f5f9; padding:8px 12px; border-radius:6px;';
+          item.innerHTML = `
+            <span>${m.title} (${m.court})</span>
+            <button class="btn btn-score" onclick="restoreMatch('${m.id}')">復元</button>
+          `;
+          container.appendChild(item);
         });
+      }
+      document.getElementById('trashModal').classList.add('active');
+    }
 
-        // ローカルストレージ読込
-        function loadLocalStorage() {
-            const savedMatches = localStorage.getItem('78sports_matches');
-            if (savedMatches) {
-                matches = JSON.parse(savedMatches);
-            } else {
-                matches = JSON.parse(JSON.stringify(initialMatches));
-            }
+    function restoreMatch(id) {
+      const m = matches.find(x => x.id === id);
+      if (m) {
+        m.isDeleted = false;
+        closeModal('trashModal');
+        saveState();
+      }
+    }
 
-            const savedScores = localStorage.getItem('78sports_scores');
-            if (savedScores) {
-                scores = JSON.parse(savedScores);
-            } else {
-                sportsCategories.forEach(cat => {
-                    scores[cat] = { 1: '', 2: '', 3: '', 4: '' };
-                });
-            }
+    function closeModal(modalId) {
+      document.getElementById(modalId).classList.remove('active');
+    }
+
+    function switchTab(tabName) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('viewMain').style.display = 'none';
+      document.getElementById('viewScores').style.display = 'none';
+      document.getElementById('viewHQ').style.display = 'none';
+
+      if (tabName === 'main') {
+        document.querySelectorAll('.tab-btn')[0].classList.add('active');
+        document.getElementById('viewMain').style.display = 'block';
+      } else if (tabName === 'scores') {
+        document.querySelectorAll('.tab-btn')[1].classList.add('active');
+        document.getElementById('viewScores').style.display = 'block';
+      } else if (tabName === 'hq') {
+        document.querySelector('.admin-tab').classList.add('active');
+        document.getElementById('viewHQ').style.display = 'block';
+      }
+    }
+
+    // Modal Operations
+    function openStaffModal(id) {
+      selectedMatchId = id;
+      const m = matches.find(x => x.id === id);
+      document.getElementById('inputRef').value = m.ref || '';
+      document.getElementById('inputComp').value = m.comp || '';
+      document.getElementById('inputAtt').value = m.att || '';
+      document.getElementById('staffModal').classList.add('active');
+    }
+
+    function saveStaffInfo() {
+      const m = matches.find(x => x.id === selectedMatchId);
+      if (m) {
+        m.ref = document.getElementById('inputRef').value;
+        m.comp = document.getElementById('inputComp').value;
+        m.att = document.getElementById('inputAtt').value;
+        closeModal('staffModal');
+        saveState();
+      }
+    }
+
+    function openScoreModal(id) {
+      selectedMatchId = id;
+      const m = matches.find(x => x.id === id);
+      document.getElementById('modalMatchTitle').innerText = `${m.court} - ${m.title}`;
+      document.getElementById('scoreModal').classList.add('active');
+    }
+
+    function saveScoreResult() {
+      const r1 = document.getElementById('rank1').value;
+      const r2 = document.getElementById('rank2').value;
+      const r3 = document.getElementById('rank3').value;
+      const r4 = document.getElementById('rank4').value;
+
+      const res = {};
+      res[r1] = 100;
+      res[r2] = 70;
+      res[r3] = 50;
+      res[r4] = 30;
+
+      const m = matches.find(x => x.id === selectedMatchId);
+      if (m) {
+        m.result = res;
+        m.status = 'FIN';
+        closeModal('scoreModal');
+        saveState();
+      }
+    }
+
+    // HQ Auth & Monitor
+    function authenticateHQ() {
+      const pass = document.getElementById('hqPassword').value;
+      if (pass === '7878') {
+        document.getElementById('hqAuthLock').style.display = 'none';
+        document.getElementById('hqContent').style.display = 'block';
+        startHQClock();
+        renderHQMonitor();
+      } else {
+        alert('パスワードが違います');
+      }
+    }
+
+    function startHQClock() {
+      setInterval(() => {
+        const now = new Date();
+        const h = String(now.getHours()).padStart(2, '0');
+        const m = String(now.getMinutes()).padStart(2, '0');
+        const s = String(now.getSeconds()).padStart(2, '0');
+        const ms = String(now.getMilliseconds()).padStart(3, '0');
+        const clockEl = document.getElementById('hqClock');
+        if (clockEl) clockEl.innerText = `${h}:${m}:${s}.${ms}`;
+      }, 50);
+    }
+
+    function renderHQMonitor() {
+      const courts = ['上グラ', '下グラ', '体育館', 'ハード', 'オムニ', '卓球場'];
+      const grid = document.getElementById('courtMonitorGrid');
+      grid.innerHTML = '';
+
+      courts.forEach(c => {
+        const courtMatches = matches.filter(m => !m.isDeleted && m.court === c);
+        const nowMatch = courtMatches.find(m => m.status === 'NOW');
+        const nextMatch = courtMatches.find(m => m.status === 'NEXT');
+
+        const card = document.createElement('div');
+        card.className = 'court-monitor';
+        card.innerHTML = `
+          <h4>🏟️ ${c}</h4>
+          <div style="font-size:0.85rem; margin-bottom:6px;">
+            <strong>NOW:</strong> ${nowMatch ? nowMatch.title : '<span style="color:#94a3b8;">なし</span>'}
+          </div>
+          <div style="font-size:0.85rem;">
+            <strong>NEXT:</strong> ${nextMatch ? nextMatch.title : '<span style="color:#94a3b8;">なし</span>'}
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    function triggerEmergency() {
+      const msg = document.getElementById('emergencyInput').value;
+      if (msg) {
+        document.getElementById('emergencyMsg').innerText = `🚨 ${msg}`;
+        document.getElementById('emergencyBanner').style.display = 'flex';
+      }
+    }
+
+    function dismissEmergency() {
+      document.getElementById('emergencyBanner').style.display = 'none';
+    }
+
+    function applyBulkDelay(minutes) {
+      const court = document.getElementById('bulkCourtSelect').value;
+      matches.forEach(m => {
+        if (!m.isDeleted && m.court === court && m.status !== 'FIN') {
+          m.delay += minutes;
         }
+      });
+      saveState();
+      alert(`${court}の未完了試合に +${minutes}分 の遅延を一括適用しました。`);
+    }
 
-        // ストレージ保存
-        function saveData() {
-            localStorage.setItem('78sports_matches', JSON.stringify(matches));
-            localStorage.setItem('78sports_scores', JSON.stringify(scores));
-        }
-
-        // 時計更新
-        function initClock() {
-            setInterval(() => {
-                const now = new Date();
-                const h = String(now.getHours()).padStart(2, '0');
-                const m = String(now.getMinutes()).padStart(2, '0');
-                const s = String(now.getSeconds()).padStart(2, '0');
-                const ms = String(now.getMilliseconds()).padStart(3, '0');
-
-                document.getElementById('header-clock').innerText = `${h}:${m}:${s}`;
-                const adminClock = document.getElementById('admin-ms-clock');
-                if (adminClock) {
-                    adminClock.innerText = `${h}:${m}:${s}.${ms}`;
-                }
-
-                // タイムラインの現在位置更新
-                updateCurrentTimeMarker();
-            }, 50);
-        }
-
-        // 時間計算ヘルパー
-        function addMinutesToTime(timeStr, mins) {
-            const [h, m] = timeStr.split(':').map(Number);
-            const date = new Date();
-            date.setHours(h, m + mins, 0, 0);
-            return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
-        }
-
-        // タブ切り替え
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.remove('active', 'text-blue-400', 'border-b-2', 'border-blue-500');
-                btn.classList.add('text-slate-400');
-            });
-
-            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
-            const activeBtn = document.getElementById(`tab-btn-${tabId}`);
-            activeBtn.classList.add('active', 'text-blue-400', 'border-b-2', 'border-blue-500');
-
-            if (tabId === 'timeline') renderTimeline();
-            if (tabId === 'scoring') updateScoresAndChart();
-            if (tabId === 'admin' && isAdminUnlocked) renderAdminSummary();
-        }
-
-        // コートフィルタ
-        function filterCourt(court) {
-            currentFilter = court;
-            document.querySelectorAll('.court-filter-btn').forEach(btn => {
-                if (btn.innerText === court || (court === 'ALL' && btn.innerText === 'すべて')) {
-                    btn.className = 'court-filter-btn bg-blue-600 text-white text-xs px-3 py-1.5 rounded-lg font-medium transition shadow';
-                } else {
-                    btn.className = 'court-filter-btn bg-slate-800 text-slate-300 hover:bg-slate-700 text-xs px-3 py-1.5 rounded-lg font-medium transition border border-slate-700';
-                }
-            });
-            renderMatchesCards();
-        }
-
-        // 高コントラスト切り替え
-        function toggleContrast() {
-            document.body.classList.toggle('high-contrast');
-        }
-
-        // 試合カード描画
-        function renderMatchesCards() {
-            const container = document.getElementById('cards-container');
-            container.innerHTML = '';
-
-            const filtered = currentFilter === 'ALL' ? matches : matches.filter(m => m.court === currentFilter);
-
-            filtered.forEach(m => {
-                const actualStart = addMinutesToTime(m.startTime, m.delayMinutes);
-                const actualEnd = addMinutesToTime(m.startTime, m.duration + m.delayMinutes);
-                const isDelayed = m.delayMinutes > 0;
-
-                let statusBadge = `<span class="bg-slate-800 text-slate-400 text-[10px] px-2 py-0.5 rounded font-bold">予定</span>`;
-                if (m.status === 'IN_PROGRESS') {
-                    statusBadge = `<span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] px-2 py-0.5 rounded font-bold animate-pulse">進行中</span>`;
-                } else if (m.status === 'FINISHED') {
-                    statusBadge = `<span class="bg-slate-700 text-slate-300 text-[10px] px-2 py-0.5 rounded font-bold">終了</span>`;
-                }
-
-                const cardHtml = `
-                    <div class="bg-slate-900 border ${isDelayed ? 'border-red-500/60 delay-alert-active' : 'border-slate-800'} rounded-xl p-4 shadow-lg flex flex-col justify-between transition hover:border-slate-700">
-                        <div>
-                            <div class="flex items-center justify-between gap-2 mb-2">
-                                <div class="flex items-center gap-1.5">
-                                    <span class="bg-blue-600 text-white text-[11px] font-black px-2 py-0.5 rounded">${m.court}</span>
-                                    <span class="text-xs font-bold text-slate-300">${m.grade}</span>
-                                </div>
-                                ${statusBadge}
-                            </div>
-
-                            <h3 class="text-base font-bold text-white mb-2">${m.sport}</h3>
-
-                            <!-- 時間表示 -->
-                            <div class="bg-slate-950 p-2.5 rounded-lg border border-slate-800/80 mb-3 space-y-1 font-mono text-xs">
-                                <div class="flex justify-between items-center text-slate-400">
-                                    <span>定刻: ${m.startTime} - ${addMinutesToTime(m.startTime, m.duration)}</span>
-                                    <span>(${m.duration}分)</span>
-                                </div>
-                                <div class="flex justify-between items-center font-bold text-slate-200">
-                                    <span>最新予定: ${actualStart} - ${actualEnd}</span>
-                                    ${isDelayed ? `<span class="text-red-400 font-bold bg-red-950/80 px-1.5 py-0.5 rounded border border-red-500/40">+${m.delayMinutes}分遅延</span>` : ''}
-                                </div>
-                            </div>
-
-                            <!-- 担当者一覧 -->
-                            <div class="grid grid-cols-3 gap-1 text-[11px] bg-slate-950/40 p-2 rounded border border-slate-800/50 mb-3">
-                                <div><span class="text-slate-500 block text-[9px]">審判</span><span class="text-slate-300 font-medium truncate block">${m.referee || '未入力'}</span></div>
-                                <div><span class="text-slate-500 block text-[9px]">競技</span><span class="text-slate-300 font-medium truncate block">${m.eventStaff || '未入力'}</span></div>
-                                <div><span class="text-slate-500 block text-[9px]">出席</span><span class="text-slate-300 font-medium truncate block">${m.attendanceStaff || '未入力'}</span></div>
-                            </div>
-                        </div>
-
-                        <!-- 調整アクションボタン -->
-                        <div class="flex items-center gap-1.5 border-t border-slate-800/80 pt-2.5">
-                            <button onclick="quickAdjustDelay(${m.id}, -1)" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold px-2 py-1 rounded border border-slate-700">-1分</button>
-                            <button onclick="quickAdjustDelay(${m.id}, 1)" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold px-2 py-1 rounded border border-slate-700">+1分</button>
-                            <button onclick="quickAdjustDelay(${m.id}, 5)" class="bg-slate-800 hover:bg-slate-700 text-red-400 text-xs font-bold px-2 py-1 rounded border border-slate-700">+5分</button>
-                            <button onclick="openModal(${m.id})" class="ml-auto bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-3 py-1 rounded transition shadow">編集・担当者</button>
-                        </div>
-                    </div>
-                `;
-                container.insertAdjacentHTML('beforeend', cardHtml);
-            });
-        }
-
-        // 1分単位クイック調整
-        function quickAdjustDelay(matchId, delta) {
-            const match = matches.find(m => m.id === matchId);
-            if (match) {
-                match.delayMinutes = Math.max(0, match.delayMinutes + delta);
-                saveData();
-                renderMatchesCards();
-            }
-        }
-
-        // モーダルオープン
-        function openModal(matchId) {
-            editingMatchId = matchId;
-            const m = matches.find(x => x.id === matchId);
-            if (!m) return;
-
-            document.getElementById('modal-court-badge').innerText = m.court;
-            document.getElementById('modal-match-title').innerText = `${m.grade} ${m.sport}`;
-            document.getElementById('modal-match-time').innerText = `定刻: ${m.startTime} (${m.duration}分)`;
-            document.getElementById('modal-delay-display').innerText = `+${m.delayMinutes}分`;
-            document.getElementById('modal-referee').value = m.referee || '';
-            document.getElementById('modal-event').value = m.eventStaff || '';
-            document.getElementById('modal-attendance').value = m.attendanceStaff || '';
-            document.getElementById('modal-status').value = m.status;
-            document.getElementById('modal-cascade-delay').checked = false;
-
-            document.getElementById('edit-modal').classList.remove('hidden');
-        }
-
-        function closeModal() {
-            document.getElementById('edit-modal').classList.add('hidden');
-            editingMatchId = null;
-        }
-
-        function adjustModalDelay(delta) {
-            const display = document.getElementById('modal-delay-display');
-            let current = parseInt(display.innerText.replace(/[^0-9-]/g, '')) || 0;
-            current = Math.max(0, current + delta);
-            display.innerText = `+${current}分`;
-        }
-
-        function saveModalChanges() {
-            if (!editingMatchId) return;
-            const match = matches.find(m => m.id === editingMatchId);
-            if (!match) return;
-
-            const newDelay = parseInt(document.getElementById('modal-delay-display').innerText.replace(/[^0-9-]/g, '')) || 0;
-            const delayDiff = newDelay - match.delayMinutes;
-            const isCascade = document.getElementById('modal-cascade-delay').checked;
-
-            match.delayMinutes = newDelay;
-            match.referee = document.getElementById('modal-referee').value;
-            match.eventStaff = document.getElementById('modal-event').value;
-            match.attendanceStaff = document.getElementById('modal-attendance').value;
-            match.status = document.getElementById('modal-status').value;
-
-            // 後続一括連動調整
-            if (isCascade && delayDiff !== 0) {
-                matches.forEach(other => {
-                    if (other.court === match.court && other.id !== match.id) {
-                        const [m1H, m1M] = match.startTime.split(':').map(Number);
-                        const [m2H, m2M] = other.startTime.split(':').map(Number);
-                        if (m2H * 60 + m2M > m1H * 60 + m1M) {
-                            other.delayMinutes = Math.max(0, other.delayMinutes + delayDiff);
-                        }
-                    }
-                });
-            }
-
-            saveData();
-            closeModal();
-            renderMatchesCards();
-        }
-
-        // タブ2: タイムライン（ガントチャート）描画
-        function renderTimeline() {
-            const container = document.getElementById('timeline-chart-container');
-            container.innerHTML = '';
-
-            const courts = ['上グラ', '下グラ', '体育館', 'ハード', 'オムニ', '卓球場'];
-            const startHour = 8;
-            const endHour = 16;
-            const totalMinutes = (endHour - startHour) * 60;
-
-            // 時間軸ヘッダー
-            let headerHtml = `<div class="flex border-b border-slate-800 pb-1 mb-2 text-[10px] text-slate-400 font-mono">
-                <div class="w-20 font-bold text-slate-300">コート</div><div class="flex-1 flex justify-between">`;
-            for (let h = startHour; h <= endHour; h++) {
-                headerHtml += `<span>${String(h).padStart(2, '0')}:00</span>`;
-            }
-            headerHtml += `</div></div>`;
-            container.insertAdjacentHTML('beforeend', headerHtml);
-
-            // 赤線の現在時間マーカー
-            const nowMarker = document.createElement('div');
-            nowMarker.id = 'timeline-now-line';
-            nowMarker.className = 'absolute top-0 bottom-0 w-0.5 bg-red-500 z-10 pointer-events-none shadow-[0_0_8px_#ef4444]';
-            container.appendChild(nowMarker);
-
-            // コートごと行
-            courts.forEach(court => {
-                const courtMatches = matches.filter(m => m.court === court);
-                let rowHtml = `<div class="flex items-center my-2 h-8 relative">
-                    <div class="w-20 text-xs font-bold text-blue-400 truncate">${court}</div>
-                    <div class="flex-1 bg-slate-950/80 rounded h-full relative border border-slate-800/60 overflow-hidden">`;
-
-                courtMatches.forEach(m => {
-                    const [h, min] = m.startTime.split(':').map(Number);
-                    const startMins = (h - startHour) * 60 + min + m.delayMinutes;
-                    const leftPct = (startMins / totalMinutes) * 100;
-                    const widthPct = (m.duration / totalMinutes) * 100;
-
-                    let bgClass = 'bg-blue-600/80 border-blue-400';
-                    if (m.delayMinutes > 0) bgClass = 'bg-red-600/80 border-red-400 animate-pulse';
-                    if (m.status === 'FINISHED') bgClass = 'bg-slate-700/80 border-slate-500';
-
-                    rowHtml += `<div onclick="openModal(${m.id})" class="absolute top-1 bottom-1 ${bgClass} border rounded text-[9px] text-white font-bold px-1 truncate cursor-pointer shadow flex items-center" style="left: ${leftPct}%; width: ${widthPct}%;">
-                        ${m.grade} ${m.sport}
-                    </div>`;
-                });
-
-                rowHtml += `</div></div>`;
-                container.insertAdjacentHTML('beforeend', rowHtml);
-            });
-
-            updateCurrentTimeMarker();
-        }
-
-        function updateCurrentTimeMarker() {
-            const line = document.getElementById('timeline-now-line');
-            if (!line) return;
-
-            const now = new Date();
-            const hours = now.getHours();
-            const mins = now.getMinutes();
-
-            const startHour = 8;
-            const endHour = 16;
-            const totalMinutes = (endHour - startHour) * 60;
-            const currentMins = (hours - startHour) * 60 + mins;
-
-            if (currentMins >= 0 && currentMins <= totalMinutes) {
-                const pct = (currentMins / totalMinutes) * 100;
-                line.style.left = `calc(5rem + ${pct}% * (100% - 5rem) / 100)`;
-                line.style.display = 'block';
-            } else {
-                line.style.display = 'none';
-            }
-        }
-
-        // タブ3: 結果・順位・総合得点
-        function initScoringSection() {
-            const container = document.getElementById('score-input-list');
-            container.innerHTML = '';
-
-            sportsCategories.forEach(cat => {
-                const cur = scores[cat] || { 1: '', 2: '', 3: '', 4: '' };
-                const html = `
-                    <div class="bg-slate-950 p-3 rounded-lg border border-slate-800/80 flex flex-wrap items-center justify-between gap-2">
-                        <span class="text-xs font-bold text-slate-200 w-36">${cat}</span>
-                        <div class="flex items-center gap-1.5 text-xs">
-                            <span class="text-amber-400 font-bold">1位:</span>
-                            <select onchange="updateSportRank('${cat}', 1, this.value)" class="bg-slate-900 border border-slate-700 rounded px-1.5 py-1 text-xs text-white">
-                                <option value="">-</option>
-                                <option value="A" ${cur[1] === 'A' ? 'selected' : ''}>A組</option>
-                                <option value="B" ${cur[1] === 'B' ? 'selected' : ''}>B組</option>
-                                <option value="C" ${cur[1] === 'C' ? 'selected' : ''}>C組</option>
-                                <option value="D" ${cur[1] === 'D' ? 'selected' : ''}>D組</option>
-                            </select>
-                            <span class="text-slate-300 font-bold ms-1">2位:</span>
-                            <select onchange="updateSportRank('${cat}', 2, this.value)" class="bg-slate-900 border border-slate-700 rounded px-1.5 py-1 text-xs text-white">
-                                <option value="">-</option>
-                                <option value="A" ${cur[2] === 'A' ? 'selected' : ''}>A組</option>
-                                <option value="B" ${cur[2] === 'B' ? 'selected' : ''}>B組</option>
-                                <option value="C" ${cur[2] === 'C' ? 'selected' : ''}>C組</option>
-                                <option value="D" ${cur[2] === 'D' ? 'selected' : ''}>D組</option>
-                            </select>
-                            <span class="text-amber-700 font-bold ms-1">3位:</span>
-                            <select onchange="updateSportRank('${cat}', 3, this.value)" class="bg-slate-900 border border-slate-700 rounded px-1.5 py-1 text-xs text-white">
-                                <option value="">-</option>
-                                <option value="A" ${cur[3] === 'A' ? 'selected' : ''}>A組</option>
-                                <option value="B" ${cur[3] === 'B' ? 'selected' : ''}>B組</option>
-                                <option value="C" ${cur[3] === 'C' ? 'selected' : ''}>C組</option>
-                                <option value="D" ${cur[3] === 'D' ? 'selected' : ''}>D組</option>
-                            </select>
-                            <span class="text-slate-500 font-bold ms-1">4位:</span>
-                            <select onchange="updateSportRank('${cat}', 4, this.value)" class="bg-slate-900 border border-slate-700 rounded px-1.5 py-1 text-xs text-white">
-                                <option value="">-</option>
-                                <option value="A" ${cur[4] === 'A' ? 'selected' : ''}>A組</option>
-                                <option value="B" ${cur[4] === 'B' ? 'selected' : ''}>B組</option>
-                                <option value="C" ${cur[4] === 'C' ? 'selected' : ''}>C組</option>
-                                <option value="D" ${cur[4] === 'D' ? 'selected' : ''}>D組</option>
-                            </select>
-                        </div>
-                    </div>
-                `;
-                container.insertAdjacentHTML('beforeend', html);
-            });
-        }
-
-        function updateSportRank(category, rank, team) {
-            if (!scores[category]) scores[category] = { 1: '', 2: '', 3: '', 4: '' };
-            scores[category][rank] = team;
-            saveData();
-            updateScoresAndChart();
-        }
-
-        function updateScoresAndChart() {
-            const pointsMap = { 1: 100, 2: 75, 3: 50, 4: 25 };
-            const teamTotals = { A: 0, B: 0, C: 0, D: 0 };
-
-            Object.keys(scores).forEach(cat => {
-                const rankObj = scores[cat];
-                for (let rank = 1; rank <= 4; rank++) {
-                    const team = rankObj[rank];
-                    if (team && teamTotals[team] !== undefined) {
-                        teamTotals[team] += pointsMap[rank];
-                    }
-                }
-            });
-
-            ['A', 'B', 'C', 'D'].forEach(t => {
-                document.getElementById(`score-${t}`).innerText = teamTotals[t];
-            });
-
-            // 順位算出
-            const sorted = Object.entries(teamTotals).sort((a, b) => b[1] - a[1]);
-            sorted.forEach((item, index) => {
-                document.getElementById(`rank-${item[0]}`).innerText = `順位: ${index + 1}位`;
-            });
-
-            // Chart.js 描画
-            const ctx = document.getElementById('scoreChart');
-            if (ctx) {
-                if (chartInstance) chartInstance.destroy();
-                chartInstance = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: ['A組', 'B組', 'C組', 'D組'],
-                        datasets: [{
-                            label: '総合得点 (pt)',
-                            data: [teamTotals.A, teamTotals.B, teamTotals.C, teamTotals.D],
-                            backgroundColor: ['#ef4444', '#3b82f6', '#f59e0b', '#10b981'],
-                            borderRadius: 6
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { display: false } },
-                        scales: {
-                            y: { ticks: { color: '#94a3b8' }, grid: { color: '#1e293b' } },
-                            x: { ticks: { color: '#f8fafc' }, grid: { display: false } }
-                        }
-                    }
-                });
-            }
-        }
-
-        // 本部認証
-        function unlockAdmin() {
-            const pwd = document.getElementById('admin-password').value;
-            if (pwd === 'admin123') {
-                isAdminUnlocked = true;
-                document.getElementById('admin-lock-screen').classList.add('hidden');
-                document.getElementById('admin-content').classList.remove('hidden');
-                renderAdminSummary();
-            } else {
-                alert('パスワードが違います (初期: admin123)');
-            }
-        }
-
-        function lockAdmin() {
-            isAdminUnlocked = false;
-            document.getElementById('admin-lock-screen').classList.remove('hidden');
-            document.getElementById('admin-content').classList.add('hidden');
-            document.getElementById('admin-password').value = '';
-        }
-
-        // 緊急アナウンス
-        function updateAnnouncement() {
-            const txt = document.getElementById('announcement-input').value;
-            const container = document.getElementById('ticker-container');
-            const target = document.getElementById('ticker-text');
-            if (txt) {
-                target.innerText = txt;
-                container.classList.remove('hidden');
-            } else {
-                container.classList.add('hidden');
-            }
-        }
-
-        function clearAnnouncement() {
-            document.getElementById('announcement-input').value = '';
-            document.getElementById('ticker-container').classList.add('hidden');
-        }
-
-        // 本部用全コートモニタ
-        function renderAdminSummary() {
-            const container = document.getElementById('admin-court-summary');
-            if (!container) return;
-            container.innerHTML = '';
-
-            const courts = ['上グラ', '下グラ', '体育館', 'ハード', 'オムニ', '卓球場'];
-            courts.forEach(c => {
-                const cMatches = matches.filter(m => m.court === c);
-                const maxDelay = Math.max(0, ...cMatches.map(m => m.delayMinutes));
-                const inProgress = cMatches.find(m => m.status === 'IN_PROGRESS');
-
-                const html = `
-                    <div class="bg-slate-950 p-3 rounded-lg border ${maxDelay > 0 ? 'border-red-500/80 bg-red-950/20' : 'border-slate-800'} space-y-1">
-                        <div class="flex items-center justify-between">
-                            <span class="text-xs font-bold text-white">${c}</span>
-                            ${maxDelay > 0 ? `<span class="text-[10px] bg-red-600 text-white font-bold px-1.5 py-0.5 rounded animate-pulse">遅延: +${maxDelay}分</span>` : `<span class="text-[10px] bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded">順調</span>`}
-                        </div>
-                        <div class="text-xs text-slate-300">
-                            現在進行: <span class="font-bold text-blue-400">${inProgress ? `${inProgress.grade}${inProgress.sport}` : 'なし/定刻待ち'}</span>
-                        </div>
-                    </div>
-                `;
-                container.insertAdjacentHTML('beforeend', html);
-            });
-        }
-
-        // JSONデータ入出力
-        function exportData() {
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({ matches, scores }));
-            const downloadAnchor = document.createElement('a');
-            downloadAnchor.setAttribute("href", dataStr);
-            downloadAnchor.setAttribute("download", `78th_sportsfes_backup_${new Date().toISOString().slice(0,10)}.json`);
-            document.body.appendChild(downloadAnchor);
-            downloadAnchor.click();
-            downloadAnchor.remove();
-        }
-
-        function importData(event) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const parsed = JSON.parse(e.target.result);
-                    if (parsed.matches && parsed.scores) {
-                        matches = parsed.matches;
-                        scores = parsed.scores;
-                        saveData();
-                        location.reload();
-                    }
-                } catch(err) {
-                    alert('無効なファイル形式です');
-                }
-            };
-            reader.readAsText(event.target.files[0]);
-        }
-    </script>
+    // Initial Load
+    renderMatches();
+    updateScoreSummary();
+    updateTrashCount();
+  </script>
 </body>
 </html>
+'''
+
+with open("index.html", "w", encoding="utf-8") as f:
+    f.write(html_content)
+
+print("index.html generated successfully!")
