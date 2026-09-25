@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ja" class="dark">
+<html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -25,6 +25,9 @@
     </script>
     <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="./ball_sports_test2.css">
 </head>
 <body class="min-h-screen flex flex-col antialiased selection:bg-sky-500 selection:text-white">
@@ -61,10 +64,14 @@
             </div>
 
             <div class="flex items-center space-x-3">
+                <button onclick="toggleContrast()" id="contrastToggleBtn" class="action-btn bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5" aria-pressed="false">
+                    <i class="fa-solid fa-circle-half-stroke text-amber-500"></i>
+                    <span class="hidden sm:inline">高コントラスト</span>
+                </button>
                 <button onclick="toggleTheme()" class="action-btn bg-slate-100/90 dark:bg-slate-800/90 border border-slate-300/90 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
                     <i class="fa-solid fa-sun text-amber-500 dark:hidden"></i>
                     <i class="fa-solid fa-moon text-sky-400 hidden dark:inline"></i>
-                    <span id="themeBtnText" class="text-[11px]">屋外モード(明るいUI)</span>
+                    <span id="themeBtnText" class="text-[11px]">ダークモード (暗いUI)</span>
                 </button>
 
                 <div class="bg-slate-100/90 dark:bg-slate-950/80 border border-slate-300/80 dark:border-slate-800 px-3 py-1.5 rounded-xl text-right shadow-sm">
@@ -86,7 +93,7 @@
                     <i class="fa-solid fa-ranking-star"></i> 組別得点
                 </button>
                 <button onclick="switchTab('admin')" id="tab-admin" class="tab-btn px-4 py-2 rounded-t-xl border-b-2 border-transparent text-amber-600 dark:text-amber-400 hover:text-amber-500 flex items-center gap-2 whitespace-nowrap transition-all ml-auto hover:bg-amber-50/80 dark:hover:bg-amber-950/20">
-                    <i class="fa-solid fa-gear"></i> 本部操作
+                    <i class="fa-solid fa-gear"></i> 設定・競技追加
                 </button>
             </div>
         </div>
@@ -248,10 +255,33 @@
                     </div>
                 </div>
 
-                <!-- 2. 新規試合作成フォーム (トーナメント/総当たり戦の選択に対応) -->
+                <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-3 shadow-sm">
+                    <div class="flex items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-2">
+                        <h3 class="text-xs font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                            <i class="fa-solid fa-layer-group text-amber-500"></i> 一括進行操作
+                        </h3>
+                        <span class="text-[10px] text-slate-400">選択会場の全試合に反映</span>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                        <select id="bulkCourt" class="p-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg font-bold text-slate-800 dark:text-slate-100">
+                            <option value="ALL">全会場</option><option value="上グラ">上グラ</option><option value="下グラ">下グラ</option><option value="体育館">体育館</option><option value="ハード">ハード</option><option value="オムニ">オムニ</option><option value="卓球場">卓球場</option>
+                        </select>
+                        <select id="bulkStatus" class="p-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg font-bold text-slate-800 dark:text-slate-100">
+                            <option value="NO_CHANGE">ステータス変更なし</option><option value="BEFORE">全て開始前</option><option value="IN_PROGRESS">全て進行中</option><option value="FINISHED">全て終了</option>
+                        </select>
+                        <div class="flex gap-2">
+                            <input id="bulkDelay" type="number" value="0" step="1" class="min-w-0 flex-1 p-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-center font-bold text-slate-800 dark:text-slate-100" aria-label="一括遅延分">
+                            <span class="self-center text-slate-500">分</span>
+                            <button onclick="applyBulkOperations()" class="px-3 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-lg font-black whitespace-nowrap">反映</button>
+                        </div>
+                    </div>
+                    <p class="text-[10px] text-slate-400">遅延分は現在の各試合の予定時刻に加算されます。0分なら遅延は変更しません。</p>
+                </div>
+
+                <!-- 2. 競技・試合作成フォーム (トーナメント/総当たり戦の選択に対応) -->
                 <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-3 shadow-sm">
                     <h3 class="text-xs font-black text-slate-800 dark:text-slate-100 flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
-                        <i class="fa-solid fa-plus-circle text-sky-500"></i> 新規競技・試合作成
+                        <i class="fa-solid fa-plus-circle text-sky-500"></i> 競技・試合を追加
                     </h3>
 
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
@@ -278,6 +308,10 @@
                                 <option value="league">総当たり戦 (リーグ戦)</option>
                                 <option value="single">単発試合 / エキシビション</option>
                             </select>
+                        </div>
+                        <div>
+                            <label class="font-bold text-slate-500 dark:text-slate-400 block mb-1">得点割 (1〜4位):</label>
+                            <input type="text" id="addPointRule" value="150,100,50,0" inputmode="numeric" class="w-full p-2 bg-slate-50 dark:bg-slate-950 border border-amber-400/50 rounded-lg text-slate-800 dark:text-slate-100 font-mono font-bold" placeholder="150,100,50,0">
                         </div>
                     </div>
 
@@ -316,6 +350,9 @@
 
                     <button onclick="createNewMatch()" class="w-full bg-sky-600 hover:bg-sky-500 text-white font-black py-2.5 rounded-lg text-xs transition shadow-md mt-1">
                         <i class="fa-solid fa-plus mr-1"></i> 新規試合を追加作成・登録
+                    </button>
+                    <button onclick="createCompetitionBlock()" class="w-full bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 text-white font-black py-2.5 rounded-lg text-xs transition border border-slate-700">
+                        <i class="fa-solid fa-diagram-project mr-1"></i> A〜Dの競技ブロックを自動作成
                     </button>
                 </div>
 
@@ -403,6 +440,20 @@
                     <div class="text-slate-500 dark:text-slate-400" id="modalTimeDetail">定刻: -</div>
                 </div>
 
+                <div class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-3 space-y-2">
+                    <label class="font-bold text-slate-700 dark:text-slate-300 block">第〇試合の設定:</label>
+                    <input type="text" id="inputMatchTitle" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-2 font-bold text-slate-800 dark:text-slate-100" placeholder="試合名">
+                    <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                        <input type="text" id="inputTeamA" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-2 text-center font-bold text-slate-800 dark:text-slate-100" placeholder="A組">
+                        <span class="font-black text-slate-400">VS</span>
+                        <input type="text" id="inputTeamB" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-2 text-center font-bold text-slate-800 dark:text-slate-100" placeholder="B組">
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <input type="number" id="inputModalScoreA" min="0" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-2 text-center font-mono font-bold text-sky-600 dark:text-sky-400" placeholder="A組スコア">
+                        <input type="number" id="inputModalScoreB" min="0" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-2 text-center font-mono font-bold text-sky-600 dark:text-sky-400" placeholder="B組スコア">
+                    </div>
+                </div>
+
                 <div class="space-y-1">
                     <label class="font-bold text-slate-700 dark:text-slate-300 block">ステータス変更:</label>
                     <div class="grid grid-cols-3 gap-2">
@@ -418,13 +469,17 @@
                         <input type="number" id="inputDelayMinutes" value="0" class="w-20 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-center font-mono font-bold text-sky-600 dark:text-sky-400 outline-none">
                         <span class="font-bold text-slate-500">分</span>
                         <div class="flex items-center gap-1 ml-auto">
-                            <button type="button" onclick="setModalDelay(-10)" class="bg-sky-100 dark:bg-sky-950 text-sky-600 border border-sky-300 px-2 py-1 rounded font-bold">-10</button>
-                            <button type="button" onclick="setModalDelay(-5)" class="bg-sky-100 dark:bg-sky-950 text-sky-600 border border-sky-300 px-2 py-1 rounded font-bold">-5</button>
+                            <button type="button" onclick="setModalDelay(-1)" class="bg-sky-100 dark:bg-sky-950 text-sky-600 border border-sky-300 px-2 py-1 rounded font-bold">-1</button>
                             <button type="button" onclick="setModalDelay(0)" class="bg-slate-200 dark:bg-slate-800 text-slate-700 px-2 py-1 rounded font-bold">0</button>
-                            <button type="button" onclick="setModalDelay(5)" class="bg-rose-100 dark:bg-rose-950 text-rose-600 border border-rose-300 px-2 py-1 rounded font-bold">+5</button>
-                            <button type="button" onclick="setModalDelay(10)" class="bg-rose-100 dark:bg-rose-950 text-rose-600 border border-rose-300 px-2 py-1 rounded font-bold">+10</button>
+                            <button type="button" onclick="setModalDelay(1)" class="bg-rose-100 dark:bg-rose-950 text-rose-600 border border-rose-300 px-2 py-1 rounded font-bold">+1</button>
                         </div>
                     </div>
+                </div>
+
+                <div class="space-y-1">
+                    <label class="font-bold text-slate-700 dark:text-slate-300 block">競技の得点割（1位, 2位, 3位, 4位）:</label>
+                    <input type="text" id="inputCompetitionPoints" value="150,100,50,0" inputmode="numeric" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 font-mono font-bold text-slate-800 dark:text-slate-100" placeholder="例: 150,100,50,0">
+                    <p class="text-[10px] text-slate-400">競技ブロックの順位確定時に組別総合点へ反映します。</p>
                 </div>
 
                 <div class="grid grid-cols-2 gap-2">

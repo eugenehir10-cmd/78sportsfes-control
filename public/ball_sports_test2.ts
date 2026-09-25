@@ -18,6 +18,9 @@ type Match = {
   staff: string;
   status: MatchStatus;
   offsetMins: number;
+  blockId?: string;
+  blockTitle?: string;
+  pointRule?: [number, number, number, number];
 };
 
 type AppState = {
@@ -30,13 +33,18 @@ type AppState = {
 };
 
 const INITIAL_SCHEDULE: Match[] = [
-  { id: "m1", court: "上グラ", sport: "サッカー", grade: "中1", title: "第1試合", format: "league", teamA: "A", teamB: "B", scoreA: null, scoreB: null, start: "08:20", end: "09:27", referee: "相山", staff: "進行", status: "BEFORE", offsetMins: 0 },
+  { id: "m1", blockId: "initial_c1_soccer", blockTitle: "第1試合", court: "上グラ", sport: "サッカー", grade: "中1", title: "第一試合", format: "league", teamA: "A", teamB: "B", scoreA: null, scoreB: null, start: "08:20", end: "08:30", referee: "相山", staff: "進行", status: "BEFORE", offsetMins: 0, pointRule: [150, 100, 50, 0] },
+  { id: "m1_2", blockId: "initial_c1_soccer", blockTitle: "第1試合", court: "上グラ", sport: "サッカー", grade: "中1", title: "第二試合", format: "league", teamA: "A", teamB: "C", scoreA: null, scoreB: null, start: "08:35", end: "08:45", referee: "相山", staff: "進行", status: "BEFORE", offsetMins: 0, pointRule: [150, 100, 50, 0] },
+  { id: "m1_3", blockId: "initial_c1_soccer", blockTitle: "第1試合", court: "上グラ", sport: "サッカー", grade: "中1", title: "第三試合", format: "league", teamA: "A", teamB: "D", scoreA: null, scoreB: null, start: "08:50", end: "09:00", referee: "相山", staff: "進行", status: "BEFORE", offsetMins: 0, pointRule: [150, 100, 50, 0] },
+  { id: "m1_4", blockId: "initial_c1_soccer", blockTitle: "第1試合", court: "上グラ", sport: "サッカー", grade: "中1", title: "第四試合", format: "league", teamA: "B", teamB: "C", scoreA: null, scoreB: null, start: "09:05", end: "09:15", referee: "相山", staff: "進行", status: "BEFORE", offsetMins: 0, pointRule: [150, 100, 50, 0] },
+  { id: "m1_5", blockId: "initial_c1_soccer", blockTitle: "第1試合", court: "上グラ", sport: "サッカー", grade: "中1", title: "第五試合", format: "league", teamA: "B", teamB: "D", scoreA: null, scoreB: null, start: "09:20", end: "09:30", referee: "相山", staff: "進行", status: "BEFORE", offsetMins: 0, pointRule: [150, 100, 50, 0] },
+  { id: "m1_6", blockId: "initial_c1_soccer", blockTitle: "第1試合", court: "上グラ", sport: "サッカー", grade: "中1", title: "第六試合", format: "league", teamA: "C", teamB: "D", scoreA: null, scoreB: null, start: "09:35", end: "09:45", referee: "相山", staff: "進行", status: "BEFORE", offsetMins: 0, pointRule: [150, 100, 50, 0] },
   { id: "m2", court: "上グラ", sport: "サッカー", grade: "高1", title: "第2試合", format: "league", teamA: "A", teamB: "C", scoreA: null, scoreB: null, start: "09:35", end: "10:42", referee: "相山", staff: "進行", status: "BEFORE", offsetMins: 0 },
   { id: "m3", court: "上グラ", sport: "サッカー", grade: "中2", title: "第3試合", format: "league", teamA: "B", teamB: "D", scoreA: null, scoreB: null, start: "10:50", end: "11:57", referee: "相山", staff: "進行", status: "BEFORE", offsetMins: 0 },
   { id: "m4", court: "上グラ", sport: "サッカー", grade: "高3", title: "第4試合", format: "league", teamA: "A", teamB: "D", scoreA: null, scoreB: null, start: "11:20", end: "12:27", referee: "相山", staff: "進行", status: "BEFORE", offsetMins: 0 },
   { id: "m5", court: "上グラ", sport: "サッカー", grade: "高2", title: "第5試合", format: "league", teamA: "B", teamB: "C", scoreA: null, scoreB: null, start: "12:35", end: "13:42", referee: "相山", staff: "進行", status: "BEFORE", offsetMins: 0 },
   { id: "m6", court: "上グラ", sport: "サッカー", grade: "高3", title: "第6試合", format: "league", teamA: "C", teamB: "D", scoreA: null, scoreB: null, start: "13:50", end: "15:00", referee: "相山", staff: "進行", status: "BEFORE", offsetMins: 0 },
-  { id: "m7", court: "下グラ", sport: "サッカー", grade: "中1", title: "第1試合", format: "league", teamA: "A", teamB: "D", scoreA: null, scoreB: null, start: "08:20", end: "09:27", referee: "田中", staff: "進行", status: "BEFORE", offsetMins: 0 },
+  { id: "m7", court: "下グラ", sport: "アルティメット", grade: "中2", title: "第1試合", format: "league", teamA: "A", teamB: "D", scoreA: null, scoreB: null, start: "08:20", end: "09:12", referee: "田中", staff: "進行", status: "BEFORE", offsetMins: 0 },
   { id: "m8", court: "下グラ", sport: "野球", grade: "高3", title: "第1試合", format: "tournament", teamA: "B", teamB: "C", scoreA: null, scoreB: null, start: "11:25", end: "12:25", referee: "田中", staff: "進行", status: "BEFORE", offsetMins: 0 },
   { id: "m9", court: "下グラ", sport: "野球", grade: "高3", title: "第2試合", format: "tournament", teamA: "A", teamB: "D", scoreA: null, scoreB: null, start: "13:00", end: "14:00", referee: "田中", staff: "進行", status: "BEFORE", offsetMins: 0 },
   { id: "m10", court: "体育館", sport: "バスケ", grade: "中3", title: "第1試合", format: "league", teamA: "A", teamB: "B", scoreA: null, scoreB: null, start: "08:20", end: "09:17", referee: "渡辺", staff: "進行", status: "BEFORE", offsetMins: 0 },
@@ -56,8 +64,49 @@ const INITIAL_SCHEDULE: Match[] = [
   { id: "m24", court: "卓球場", sport: "卓球", grade: "中2", title: "第4試合", format: "league", teamA: "B", teamB: "D", scoreA: null, scoreB: null, start: "12:00", end: "12:55", referee: "鈴木", staff: "進行", status: "BEFORE", offsetMins: 0 }
 ];
 
+const LEAGUE_PAIRS: Array<[string, string]> = [["A", "B"], ["A", "C"], ["A", "D"], ["B", "C"], ["B", "D"], ["C", "D"]];
+
+function normalizeCompetitionSchedule(sourceSchedule: Match[]): Match[] {
+  const normalized: Match[] = [];
+  sourceSchedule.forEach((source) => {
+    if (source.blockId) {
+      normalized.push(source);
+      return;
+    }
+
+    const blockId = `block_${source.id}`;
+    const blockTitle = "第1試合";
+    const endMinutes = Number(source.end.split(":")[0]) * 60 + Number(source.end.split(":")[1]);
+    const startMinutes = Number(source.start.split(":")[0]) * 60 + Number(source.start.split(":")[1]);
+    const duration = Math.max(10, Math.round(endMinutes - startMinutes));
+    const definitions = source.format === "tournament"
+      ? [["準決勝1", "A", "B"], ["準決勝2", "C", "D"], ["3位決定戦", "準決勝1の敗者", "準決勝2の敗者"], ["決勝", "準決勝1の勝者", "準決勝2の勝者"]]
+      : LEAGUE_PAIRS.map((pair, index) => [`第${index + 1}試合`, pair[0], pair[1]]);
+
+    definitions.forEach((definition, index) => {
+      const start = addMinutesToTime(source.start, index * (duration + 5));
+      normalized.push({
+        ...source,
+        id: `${blockId}_${index + 1}`,
+        blockId,
+        blockTitle,
+        title: definition[0],
+        teamA: definition[1],
+        teamB: definition[2],
+        scoreA: null,
+        scoreB: null,
+        start,
+        end: addMinutesToTime(start, duration),
+        offsetMins: 0,
+        pointRule: source.pointRule ?? [150, 100, 50, 0]
+      });
+    });
+  });
+  return normalized;
+}
+
 let appState: AppState = {
-  schedule: JSON.parse(localStorage.getItem("gym78_ball_day_v1_schedule") ?? "null") || INITIAL_SCHEDULE,
+  schedule: normalizeCompetitionSchedule(JSON.parse(localStorage.getItem("gym78_ball_day_v1_schedule") ?? "null") || INITIAL_SCHEDULE),
   timelineViewMode: "grouped",
   expandedGroups: {},
   selectedModalStatus: "BEFORE",
@@ -86,6 +135,13 @@ function toggleTheme(): void {
     html.classList.add("dark");
     btnText.innerText = "屋外モード (明るいUI)";
   }
+}
+
+function toggleContrast(): void {
+  const enabled = document.body.classList.toggle("high-contrast");
+  const button = document.getElementById("contrastToggleBtn");
+  button?.setAttribute("aria-pressed", String(enabled));
+  if (button) button.classList.toggle("contrast-active", enabled);
 }
 
 function startClock(): void {
@@ -219,6 +275,7 @@ function renderTimeline(): void {
 
   if (!container) return;
   container.innerHTML = "";
+  container.className = appState.timelineViewMode === "byCourt" ? "court-lane-scroll" : "space-y-3";
 
   const filtered = appState.schedule.filter((m) => {
     if (courtFilter !== "ALL" && m.court !== courtFilter) return false;
@@ -229,7 +286,7 @@ function renderTimeline(): void {
   if (appState.timelineViewMode === "grouped") {
     const groups: Record<string, Match[]> = {};
     filtered.forEach((m) => {
-      const key = `${m.grade} - ${m.sport}`;
+      const key = m.blockId ?? `${m.grade} - ${m.sport}`;
       if (!groups[key]) groups[key] = [];
       groups[key].push(m);
     });
@@ -240,8 +297,12 @@ function renderTimeline(): void {
     }
 
     Object.keys(groups).forEach((gKey) => {
-      const matches = groups[gKey];
-      const isExpanded = appState.expandedGroups[gKey] !== false;
+      const matches = groups[gKey].sort((a, b) => a.start.localeCompare(b.start));
+      const firstMatch = matches[0];
+      const groupLabel = firstMatch.blockId
+        ? `${firstMatch.blockTitle ?? "第1試合"}（${firstMatch.grade} ${firstMatch.sport}）`
+        : `第1試合（${firstMatch.grade} ${firstMatch.sport}）`;
+      const isExpanded = appState.expandedGroups[gKey] === true;
       const finishedCount = matches.filter((m) => m.status === "FINISHED").length;
       const inProgressCount = matches.filter((m) => m.status === "IN_PROGRESS").length;
 
@@ -249,16 +310,17 @@ function renderTimeline(): void {
       groupCard.className = "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm";
 
       groupCard.innerHTML = `
-        <div onclick="toggleGroupExpand('${gKey}')" class="p-3 flex justify-between items-center cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition border-b border-slate-100 dark:border-slate-800">
+        <div onclick="toggleGroupExpand('${gKey}')" class="timeline-group-header p-3 flex justify-between items-center cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition border-b border-slate-100 dark:border-slate-800">
           <div class="flex items-center space-x-2.5">
-            <span class="bg-sky-500 text-white font-black text-xs px-2.5 py-0.5 rounded-md">${gKey.split(" - ")[0]}</span>
-            <h3 class="font-black text-sm text-slate-800 dark:text-slate-100">${gKey.split(" - ")[1]}</h3>
+            <span class="bg-sky-500 text-white font-black text-xs px-2.5 py-0.5 rounded-md">${firstMatch.grade}</span>
+            <h3 class="font-black text-sm text-slate-800 dark:text-slate-100">${groupLabel}</h3>
             <span class="text-[11px] text-slate-400 font-bold">(${matches.length}試合)</span>
           </div>
 
           <div class="flex items-center space-x-2">
             ${inProgressCount > 0 ? `<span class="bg-amber-500 text-slate-950 font-black text-[10px] px-2 py-0.5 rounded-full animate-pulse">進行中 ${inProgressCount}</span>` : ""}
             <span class="text-[11px] font-bold text-slate-400">${finishedCount}/${matches.length} 完了</span>
+            <span class="text-[10px] text-slate-400">タップで詳細</span>
             <i class="fa-solid fa-chevron-${isExpanded ? "up" : "down"} text-slate-400 text-xs ml-1"></i>
           </div>
         </div>
@@ -270,16 +332,21 @@ function renderTimeline(): void {
   } else {
     const courts = ["上グラ", "下グラ", "体育館", "ハード", "オムニ", "卓球場"];
     courts.forEach((court) => {
-      const cMatches = filtered.filter((m) => m.court === court);
+      const cMatches = filtered
+        .filter((m) => m.court === court)
+        .sort((a, b) => calcAdjustedTime(a.start, a.offsetMins).localeCompare(calcAdjustedTime(b.start, b.offsetMins)));
       if (cMatches.length === 0) return;
 
       const courtSec = document.createElement("div");
-      courtSec.className = "space-y-2";
+      courtSec.className = "court-lane";
       courtSec.innerHTML = `
-        <div class="text-xs font-black text-slate-500 dark:text-slate-400 flex items-center gap-1 pl-1">
+        <div class="court-lane-header text-sm font-black text-slate-700 dark:text-slate-200 flex items-center justify-between gap-1">
+          <span>
           <i class="fa-solid fa-location-dot text-sky-500"></i> ${court}
+          </span>
+          <span class="text-[10px] font-bold text-slate-400">${cMatches.length}試合</span>
         </div>
-        <div class="space-y-2">${cMatches.map((m) => createMatchItemHtml(m)).join("")}</div>
+        <div class="court-lane-matches">${cMatches.map((m) => createMatchItemHtml(m)).join("")}</div>
       `;
       container.appendChild(courtSec);
     });
@@ -316,8 +383,8 @@ function createMatchItemHtml(m: Match): string {
             </span>
           </div>
           <div class="flex items-center gap-0.5 border-l border-slate-200 dark:border-slate-800 pl-2">
-            <button onclick="applyCascadeOffset('${m.id}', -5)" class="action-btn bg-sky-50 dark:bg-sky-950 hover:bg-sky-100 border border-sky-300 dark:border-sky-500/30 text-sky-600 dark:text-sky-300 text-[10px] font-bold px-1.5 py-0.5 rounded">-5分</button>
-            <button onclick="applyCascadeOffset('${m.id}', 5)" class="action-btn bg-rose-50 dark:bg-rose-950 hover:bg-rose-100 border border-rose-300 dark:border-rose-500/30 text-rose-600 dark:text-rose-300 text-[10px] font-bold px-1.5 py-0.5 rounded">+5分</button>
+            <button onclick="applyCascadeOffset('${m.id}', -1)" class="action-btn bg-sky-50 dark:bg-sky-950 hover:bg-sky-100 border border-sky-300 dark:border-sky-500/30 text-sky-600 dark:text-sky-300 text-[10px] font-bold px-1.5 py-0.5 rounded">-1分</button>
+            <button onclick="applyCascadeOffset('${m.id}', 1)" class="action-btn bg-rose-50 dark:bg-rose-950 hover:bg-rose-100 border border-rose-300 dark:border-rose-500/30 text-rose-600 dark:text-rose-300 text-[10px] font-bold px-1.5 py-0.5 rounded">+1分</button>
             <button onclick="openModal('${m.id}')" class="action-btn bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[10px] font-bold px-1.5 py-0.5 rounded ml-1"><i class="fa-solid fa-gear"></i></button>
           </div>
         </div>
@@ -346,7 +413,7 @@ function createMatchItemHtml(m: Match): string {
 }
 
 function toggleGroupExpand(gKey: string): void {
-  appState.expandedGroups[gKey] = appState.expandedGroups[gKey] === false ? true : false;
+  appState.expandedGroups[gKey] = appState.expandedGroups[gKey] === true ? false : true;
   renderTimeline();
 }
 
@@ -360,6 +427,7 @@ function quickSaveScore(matchId: string, newStatus: MatchStatus): void {
   m.scoreA = valA !== "" ? parseInt(valA, 10) : null;
   m.scoreB = valB !== "" ? parseInt(valB, 10) : null;
   m.status = newStatus;
+  updateTournamentBracket(m.blockId);
 
   saveState();
   renderTimeline();
@@ -367,11 +435,47 @@ function quickSaveScore(matchId: string, newStatus: MatchStatus): void {
   calculateScoresAndRanks();
 }
 
+function getWinner(match: Match): string | null {
+  if (match.status !== "FINISHED" || match.scoreA === null || match.scoreB === null || match.scoreA === match.scoreB) return null;
+  return match.scoreA > match.scoreB ? match.teamA : match.teamB;
+}
+
+function getLoser(match: Match): string | null {
+  if (match.status !== "FINISHED" || match.scoreA === null || match.scoreB === null || match.scoreA === match.scoreB) return null;
+  return match.scoreA < match.scoreB ? match.teamA : match.teamB;
+}
+
+function updateTournamentBracket(blockId?: string): void {
+  if (!blockId) return;
+  const blockMatches = appState.schedule.filter((match) => match.blockId === blockId && match.format === "tournament");
+  const semiOne = blockMatches.find((match) => match.title === "準決勝1");
+  const semiTwo = blockMatches.find((match) => match.title === "準決勝2");
+  const thirdPlace = blockMatches.find((match) => match.title === "3位決定戦");
+  const final = blockMatches.find((match) => match.title === "決勝");
+  if (!semiOne || !semiTwo) return;
+
+  const winnerOne = getWinner(semiOne);
+  const winnerTwo = getWinner(semiTwo);
+  const loserOne = getLoser(semiOne);
+  const loserTwo = getLoser(semiTwo);
+
+  if (final) {
+    final.teamA = winnerOne ?? "準決勝1の勝者";
+    final.teamB = winnerTwo ?? "準決勝2の勝者";
+  }
+  if (thirdPlace) {
+    thirdPlace.teamA = loserOne ?? "準決勝1の敗者";
+    thirdPlace.teamB = loserTwo ?? "準決勝2の敗者";
+  }
+}
+
 function applyCascadeOffset(targetMatchId: string, diffMins: number): void {
   const target = appState.schedule.find((m) => m.id === targetMatchId);
   if (!target) return;
 
-  const courtMatches = appState.schedule.filter((m) => m.court === target.court);
+  const courtMatches = appState.schedule
+    .filter((m) => m.court === target.court)
+    .sort((a, b) => a.start.localeCompare(b.start));
   const targetIndex = courtMatches.findIndex((m) => m.id === targetMatchId);
 
   for (let i = targetIndex; i < courtMatches.length; i++) {
@@ -399,7 +503,9 @@ function renderGantt(): void {
   html += `</div>`;
 
   courts.forEach((court) => {
-    const matches = appState.schedule.filter((m) => m.court === court);
+    const matches = appState.schedule
+      .filter((m) => m.court === court)
+      .sort((a, b) => a.start.localeCompare(b.start));
     html += `
       <div class="relative h-9 flex items-center border-b border-slate-100 dark:border-slate-800/60 pl-20 my-1">
         <div class="absolute left-0 w-16 font-black text-xs text-slate-700 dark:text-slate-300">${court}</div>
@@ -462,16 +568,17 @@ function renderResultsTab(): void {
   if (!container) return;
   container.innerHTML = "";
 
-  const categories: Record<string, { grade: string; sport: string; format: MatchFormat; matches: Match[] }> = {};
+  const categories: Record<string, { grade: string; sport: string; format: MatchFormat; matches: Match[]; blockTitle: string }> = {};
   appState.schedule.forEach((m) => {
     if (gradeFilter !== "ALL" && m.grade !== gradeFilter) return;
-    const key = `${m.grade} - ${m.sport}`;
+    const key = m.blockId ?? `${m.grade} - ${m.sport}`;
     if (!categories[key]) {
       categories[key] = {
         grade: m.grade,
         sport: m.sport,
         format: m.format,
-        matches: []
+        matches: [],
+        blockTitle: m.blockTitle ?? "競技ブロック"
       };
     }
     categories[key].matches.push(m);
@@ -502,15 +609,37 @@ function renderResultsTab(): void {
       `;
     });
 
+    const standings = calculateCompetitionStandings(cat.matches, cat.format);
+    const competitionComplete = cat.format === "league"
+      ? cat.matches.every((match) => match.status === "FINISHED")
+      : cat.format !== "tournament"
+        || (cat.matches.some((match) => match.title === "決勝" && match.status === "FINISHED")
+          && cat.matches.some((match) => match.title === "3位決定戦" && match.status === "FINISHED"));
+    const standingsHtml = `
+      <div class="overflow-x-auto">
+        <table class="w-full text-[11px] min-w-[420px]">
+          <thead><tr class="text-left text-slate-400 border-b border-slate-200 dark:border-slate-800"><th class="py-1">順位</th><th>組</th><th>勝</th><th>分</th><th>敗</th><th>競技点</th></tr></thead>
+          <tbody>${standings.map((standing) => `<tr class="border-b border-slate-100 dark:border-slate-800/70"><td class="py-1.5 font-black">${competitionComplete ? `${standing.rank}位` : "未確定"}</td><td class="font-black">${standing.team}</td><td>${standing.wins}</td><td>${standing.draws}</td><td>${standing.losses}</td><td class="font-black text-sky-600 dark:text-sky-400">${competitionComplete ? `${standing.rankPoints}pt` : "-"}</td></tr>`).join("")}</tbody>
+        </table>
+      </div>
+    `;
+
     card.innerHTML = `
       <div class="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-2.5">
         <div class="flex items-center gap-2">
           <span class="bg-gradient-to-r from-sky-500 to-indigo-600 text-white font-black text-xs px-2 py-0.5 rounded-full shadow-sm">${cat.grade}</span>
-          <h3 class="font-black text-xs text-slate-800 dark:text-slate-100">${cat.sport}</h3>
+          <h3 class="font-black text-xs text-slate-800 dark:text-slate-100">${cat.blockTitle}｜${cat.sport}</h3>
         </div>
         <span class="text-[10px] font-bold px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-full">
           ${cat.format === "league" ? "総当たり戦" : cat.format === "tournament" ? "トーナメント" : "単発形式"}
         </span>
+      </div>
+
+      <div class="text-[10px] font-bold text-slate-400">${cat.format === "league" ? `勝利 3pt / 引き分け 1pt / 敗戦 0pt｜${competitionComplete ? "順位確定" : "全試合終了後に順位確定"}` : cat.format === "tournament" ? `決勝・3位決定戦 ${competitionComplete ? "終了｜順位確定" : "終了後に順位確定"}` : "勝利 30pt"}</div>
+
+      <div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 p-2.5">
+        <div class="text-[10px] font-black text-slate-500 dark:text-slate-400 mb-1.5">ブロック順位と得点割</div>
+        ${standingsHtml}
       </div>
 
       <div class="space-y-1.5">
@@ -522,18 +651,107 @@ function renderResultsTab(): void {
   });
 }
 
+function calculateCompetitionStandings(matches: Match[], format: MatchFormat): Array<{ team: string; wins: number; draws: number; losses: number; points: number; rank: number; rankPoints: number }> {
+  if (format === "tournament") return calculateTournamentStandings(matches);
+
+  const teams = Array.from(new Set(matches.flatMap((match) => [match.teamA, match.teamB]).filter(Boolean)));
+  const stats: Record<string, { wins: number; draws: number; losses: number; points: number; scored: number; conceded: number }> = {};
+  teams.forEach((team) => { stats[team] = { wins: 0, draws: 0, losses: 0, points: 0, scored: 0, conceded: 0 }; });
+
+  matches.filter((match) => match.status === "FINISHED" && match.scoreA !== null && match.scoreB !== null).forEach((match) => {
+    const a = stats[match.teamA];
+    const b = stats[match.teamB];
+    if (!a || !b) return;
+    a.scored += match.scoreA!;
+    a.conceded += match.scoreB!;
+    b.scored += match.scoreB!;
+    b.conceded += match.scoreA!;
+    if (match.scoreA! > match.scoreB!) {
+      a.wins += 1;
+      a.points += format === "league" ? 3 : 1;
+      b.losses += 1;
+    } else if (match.scoreB! > match.scoreA!) {
+      b.wins += 1;
+      b.points += format === "league" ? 3 : 1;
+      a.losses += 1;
+    } else {
+      a.draws += 1;
+      b.draws += 1;
+      a.points += format === "league" ? 1 : 0.5;
+      b.points += format === "league" ? 1 : 0.5;
+    }
+  });
+
+  const pointRule = matches.find((match) => match.pointRule)?.pointRule ?? [150, 100, 50, 0];
+  return teams
+    .sort((a, b) => stats[b].points - stats[a].points || (stats[b].scored - stats[b].conceded) - (stats[a].scored - stats[a].conceded) || stats[b].scored - stats[a].scored)
+    .map((team, index) => ({ ...stats[team], team, rank: index + 1, rankPoints: matches.every((match) => match.status === "FINISHED") ? pointRule[index] ?? 0 : 0 }));
+}
+
+function calculateTournamentStandings(matches: Match[]): Array<{ team: string; wins: number; draws: number; losses: number; points: number; rank: number; rankPoints: number }> {
+  const pointRule = matches.find((match) => match.pointRule)?.pointRule ?? [150, 100, 50, 0];
+  const stats: Record<string, { wins: number; draws: number; losses: number; points: number }> = {};
+  const ensureTeam = (team: string) => {
+    if (team && !stats[team]) stats[team] = { wins: 0, draws: 0, losses: 0, points: 0 };
+  };
+  matches.forEach((match) => { ensureTeam(match.teamA); ensureTeam(match.teamB); });
+  matches.filter((match) => match.status === "FINISHED" && match.scoreA !== null && match.scoreB !== null).forEach((match) => {
+    ensureTeam(match.teamA);
+    ensureTeam(match.teamB);
+    if (match.scoreA === match.scoreB) {
+      stats[match.teamA].draws += 1;
+      stats[match.teamB].draws += 1;
+      return;
+    }
+    const winner = match.scoreA! > match.scoreB! ? match.teamA : match.teamB;
+    const loser = match.scoreA! > match.scoreB! ? match.teamB : match.teamA;
+    stats[winner].wins += 1;
+    stats[winner].points += 1;
+    stats[loser].losses += 1;
+  });
+
+  const final = matches.find((match) => match.title === "決勝");
+  const thirdPlace = matches.find((match) => match.title === "3位決定戦");
+  const rankedTeams: string[] = [];
+  const addRankedTeam = (team: string | null) => {
+    if (team && !rankedTeams.includes(team)) rankedTeams.push(team);
+  };
+
+  if (final) {
+    addRankedTeam(getWinner(final));
+    if (final.status === "FINISHED" && final.scoreA !== null && final.scoreB !== null && final.scoreA !== final.scoreB) {
+      addRankedTeam(getLoser(final));
+    }
+  }
+  if (thirdPlace) {
+    addRankedTeam(getWinner(thirdPlace));
+    if (thirdPlace.status === "FINISHED" && thirdPlace.scoreA !== null && thirdPlace.scoreB !== null && thirdPlace.scoreA !== thirdPlace.scoreB) {
+      addRankedTeam(getLoser(thirdPlace));
+    }
+  }
+  Object.keys(stats).forEach((team) => addRankedTeam(team));
+
+  return rankedTeams.map((team, index) => ({
+    team,
+    ...stats[team],
+    rank: index + 1,
+    rankPoints: index < 4 && final?.status === "FINISHED" && thirdPlace?.status === "FINISHED" ? pointRule[index] ?? 0 : 0
+  }));
+}
+
 function calculateScoresAndRanks(): void {
   const totals: Record<string, number> = { A: 0, B: 0, C: 0, D: 0 };
 
-  appState.schedule.forEach((m) => {
-    if (m.status === "FINISHED" && m.scoreA !== null && m.scoreB !== null) {
-      if (m.scoreA > m.scoreB && totals[m.teamA] !== undefined) totals[m.teamA] += 30;
-      if (m.scoreB > m.scoreA && totals[m.teamB] !== undefined) totals[m.teamB] += 30;
-      if (m.scoreA === m.scoreB) {
-        if (totals[m.teamA] !== undefined) totals[m.teamA] += 10;
-        if (totals[m.teamB] !== undefined) totals[m.teamB] += 10;
-      }
-    }
+  const categories: Record<string, Match[]> = {};
+  appState.schedule.forEach((match) => {
+    const key = `${match.grade} - ${match.sport}`;
+    if (!categories[key]) categories[key] = [];
+    categories[key].push(match);
+  });
+  Object.values(categories).forEach((matches) => {
+    calculateCompetitionStandings(matches, matches[0].format).forEach((standing) => {
+      if (totals[standing.team] !== undefined) totals[standing.team] += standing.rankPoints;
+    });
   });
 
   const scoreDisplayA = document.getElementById("scoreDisplayA");
@@ -547,6 +765,33 @@ function calculateScoresAndRanks(): void {
   if (scoreDisplayD) scoreDisplayD.innerHTML = `${totals.D} <span class="text-[10px] font-normal text-slate-400">pt</span>`;
 }
 
+function applyBulkOperations(): void {
+  const court = (document.getElementById("bulkCourt") as HTMLSelectElement | null)?.value ?? "ALL";
+  const status = (document.getElementById("bulkStatus") as HTMLSelectElement | null)?.value ?? "NO_CHANGE";
+  const delay = Number((document.getElementById("bulkDelay") as HTMLInputElement | null)?.value ?? 0);
+  const targets = appState.schedule.filter((match) => court === "ALL" || match.court === court);
+
+  if (targets.length === 0) {
+    alert("対象となる試合がありません。");
+    return;
+  }
+
+  if (status !== "NO_CHANGE") {
+    targets.forEach((match) => { match.status = status as MatchStatus; });
+  }
+  if (Number.isFinite(delay) && delay !== 0) {
+    targets.forEach((match) => { match.offsetMins += delay; });
+  }
+
+  saveState();
+  renderCourtDelaySummary();
+  renderTimeline();
+  renderResultsTab();
+  calculateScoresAndRanks();
+  if (!(document.getElementById("sec-gantt") as HTMLElement | null)?.classList.contains("hidden")) renderGantt();
+  alert(`${targets.length}試合に一括反映しました。`);
+}
+
 function createNewMatch(): void {
   const grade = (document.getElementById("addGrade") as HTMLSelectElement | null)?.value ?? "中1";
   const sport = (document.getElementById("addSport") as HTMLInputElement | null)?.value.trim() ?? "";
@@ -557,6 +802,7 @@ function createNewMatch(): void {
   const teamB = (document.getElementById("addTeamB") as HTMLInputElement | null)?.value.trim() || "B組";
   const start = (document.getElementById("addStartTime") as HTMLInputElement | null)?.value ?? "09:00";
   const end = (document.getElementById("addEndTime") as HTMLInputElement | null)?.value ?? "09:30";
+  const pointRule = getAddPointRule();
 
   if (!sport || !title) {
     alert("競技名と試合タイトルを入力してください。");
@@ -579,7 +825,8 @@ function createNewMatch(): void {
     referee: "",
     staff: "",
     status: "BEFORE",
-    offsetMins: 0
+    offsetMins: 0,
+    pointRule
   };
 
   appState.schedule.push(newMatch);
@@ -592,6 +839,81 @@ function createNewMatch(): void {
   if (titleInput) titleInput.value = "";
 }
 
+function parsePointRule(value: string): [number, number, number, number] {
+  const values = value.split(",").map((item) => Number(item.trim()));
+  return [0, 1, 2, 3].map((index) => Number.isFinite(values[index]) ? Math.max(0, values[index]) : 0) as [number, number, number, number];
+}
+
+function getAddPointRule(): [number, number, number, number] {
+  const input = document.getElementById("addPointRule") as HTMLInputElement | null;
+  return parsePointRule(input?.value || "150,100,50,0");
+}
+
+function addMinutesToTime(time: string, minutes: number): string {
+  const [hours, mins] = time.split(":").map(Number);
+  const total = hours * 60 + mins + minutes;
+  return `${String(Math.floor((total % 1440 + 1440) % 1440 / 60)).padStart(2, "0")}:${String((total % 60 + 60) % 60).padStart(2, "0")}`;
+}
+
+function createCompetitionBlock(): void {
+  const grade = (document.getElementById("addGrade") as HTMLSelectElement | null)?.value ?? "中1";
+  const sport = (document.getElementById("addSport") as HTMLInputElement | null)?.value.trim() ?? "";
+  const format = (document.getElementById("addFormat") as HTMLSelectElement | null)?.value as MatchFormat ?? "league";
+  const court = (document.getElementById("addCourt") as HTMLSelectElement | null)?.value ?? "上グラ";
+  const start = (document.getElementById("addStartTime") as HTMLInputElement | null)?.value ?? "09:00";
+  const end = (document.getElementById("addEndTime") as HTMLInputElement | null)?.value ?? "09:30";
+
+  if (!sport) {
+    alert("競技名を入力してください。");
+    return;
+  }
+
+  const [startHour, startMinute] = start.split(":").map(Number);
+  const duration = Math.max(15, (Number(end.split(":")[0]) * 60 + Number(end.split(":")[1])) - (startHour * 60 + startMinute));
+  const blockId = `block_${Date.now()}`;
+  const blockTitle = (document.getElementById("addTitle") as HTMLInputElement | null)?.value.trim() || "第1試合";
+  const pointRule = getAddPointRule();
+  const definitions = format === "league"
+    ? [
+        ["第1節", "A", "B"], ["第2節", "A", "C"], ["第3節", "A", "D"],
+        ["第4節", "B", "C"], ["第5節", "B", "D"], ["第6節", "C", "D"]
+      ]
+    : [
+      ["準決勝1", "A", "B"], ["準決勝2", "C", "D"],
+        ["3位決定戦", "敗者1", "敗者2"], ["決勝", "勝者1", "勝者2"]
+      ];
+
+  definitions.forEach((definition, index) => {
+    appState.schedule.push({
+      id: `${blockId}_${index + 1}`,
+      blockId,
+      blockTitle,
+      court,
+      sport,
+      grade,
+      title: definition[0],
+      format,
+      teamA: definition[1],
+      teamB: definition[2],
+      scoreA: null,
+      scoreB: null,
+      start: addMinutesToTime(start, index * (duration + 5)),
+      end: addMinutesToTime(start, index * (duration + 5) + duration),
+      referee: "",
+      staff: "",
+      status: "BEFORE",
+      offsetMins: 0,
+      pointRule
+    });
+  });
+
+  saveState();
+  renderTimeline();
+  renderCourtDelaySummary();
+  renderResultsTab();
+  alert(`${grade} ${sport}の${format === "league" ? "総当たり" : "トーナメント"}ブロックを${definitions.length}試合作成しました。`);
+}
+
 function openModal(matchId: string): void {
   const m = appState.schedule.find((item) => item.id === matchId);
   if (!m) return;
@@ -600,11 +922,17 @@ function openModal(matchId: string): void {
   (document.getElementById("modalMatchDetail") as HTMLElement).innerText = `${m.title} (${m.grade} ${m.sport})`;
   (document.getElementById("modalCourtDetail") as HTMLElement).innerText = `場所: ${m.court}`;
   (document.getElementById("modalTimeDetail") as HTMLElement).innerText = `定刻: ${m.start} - ${m.end}`;
+  (document.getElementById("inputMatchTitle") as HTMLInputElement).value = m.title;
+  (document.getElementById("inputTeamA") as HTMLInputElement).value = m.teamA;
+  (document.getElementById("inputTeamB") as HTMLInputElement).value = m.teamB;
+  (document.getElementById("inputModalScoreA") as HTMLInputElement).value = m.scoreA === null ? "" : String(m.scoreA);
+  (document.getElementById("inputModalScoreB") as HTMLInputElement).value = m.scoreB === null ? "" : String(m.scoreB);
 
   setModalStatus(m.status || "BEFORE");
   (document.getElementById("inputDelayMinutes") as HTMLInputElement).value = String(m.offsetMins);
   (document.getElementById("inputReferee") as HTMLInputElement).value = m.referee;
   (document.getElementById("inputStaff") as HTMLInputElement).value = m.staff;
+  (document.getElementById("inputCompetitionPoints") as HTMLInputElement).value = (m.pointRule ?? [150, 100, 50, 0]).join(",");
 
   document.getElementById("editModal")?.classList.remove("hidden");
 }
@@ -639,8 +967,17 @@ function saveModalData(): void {
   const diff = newOffset - m.offsetMins;
 
   m.status = appState.selectedModalStatus;
+  m.title = (document.getElementById("inputMatchTitle") as HTMLInputElement).value.trim() || m.title;
+  m.teamA = (document.getElementById("inputTeamA") as HTMLInputElement).value.trim() || m.teamA;
+  m.teamB = (document.getElementById("inputTeamB") as HTMLInputElement).value.trim() || m.teamB;
+  const scoreA = (document.getElementById("inputModalScoreA") as HTMLInputElement).value;
+  const scoreB = (document.getElementById("inputModalScoreB") as HTMLInputElement).value;
+  m.scoreA = scoreA === "" ? null : Math.max(0, parseInt(scoreA, 10) || 0);
+  m.scoreB = scoreB === "" ? null : Math.max(0, parseInt(scoreB, 10) || 0);
+  updateTournamentBracket(m.blockId);
   m.referee = (document.getElementById("inputReferee") as HTMLInputElement).value;
   m.staff = (document.getElementById("inputStaff") as HTMLInputElement).value;
+  m.pointRule = parsePointRule((document.getElementById("inputCompetitionPoints") as HTMLInputElement).value);
 
   if (diff !== 0) {
     applyCascadeOffset(m.id, diff);
@@ -650,6 +987,7 @@ function saveModalData(): void {
     renderCourtDelaySummary();
   }
 
+  calculateScoresAndRanks();
   closeModal();
 }
 
@@ -765,8 +1103,10 @@ function resetAllData(): void {
 }
 
 (window as any).toggleTheme = toggleTheme;
+(window as any).toggleContrast = toggleContrast;
 (window as any).switchTab = switchTab;
 (window as any).createNewMatch = createNewMatch;
+(window as any).createCompetitionBlock = createCompetitionBlock;
 (window as any).quickSaveScore = quickSaveScore;
 (window as any).applyCascadeOffset = applyCascadeOffset;
 (window as any).toggleGroupExpand = toggleGroupExpand;
@@ -788,3 +1128,4 @@ function resetAllData(): void {
 (window as any).exportData = exportData;
 (window as any).importData = importData;
 (window as any).resetAllData = resetAllData;
+(window as any).applyBulkOperations = applyBulkOperations;
