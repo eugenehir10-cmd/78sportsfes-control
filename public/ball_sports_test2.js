@@ -95,6 +95,10 @@ function renderCourtDelaySummary() {
         const courtMatches = appState.schedule.filter((m) => m.court === court);
         const maxOffset = courtMatches.length > 0 ? courtMatches[courtMatches.length - 1].offsetMins : 0;
         const inProgress = courtMatches.find((m) => m.status === "IN_PROGRESS");
+        const nextMatch = courtMatches
+            .filter((m) => m.status === "BEFORE")
+            .sort((a, b) => calcAdjustedTime(a.start, a.offsetMins).localeCompare(calcAdjustedTime(b.start, b.offsetMins)))[0];
+        const finishedCount = courtMatches.filter((m) => m.status === "FINISHED").length;
         let badgeColor = "bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400";
         let delayText = "順調 (±0分)";
         if (maxOffset > 0) {
@@ -109,6 +113,10 @@ function renderCourtDelaySummary() {
       <div class="stat-tile border rounded-2xl p-2.5 text-center shadow-sm ${badgeColor}">
         <div class="text-[10px] font-black tracking-[0.18em] uppercase opacity-80">${court}</div>
         <div class="mt-1 text-xs font-mono font-black">${delayText}</div>
+        <div class="mt-1 text-[10px] opacity-80">${finishedCount}/${courtMatches.length} 完了</div>
+        <div class="mt-1 text-[10px] truncate" title="${inProgress ? `進行中: ${inProgress.title}` : nextMatch ? `次: ${nextMatch.title}` : "試合なし"}">
+          ${inProgress ? `進行中: ${inProgress.title}` : nextMatch ? `次: ${calcAdjustedTime(nextMatch.start, nextMatch.offsetMins)} ${nextMatch.title}` : "試合なし"}
+        </div>
       </div>
     `;
         adminMonitorHtml += `
