@@ -312,11 +312,11 @@ async function initFirebaseSync(): Promise<void> {
     updateSyncStatus("接続中", "sky");
 
     const documentCandidates = [
+      { collection: "sportsfes", doc: "main" },
       { collection: "app_data", doc: "ball_sports_data_v4" },
       { collection: "app_data", doc: "ball_sports_test2_main" },
       { collection: "app_data", doc: "sportsfes_main" },
-      { collection: "app_data", doc: "main" },
-      { collection: "sportsfes", doc: "main" }
+      { collection: "app_data", doc: "main" }
     ];
 
     let loaded = false;
@@ -360,7 +360,9 @@ async function syncStateToFirebase(): Promise<void> {
     };
 
     const mainDoc = firebaseSync.db.collection("app_data").doc("ball_sports_data_v4");
+    const legacyDoc = firebaseSync.db.collection("sportsfes").doc("main");
     await mainDoc.set(payload, { merge: true });
+    await legacyDoc.set(payload, { merge: true });
     updateSyncStatus("同期済み", "success");
   }
   catch (err) {
