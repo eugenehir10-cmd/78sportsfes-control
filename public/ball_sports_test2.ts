@@ -131,11 +131,12 @@ let appState: AppState = {
   announcement: localStorage.getItem("gym78_ball_day_v1_announcement") || ""
 };
 
-let firebaseSync: { app: any; db: any; initialized: boolean; online: boolean } = {
+let firebaseSync: { app: any; db: any; initialized: boolean; online: boolean; unsubscribe: any } = {
   app: null,
   db: null,
   initialized: false,
-  online: false
+  online: false,
+  unsubscribe: null
 };
 
 function updateSyncStatus(label: string, tone: "success" | "warning" | "sky" = "sky"): void {
@@ -248,6 +249,27 @@ function applyRemoteDocumentData(data: any): boolean {
   return true;
 }
 
+function subscribeToRemoteData(): void {
+  if (!firebaseSync.db || !firebaseSync.initialized) return;
+
+  if (firebaseSync.unsubscribe) {
+    try {
+      firebaseSync.unsubscribe();
+    }
+    catch {
+      // ignore
+    }
+  }
+
+  const primaryDoc = firebaseSync.db.collection("app_data").doc("ball_sports_data_v4");
+  firebaseSync.unsubscribe = primaryDoc.onSnapshot((docSnap: any) => {
+    if (!docSnap.exists) return;
+    applyRemoteDocumentData(docSnap.data());
+  }, () => {
+    updateSyncStatus("待機中", "sky");
+  });
+}
+
 async function initFirebaseSync(): Promise<void> {
   if (!window.firebase || !window.firebase.apps) return;
 
@@ -281,6 +303,8 @@ async function initFirebaseSync(): Promise<void> {
     if (!loaded) {
       updateSyncStatus("待機中", "sky");
     }
+
+    subscribeToRemoteData();
   }
   catch {
     firebaseSync.initialized = false;

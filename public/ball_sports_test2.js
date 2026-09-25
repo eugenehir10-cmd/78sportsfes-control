@@ -89,7 +89,8 @@ let firebaseSync = {
     app: null,
     db: null,
     initialized: false,
-    online: false
+    online: false,
+    unsubscribe: null
 };
 function updateSyncStatus(label, tone = "sky") {
     const badge = document.getElementById("syncStatusBadge");
@@ -194,6 +195,26 @@ function applyRemoteDocumentData(data) {
         document.getElementById("announcementBar")?.classList.add("hidden");
     return true;
 }
+function subscribeToRemoteData() {
+    if (!firebaseSync.db || !firebaseSync.initialized)
+        return;
+    if (firebaseSync.unsubscribe) {
+        try {
+            firebaseSync.unsubscribe();
+        }
+        catch {
+            // ignore
+        }
+    }
+    const primaryDoc = firebaseSync.db.collection("app_data").doc("ball_sports_data_v4");
+    firebaseSync.unsubscribe = primaryDoc.onSnapshot((docSnap) => {
+        if (!docSnap.exists)
+            return;
+        applyRemoteDocumentData(docSnap.data());
+    }, () => {
+        updateSyncStatus("待機中", "sky");
+    });
+}
 async function initFirebaseSync() {
     if (!window.firebase || !window.firebase.apps)
         return;
@@ -225,6 +246,7 @@ async function initFirebaseSync() {
         if (!loaded) {
             updateSyncStatus("待機中", "sky");
         }
+        subscribeToRemoteData();
     }
     catch {
         firebaseSync.initialized = false;
