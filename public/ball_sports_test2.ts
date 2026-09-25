@@ -23,6 +23,12 @@ type Match = {
   pointRule?: [number, number, number, number];
 };
 
+declare const firebase: any;
+
+interface Window {
+  firebase: any;
+}
+
 type AppState = {
   schedule: Match[];
   timelineViewMode: "grouped" | "byCourt";
@@ -30,6 +36,17 @@ type AppState = {
   selectedModalStatus: MatchStatus;
   isAdmin: boolean;
   announcement: string;
+};
+
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyAwVUxoXbvTraGUDoLztqqcJx2fIHqUntc",
+  authDomain: "thsportsfes.firebaseapp.com",
+  databaseURL: "https://thsportsfes-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "thsportsfes",
+  storageBucket: "thsportsfes.firebasestorage.app",
+  messagingSenderId: "96596815858",
+  appId: "1:96596815858:web:5f85526bf785ccc5d8056b",
+  measurementId: "G-TCPMRTY3P1"
 };
 
 const INITIAL_SCHEDULE: Match[] = [
@@ -114,13 +131,105 @@ let appState: AppState = {
   announcement: localStorage.getItem("gym78_ball_day_v1_announcement") || ""
 };
 
+let firebaseSync: { app: any; db: any; initialized: boolean; online: boolean } = {
+  app: null,
+  db: null,
+  initialized: false,
+  online: false
+};
+
+function updateSyncStatus(label: string, tone: "success" | "warning" | "sky" = "sky"): void {
+  const badge = document.getElementById("syncStatusBadge");
+  const text = document.getElementById("syncStatusText");
+  if (!badge || !text) return;
+
+  text.textContent = label;
+  badge.className = `inline-flex items-center gap-1.5 rounded-full border px-2 py-1 text-[10px] font-bold ${tone === "success" ? "border-emerald-300 bg-emerald-100 text-emerald-700 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300" : tone === "warning" ? "border-amber-300 bg-amber-100 text-amber-700 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-300" : "border-sky-300 bg-sky-100 text-sky-700 dark:border-sky-700 dark:bg-sky-950/40 dark:text-sky-300"}`;
+
+  const dot = badge.querySelector("span");
+  if (dot) {
+    dot.className = `inline-block h-2 w-2 rounded-full ${tone === "success" ? "bg-emerald-500" : tone === "warning" ? "bg-amber-500" : "bg-sky-500"}`;
+  }
+}
+
+async function initFirebaseSync(): Promise<void> {
+  if (!window.firebase || !window.firebase.apps) return;
+
+  try {
+    if (!firebaseSync.app) {
+      firebaseSync.app = firebase.apps.length ? firebase.apps[0] : firebase.initializeApp(FIREBASE_CONFIG);
+    }
+    firebaseSync.db = firebase.firestore(firebaseSync.app);
+    firebaseSync.initialized = true;
+    firebaseSync.online = true;
+    updateSyncStatus("同期中", "success");
+
+    const candidates = [
+      { collection: "sportsfes", doc: "main" },
+      { collection: "app_data", doc: "ball_sports_data_v4" }
+    ];
+
+    let loaded = false;
+    for (const { collection, doc } of candidates) {
+      const docSnap = await firebaseSync.db.collection(collection).doc(doc).get();
+      if (!docSnap.exists) continue;
+
+      const data = docSnap.data() || {};
+      const remoteSchedule = Array.isArray(data.schedule) ? data.schedule : Array.isArray(data.matches) ? data.matches : null;
+      if (remoteSchedule && remoteSchedule.length > 0 && remoteSchedule.every((match: any) => typeof match === "object")) {
+        appState.schedule = normalizeCompetitionSchedule(remoteSchedule);
+        const remoteAnnouncement = typeof data.announcement === "string" ? data.announcement : "";
+        appState.announcement = remoteAnnouncement;
+        localStorage.setItem("gym78_ball_day_v1_schedule", JSON.stringify(appState.schedule));
+        localStorage.setItem("gym78_ball_day_v1_announcement", appState.announcement);
+        loaded = true;
+        break;
+      }
+    }
+
+    if (!loaded && firebaseSync.db) {
+      const legacyDoc = await firebaseSync.db.collection("sportsfes").doc("main").get();
+      if (legacyDoc.exists && Array.isArray(legacyDoc.data()?.schedule)) {
+        appState.schedule = normalizeCompetitionSchedule(legacyDoc.data().schedule);
+      }
+    }
+  }
+  catch {
+    firebaseSync.initialized = false;
+    firebaseSync.online = false;
+    updateSyncStatus("オフライン", "warning");
+  }
+}
+
+async function syncStateToFirebase(): Promise<void> {
+  if (!firebaseSync.db || !firebaseSync.initialized) return;
+
+  try {
+    const payload = {
+      schedule: appState.schedule,
+      announcement: appState.announcement,
+      updatedAt: new Date().toISOString()
+    };
+
+    await firebaseSync.db.collection("app_data").doc("ball_sports_data_v4").set(payload, { merge: true });
+    await firebaseSync.db.collection("sportsfes").doc("main").set(payload, { merge: true });
+    updateSyncStatus("同期済み", "success");
+  }
+  catch {
+    updateSyncStatus("同期失敗", "warning");
+  }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   startClock();
+  updateSyncStatus("待機中", "sky");
+  initFirebaseSync();
   renderCourtDelaySummary();
   renderTimeline();
   renderResultsTab();
   calculateScoresAndRanks();
   if (appState.announcement) showAnnouncement(appState.announcement);
+  else document.getElementById("announcementBar")?.classList.add("hidden");
 });
 
 function toggleTheme(): void {
