@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>体育祭 リアルタイム進行 & 試合結果本部</title>
+    <title>第78回体育祭｜球技日 進行本部</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -53,10 +53,10 @@
                 </div>
                 <div>
                     <div class="flex items-center gap-2">
-                        <h1 class="text-base font-black tracking-wider text-slate-800 dark:text-slate-100">第78回 体育祭</h1>
-                        <span class="bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/30 text-[10px] px-2 py-0.5 rounded-full font-bold shadow-sm">球技日 統括</span>
+                        <h1 class="text-base font-black tracking-wider text-slate-800 dark:text-slate-100">第78回体育祭</h1>
+                        <span class="bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/30 text-[10px] px-2 py-0.5 rounded-full font-bold shadow-sm">球技日｜10月1日</span>
                     </div>
-                    <p class="text-[10px] text-slate-500 dark:text-slate-400 font-medium">リアルタイム進行調整 & タイムライン結果直感連動</p>
+                    <p class="text-[10px] text-slate-500 dark:text-slate-400 font-medium">6会場・7競技の進行と組別得点を一元管理</p>
                 </div>
             </div>
 
@@ -77,16 +77,16 @@
         <div class="bg-slate-50/80 dark:bg-slate-950/80 border-t border-slate-200/80 dark:border-slate-800/80 px-4">
             <div class="max-w-7xl mx-auto flex space-x-1 overflow-x-auto text-xs font-bold pt-1 pb-0.5">
                 <button onclick="switchTab('timeline')" id="tab-timeline" class="tab-btn px-4 py-2 rounded-t-xl border-b-2 border-sky-500 text-sky-600 dark:text-sky-400 flex items-center gap-2 whitespace-nowrap transition-all bg-white/70 dark:bg-slate-900/50">
-                    <i class="fa-solid fa-clock-rotate-left"></i> 進行タイムライン & スコア直感入力
+                    <i class="fa-solid fa-clock-rotate-left"></i> 本日の進行
                 </button>
                 <button onclick="switchTab('gantt')" id="tab-gantt" class="tab-btn px-4 py-2 rounded-t-xl border-b-2 border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 flex items-center gap-2 whitespace-nowrap transition-all hover:bg-white/60 dark:hover:bg-slate-900/50">
-                    <i class="fa-solid fa-chart-gantt"></i> ガントチャート (全コート一目で把握)
+                    <i class="fa-solid fa-chart-gantt"></i> 会場タイムテーブル
                 </button>
                 <button onclick="switchTab('results')" id="tab-results" class="tab-btn px-4 py-2 rounded-t-xl border-b-2 border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 flex items-center gap-2 whitespace-nowrap transition-all hover:bg-white/60 dark:hover:bg-slate-900/50">
-                    <i class="fa-solid fa-sitemap"></i> 勝敗表・トーナメント / 総当たり
+                    <i class="fa-solid fa-ranking-star"></i> 組別得点
                 </button>
                 <button onclick="switchTab('admin')" id="tab-admin" class="tab-btn px-4 py-2 rounded-t-xl border-b-2 border-transparent text-amber-600 dark:text-amber-400 hover:text-amber-500 flex items-center gap-2 whitespace-nowrap transition-all ml-auto hover:bg-amber-50/80 dark:hover:bg-amber-950/20">
-                    <i class="fa-solid fa-gear"></i> 管理画面・試合作成
+                    <i class="fa-solid fa-gear"></i> 本部操作
                 </button>
             </div>
         </div>
@@ -94,6 +94,25 @@
 
     <!-- メインコンテンツ -->
     <main class="max-w-7xl mx-auto px-4 py-4 flex-grow w-full space-y-4">
+
+        <section class="event-hero rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-white/90 dark:bg-slate-900/95 shadow-sm overflow-hidden">
+            <div class="px-5 py-5 md:px-7 md:py-6 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5">
+                <div>
+                    <p class="text-[10px] font-black tracking-[0.22em] text-sky-600 dark:text-sky-400 uppercase">SPORTS FESTIVAL 78 / BALL SPORTS DAY</p>
+                    <h2 class="mt-2 text-2xl md:text-3xl font-black tracking-tight text-slate-900 dark:text-white">球技日 進行本部</h2>
+                    <p class="mt-2 text-xs md:text-sm text-slate-500 dark:text-slate-400">雨天時は団体競技日に切り替え。現在の遅延と次の試合を会場ごとに確認できます。</p>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 min-w-0 lg:min-w-[430px]">
+                    <div class="event-metric"><span>開催日</span><strong>10/1(木)</strong></div>
+                    <div class="event-metric"><span>進行時間</span><strong>08:20 - 15:00</strong></div>
+                    <div class="event-metric"><span>会場</span><strong>6会場</strong></div>
+                    <div class="event-metric"><span>競技</span><strong>7種目</strong></div>
+                </div>
+            </div>
+            <div class="px-5 py-2.5 md:px-7 border-t border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/60 flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                <span><i class="fa-solid fa-futbol text-sky-500 mr-1"></i>サッカー</span><span>バスケ</span><span>ドッジボール</span><span>アルティメット</span><span>卓球</span><span>バレー</span><span>野球</span>
+            </div>
+        </section>
 
         <!-- コート別 遅延状況サマリー (最重要情報としてトップ固定表示) -->
         <div id="courtDelaySummaryBar" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5">

@@ -30,26 +30,39 @@ type AppState = {
 };
 
 const INITIAL_SCHEDULE: Match[] = [
-  { id: "m1", court: "上グラ", sport: "サッカー", grade: "中3", title: "準決勝1", format: "tournament", teamA: "A", teamB: "B", scoreA: 2, scoreB: 1, start: "08:50", end: "09:20", referee: "相山", staff: "神作", status: "FINISHED", offsetMins: 0 },
-  { id: "m2", court: "上グラ", sport: "サッカー", grade: "中3", title: "準決勝2", format: "tournament", teamA: "C", teamB: "D", scoreA: 0, scoreB: 3, start: "09:25", end: "09:55", referee: "相山", staff: "神作", status: "FINISHED", offsetMins: 0 },
-  { id: "m3", court: "上グラ", sport: "サッカー", grade: "中3", title: "決勝戦", format: "tournament", teamA: "A", teamB: "D", scoreA: null, scoreB: null, start: "10:10", end: "10:40", referee: "相山", staff: "神作", status: "IN_PROGRESS", offsetMins: 10 },
-  { id: "m4", court: "上グラ", sport: "サッカー", grade: "高1", title: "準決勝1", format: "tournament", teamA: "A", teamB: "C", scoreA: null, scoreB: null, start: "10:45", end: "11:15", referee: "佐藤", staff: "鈴木", status: "BEFORE", offsetMins: 10 },
-
-  { id: "m5", court: "下グラ", sport: "アルティメット", grade: "中3", title: "リーグ第1節", format: "league", teamA: "A", teamB: "B", scoreA: 12, scoreB: 8, start: "09:00", end: "09:40", referee: "田中", staff: "高橋", status: "FINISHED", offsetMins: 0 },
-  { id: "m6", court: "下グラ", sport: "アルティメット", grade: "中3", title: "リーグ第2節", format: "league", teamA: "C", teamB: "D", scoreA: null, scoreB: null, start: "09:50", end: "10:30", referee: "田中", staff: "高橋", status: "IN_PROGRESS", offsetMins: 5 },
-
-  { id: "m7", court: "体育館", sport: "バスケ", grade: "高2", title: "準決勝1", format: "tournament", teamA: "A", teamB: "D", scoreA: 42, scoreB: 38, start: "08:45", end: "09:25", referee: "渡辺", staff: "伊藤", status: "FINISHED", offsetMins: 0 },
-  { id: "m8", court: "体育館", sport: "バスケ", grade: "高2", title: "準決勝2", format: "tournament", teamA: "B", teamB: "C", scoreA: 50, scoreB: 45, start: "09:30", end: "10:10", referee: "渡辺", staff: "伊藤", status: "FINISHED", offsetMins: 0 },
-  { id: "m9", court: "体育館", sport: "バスケ", grade: "高2", title: "決勝戦", format: "tournament", teamA: "A", teamB: "B", scoreA: null, scoreB: null, start: "10:20", end: "11:00", referee: "渡辺", staff: "伊藤", status: "BEFORE", offsetMins: 0 }
+  { id: "m1", court: "上グラ", sport: "サッカー", grade: "中1", title: "第1試合", format: "league", teamA: "A", teamB: "B", scoreA: null, scoreB: null, start: "08:20", end: "09:27", referee: "相山", staff: "進行", status: "BEFORE", offsetMins: 0 },
+  { id: "m2", court: "上グラ", sport: "サッカー", grade: "高1", title: "第2試合", format: "league", teamA: "A", teamB: "C", scoreA: null, scoreB: null, start: "09:35", end: "10:42", referee: "相山", staff: "進行", status: "BEFORE", offsetMins: 0 },
+  { id: "m3", court: "上グラ", sport: "サッカー", grade: "中2", title: "第3試合", format: "league", teamA: "B", teamB: "D", scoreA: null, scoreB: null, start: "10:50", end: "11:57", referee: "相山", staff: "進行", status: "BEFORE", offsetMins: 0 },
+  { id: "m4", court: "上グラ", sport: "サッカー", grade: "高3", title: "第4試合", format: "league", teamA: "A", teamB: "D", scoreA: null, scoreB: null, start: "11:20", end: "12:27", referee: "相山", staff: "進行", status: "BEFORE", offsetMins: 0 },
+  { id: "m5", court: "上グラ", sport: "サッカー", grade: "高2", title: "第5試合", format: "league", teamA: "B", teamB: "C", scoreA: null, scoreB: null, start: "12:35", end: "13:42", referee: "相山", staff: "進行", status: "BEFORE", offsetMins: 0 },
+  { id: "m6", court: "上グラ", sport: "サッカー", grade: "高3", title: "第6試合", format: "league", teamA: "C", teamB: "D", scoreA: null, scoreB: null, start: "13:50", end: "15:00", referee: "相山", staff: "進行", status: "BEFORE", offsetMins: 0 },
+  { id: "m7", court: "下グラ", sport: "サッカー", grade: "中1", title: "第1試合", format: "league", teamA: "A", teamB: "D", scoreA: null, scoreB: null, start: "08:20", end: "09:27", referee: "田中", staff: "進行", status: "BEFORE", offsetMins: 0 },
+  { id: "m8", court: "下グラ", sport: "野球", grade: "高3", title: "第1試合", format: "tournament", teamA: "B", teamB: "C", scoreA: null, scoreB: null, start: "11:25", end: "12:25", referee: "田中", staff: "進行", status: "BEFORE", offsetMins: 0 },
+  { id: "m9", court: "下グラ", sport: "野球", grade: "高3", title: "第2試合", format: "tournament", teamA: "A", teamB: "D", scoreA: null, scoreB: null, start: "13:00", end: "14:00", referee: "田中", staff: "進行", status: "BEFORE", offsetMins: 0 },
+  { id: "m10", court: "体育館", sport: "バスケ", grade: "中3", title: "第1試合", format: "league", teamA: "A", teamB: "B", scoreA: null, scoreB: null, start: "08:20", end: "09:17", referee: "渡辺", staff: "進行", status: "BEFORE", offsetMins: 0 },
+  { id: "m11", court: "体育館", sport: "バスケ", grade: "高2", title: "第2試合", format: "league", teamA: "C", teamB: "D", scoreA: null, scoreB: null, start: "09:45", end: "10:42", referee: "渡辺", staff: "進行", status: "BEFORE", offsetMins: 0 },
+  { id: "m12", court: "体育館", sport: "バスケ", grade: "中1", title: "第3試合", format: "league", teamA: "A", teamB: "C", scoreA: null, scoreB: null, start: "10:50", end: "11:47", referee: "渡辺", staff: "進行", status: "BEFORE", offsetMins: 0 },
+  { id: "m13", court: "体育館", sport: "バスケ", grade: "高1", title: "第4試合", format: "league", teamA: "B", teamB: "D", scoreA: null, scoreB: null, start: "13:00", end: "13:57", referee: "渡辺", staff: "進行", status: "BEFORE", offsetMins: 0 },
+  { id: "m14", court: "体育館", sport: "バスケ", grade: "高3", title: "第5試合", format: "league", teamA: "A", teamB: "D", scoreA: null, scoreB: null, start: "14:05", end: "15:00", referee: "渡辺", staff: "進行", status: "BEFORE", offsetMins: 0 },
+  { id: "m15", court: "ハード", sport: "ドッジボール", grade: "中2", title: "第1試合", format: "tournament", teamA: "A", teamB: "B", scoreA: null, scoreB: null, start: "08:20", end: "09:15", referee: "高橋", staff: "進行", status: "BEFORE", offsetMins: 0 },
+  { id: "m16", court: "ハード", sport: "アルティメット", grade: "中3", title: "第1試合", format: "league", teamA: "C", teamB: "D", scoreA: null, scoreB: null, start: "09:35", end: "10:27", referee: "高橋", staff: "進行", status: "BEFORE", offsetMins: 0 },
+  { id: "m17", court: "オムニ", sport: "バレー", grade: "高2", title: "第1試合", format: "league", teamA: "A", teamB: "C", scoreA: null, scoreB: null, start: "08:20", end: "09:45", referee: "伊藤", staff: "進行", status: "BEFORE", offsetMins: 0 },
+  { id: "m18", court: "オムニ", sport: "バレー", grade: "高3", title: "第2試合", format: "league", teamA: "B", teamB: "D", scoreA: null, scoreB: null, start: "09:55", end: "11:20", referee: "伊藤", staff: "進行", status: "BEFORE", offsetMins: 0 },
+  { id: "m19", court: "オムニ", sport: "バレー", grade: "高1", title: "第3試合", format: "league", teamA: "A", teamB: "D", scoreA: null, scoreB: null, start: "11:30", end: "12:55", referee: "伊藤", staff: "進行", status: "BEFORE", offsetMins: 0 },
+  { id: "m20", court: "オムニ", sport: "バレー", grade: "中3", title: "第4試合", format: "league", teamA: "B", teamB: "C", scoreA: null, scoreB: null, start: "13:35", end: "15:00", referee: "伊藤", staff: "進行", status: "BEFORE", offsetMins: 0 },
+  { id: "m21", court: "卓球場", sport: "卓球", grade: "中1", title: "第1試合", format: "league", teamA: "A", teamB: "B", scoreA: null, scoreB: null, start: "08:20", end: "09:15", referee: "鈴木", staff: "進行", status: "BEFORE", offsetMins: 0 },
+  { id: "m22", court: "卓球場", sport: "卓球", grade: "高1", title: "第2試合", format: "league", teamA: "C", teamB: "D", scoreA: null, scoreB: null, start: "09:25", end: "10:20", referee: "鈴木", staff: "進行", status: "BEFORE", offsetMins: 0 },
+  { id: "m23", court: "卓球場", sport: "卓球", grade: "高2", title: "第3試合", format: "league", teamA: "A", teamB: "C", scoreA: null, scoreB: null, start: "10:30", end: "11:25", referee: "鈴木", staff: "進行", status: "BEFORE", offsetMins: 0 },
+  { id: "m24", court: "卓球場", sport: "卓球", grade: "中2", title: "第4試合", format: "league", teamA: "B", teamB: "D", scoreA: null, scoreB: null, start: "12:00", end: "12:55", referee: "鈴木", staff: "進行", status: "BEFORE", offsetMins: 0 }
 ];
 
 let appState: AppState = {
-  schedule: JSON.parse(localStorage.getItem("gym78_v4_schedule") ?? "null") || INITIAL_SCHEDULE,
+  schedule: JSON.parse(localStorage.getItem("gym78_ball_day_v1_schedule") ?? "null") || INITIAL_SCHEDULE,
   timelineViewMode: "grouped",
   expandedGroups: {},
   selectedModalStatus: "BEFORE",
   isAdmin: false,
-  announcement: localStorage.getItem("gym78_v4_announcement") || ""
+  announcement: localStorage.getItem("gym78_ball_day_v1_announcement") || ""
 };
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -95,8 +108,8 @@ function startClock(): void {
 }
 
 function saveState(): void {
-  localStorage.setItem("gym78_v4_schedule", JSON.stringify(appState.schedule));
-  localStorage.setItem("gym78_v4_announcement", appState.announcement);
+  localStorage.setItem("gym78_ball_day_v1_schedule", JSON.stringify(appState.schedule));
+  localStorage.setItem("gym78_ball_day_v1_announcement", appState.announcement);
 }
 
 function calcAdjustedTime(timeStr: string, offsetMins: number): string {
@@ -688,7 +701,7 @@ function exportData(): void {
   const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appState, null, 2));
   const dl = document.createElement("a");
   dl.setAttribute("href", dataStr);
-  dl.setAttribute("download", "gym78_v4_data.json");
+  dl.setAttribute("download", "gym78_ball_day_data.json");
   dl.click();
 }
 
