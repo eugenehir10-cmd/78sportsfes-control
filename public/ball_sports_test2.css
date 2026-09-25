@@ -141,13 +141,22 @@ html.dark #adminContent .text-slate-400 {
 }
 
 #ganttContainer .absolute {
-  font-size: 0.72rem;
-  font-weight: 800;
+  font-size: 0.75rem;
+  font-weight: 900;
 }
 
 #ganttTimeBar {
   top: 2.5rem;
   bottom: 0;
+  box-shadow: 0 0 0 1px rgba(244, 63, 94, 0.6);
+}
+
+.gantt-event {
+  min-height: 2.5rem;
+}
+
+.court-filter-checkbox {
+  accent-color: #0ea5e9;
 }
 
 @media (max-width: 640px) {
@@ -220,6 +229,27 @@ html.dark body.high-contrast {
   color: #ffffff !important;
 }
 
+.high-contrast body,
+.high-contrast html,
+.high-contrast .surface-card,
+.high-contrast .event-hero,
+.high-contrast .bg-white,
+.high-contrast .bg-slate-50,
+.high-contrast .bg-slate-100,
+.high-contrast .bg-slate-900,
+.high-contrast .text-slate-800,
+.high-contrast .text-slate-700,
+.high-contrast .text-slate-500,
+.high-contrast .text-slate-400,
+.high-contrast button,
+.high-contrast select,
+.high-contrast input,
+.high-contrast textarea {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+  border-color: #ffffff !important;
+}
+
 .high-contrast button,
 .high-contrast select,
 .high-contrast input,
@@ -227,6 +257,15 @@ html.dark body.high-contrast {
 .high-contrast .surface-card,
 .high-contrast .event-hero {
   border-width: 2px !important;
+}
+
+.high-contrast .text-sky-600,
+.high-contrast .text-sky-500,
+.high-contrast .text-sky-400,
+.high-contrast .text-amber-500,
+.high-contrast .text-rose-500,
+.high-contrast .text-emerald-500 {
+  color: #7dd3fc !important;
 }
 
 .contrast-active {

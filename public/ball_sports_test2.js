@@ -41,23 +41,37 @@ const INITIAL_SCHEDULE = [
     { id: "m24", court: "卓球場", sport: "卓球", grade: "中2", title: "第4試合", format: "league", teamA: "B", teamB: "D", scoreA: null, scoreB: null, start: "12:00", end: "12:55", referee: "鈴木", staff: "進行", status: "BEFORE", offsetMins: 0 }
 ];
 const LEAGUE_PAIRS = [["A", "B"], ["A", "C"], ["A", "D"], ["B", "C"], ["B", "D"], ["C", "D"]];
+function parseTimeMinutes(value) {
+    if (typeof value !== "string" || !value.includes(":"))
+        return 0;
+    const [hoursText, minutesText = "0"] = value.split(":");
+    const hours = Number(hoursText);
+    const minutes = Number(minutesText);
+    if (!Number.isFinite(hours) || !Number.isFinite(minutes))
+        return 0;
+    return hours * 60 + minutes;
+}
 function normalizeCompetitionSchedule(sourceSchedule) {
     const normalized = [];
     sourceSchedule.forEach((source) => {
+        if (!source || typeof source !== "object")
+            return;
         if (source.blockId) {
             normalized.push(source);
             return;
         }
         const blockId = `block_${source.id}`;
         const blockTitle = "第1試合";
-        const endMinutes = Number(source.end.split(":")[0]) * 60 + Number(source.end.split(":")[1]);
-        const startMinutes = Number(source.start.split(":")[0]) * 60 + Number(source.start.split(":")[1]);
-        const duration = Math.max(10, Math.round(endMinutes - startMinutes));
+        const startValue = typeof source.start === "string" ? source.start : typeof source.startTime === "string" ? source.startTime : "08:00";
+        const endValue = typeof source.end === "string" ? source.end : typeof source.endTime === "string" ? source.endTime : addMinutesToTime(startValue, 30);
+        const startMinutes = parseTimeMinutes(startValue);
+        const endMinutes = parseTimeMinutes(endValue);
+        const duration = Math.max(10, Math.round(Math.max(endMinutes - startMinutes, 30)));
         const definitions = source.format === "tournament"
             ? [["準決勝1", "A", "B"], ["準決勝2", "C", "D"], ["3位決定戦", "準決勝1の敗者", "準決勝2の敗者"], ["決勝", "準決勝1の勝者", "準決勝2の勝者"]]
             : LEAGUE_PAIRS.map((pair, index) => [`第${index + 1}試合`, pair[0], pair[1]]);
         definitions.forEach((definition, index) => {
-            const start = addMinutesToTime(source.start, index * (duration + 5));
+            const start = addMinutesToTime(startValue, index * (duration + 5));
             normalized.push({
                 ...source,
                 id: `${blockId}_${index + 1}`,
@@ -390,6 +404,15 @@ function switchTab(tabName) {
     if (tabName === "results")
         renderResultsTab();
 }
+function getSelectedCourts() {
+    const boxes = [...document.querySelectorAll(".court-filter-checkbox")];
+    if (!boxes.length)
+        return ["上グラ", "下グラ", "体育館", "ハード", "オムニ", "卓球場"];
+    const selected = boxes.filter((box) => box.checked && box.value !== "ALL").map((box) => box.value);
+    if (!selected.length)
+        return ["上グラ", "下グラ", "体育館", "ハード", "オムニ", "卓球場"];
+    return selected;
+}
 function renderCourtDelaySummary() {
     const courts = ["上グラ", "下グラ", "体育館", "ハード", "オムニ", "卓球場"];
     const summaryContainer = document.getElementById("courtDelaySummaryBar");
@@ -403,7 +426,6 @@ function renderCourtDelaySummary() {
         const nextMatch = courtMatches
             .filter((m) => m.status === "BEFORE")
             .sort((a, b) => calcAdjustedTime(a.start, a.offsetMins).localeCompare(calcAdjustedTime(b.start, b.offsetMins)))[0];
-        const finishedCount = courtMatches.filter((m) => m.status === "FINISHED").length;
         let badgeColor = "bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400";
         let delayText = "順調 (±0分)";
         if (maxOffset > 0) {
@@ -414,21 +436,19 @@ function renderCourtDelaySummary() {
             badgeColor = "bg-sky-50 dark:bg-sky-950/40 border-sky-300 dark:border-sky-500/40 text-sky-600 dark:text-sky-400 font-bold";
             delayText = `${maxOffset}分 前倒し`;
         }
+        const currentLabel = inProgress ? `${inProgress.grade} / ${inProgress.sport} / ${inProgress.title}` : nextMatch ? `${nextMatch.grade} / ${nextMatch.sport} / ${nextMatch.title}` : "試合なし";
         summaryHtml += `
       <div class="stat-tile border rounded-2xl p-2.5 text-center shadow-sm ${badgeColor}">
         <div class="text-[10px] font-black tracking-[0.18em] uppercase opacity-80">${court}</div>
         <div class="mt-1 text-xs font-mono font-black">${delayText}</div>
-        <div class="mt-1 text-[10px] opacity-80">${finishedCount}/${courtMatches.length} 完了</div>
-        <div class="mt-1 text-[10px] truncate" title="${inProgress ? `進行中: ${inProgress.title}` : nextMatch ? `次: ${nextMatch.title}` : "試合なし"}">
-          ${inProgress ? `進行中: ${inProgress.title}` : nextMatch ? `次: ${calcAdjustedTime(nextMatch.start, nextMatch.offsetMins)} ${nextMatch.title}` : "試合なし"}
-        </div>
+        <div class="mt-1 text-[10px] truncate" title="${currentLabel}">${currentLabel}</div>
       </div>
     `;
         adminMonitorHtml += `
       <div class="surface-card rounded-2xl p-3 flex justify-between items-center gap-3">
         <div>
           <div class="font-black text-xs text-slate-800 dark:text-slate-100">${court} コート</div>
-          <div class="text-[10px] text-slate-400 mt-1">現在: ${inProgress ? inProgress.title : "進行中なし"}</div>
+          <div class="text-[10px] text-slate-400 mt-1">現在: ${inProgress ? `${inProgress.grade} ${inProgress.sport} ${inProgress.title}` : "進行中なし"}</div>
         </div>
         <div class="text-right">
           <span class="text-xs font-mono font-black px-2.5 py-1 rounded-lg inline-block ${maxOffset > 0 ? "bg-rose-500 text-white" : maxOffset < 0 ? "bg-sky-500 text-white" : "bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300"}">
@@ -457,14 +477,14 @@ function setTimelineViewMode(mode) {
 }
 function renderTimeline() {
     const container = document.getElementById("timelineContainer");
-    const courtFilter = document.getElementById("courtFilter")?.value ?? "ALL";
+    const selectedCourts = getSelectedCourts();
     const statusFilter = document.getElementById("statusFilter")?.value ?? "ALL";
     if (!container)
         return;
     container.innerHTML = "";
     container.className = appState.timelineViewMode === "byCourt" ? "court-lane-scroll" : "space-y-3";
     const filtered = appState.schedule.filter((m) => {
-        if (courtFilter !== "ALL" && m.court !== courtFilter)
+        if (!selectedCourts.includes(m.court))
             return false;
         if (statusFilter !== "ALL" && m.status !== statusFilter)
             return false;
@@ -515,7 +535,7 @@ function renderTimeline() {
         });
     }
     else {
-        const courts = ["上グラ", "下グラ", "体育館", "ハード", "オムニ", "卓球場"];
+        const courts = getSelectedCourts();
         courts.forEach((court) => {
             const cMatches = filtered
                 .filter((m) => m.court === court)
@@ -549,13 +569,14 @@ function createMatchItemHtml(m) {
     const scoreAVal = m.scoreA !== null ? String(m.scoreA) : "";
     const scoreBVal = m.scoreB !== null ? String(m.scoreB) : "";
     return `
-    <div class="surface-card rounded-2xl p-3 space-y-2.5 transition-all duration-200 hover:-translate-y-0.5 hover:border-sky-500/60">
+    <div class="surface-card rounded-2xl p-3 space-y-2.5 transition-all duration-200 hover:-translate-y-0.5 hover:border-sky-500/60 cursor-pointer" onclick="openModal('${m.id}')">
       <div class="flex flex-wrap justify-between items-center gap-2">
         <div class="flex items-center gap-2 flex-wrap">
           ${statusBadge}
           <span class="bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-[10px] px-2 py-0.5 rounded-full font-bold">${m.court}</span>
+          <span class="font-black text-xs text-slate-800 dark:text-slate-100">${m.grade} / ${m.sport}</span>
           <span class="font-black text-xs text-slate-800 dark:text-slate-100">${m.title}</span>
-          <span class="text-[10px] bg-sky-500/10 text-sky-600 dark:text-sky-400 px-1.5 py-0.5 rounded-full font-bold">${m.format === "league" ? "総当たり" : m.format === "tournament" ? "トーナメント" : "単発"}</span>
+          <span class="text-[10px] bg-sky-500/10 text-sky-600 dark:text-sky-400 px-1.5 py-0.5 rounded-full font-bold">${m.format === "league" ? "総当たり" : m.format === "tournament" ? "トーナメント" : m.format === "table_tennis_round_robin" ? "卓球総当たり" : m.format === "exhibition" ? "エキシビション" : "単発"}</span>
         </div>
 
         <div class="flex items-center gap-2 ml-auto">
@@ -576,9 +597,9 @@ function createMatchItemHtml(m) {
       <div class="bg-slate-50/90 dark:bg-slate-950/80 p-2.5 rounded-xl flex flex-wrap justify-between items-center gap-2 border border-slate-200 dark:border-slate-800/80">
         <div class="flex items-center gap-2 w-full sm:w-auto justify-center">
           <span class="font-black text-xs text-slate-700 dark:text-slate-200 min-w-[3rem] text-right">${m.teamA || "チームA"}</span>
-          <input type="number" id="inputScoreA_${m.id}" value="${scoreAVal}" placeholder="0" class="score-input w-12 text-center bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg py-1 font-mono font-bold text-sm text-sky-600 dark:text-sky-400 outline-none focus:border-sky-500">
+          <input type="number" id="inputScoreA_${m.id}" value="${scoreAVal}" placeholder="0" min="0" max="50" class="score-input w-12 text-center bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg py-1 font-mono font-bold text-sm text-sky-600 dark:text-sky-400 outline-none focus:border-sky-500">
           <span class="font-black text-slate-400 text-xs">VS</span>
-          <input type="number" id="inputScoreB_${m.id}" value="${scoreBVal}" placeholder="0" class="score-input w-12 text-center bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg py-1 font-mono font-bold text-sm text-sky-600 dark:text-sky-400 outline-none focus:border-sky-500">
+          <input type="number" id="inputScoreB_${m.id}" value="${scoreBVal}" placeholder="0" min="0" max="50" class="score-input w-12 text-center bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg py-1 font-mono font-bold text-sm text-sky-600 dark:text-sky-400 outline-none focus:border-sky-500">
           <span class="font-black text-xs text-slate-700 dark:text-slate-200 min-w-[3rem] text-left">${m.teamB || "チームB"}</span>
         </div>
 
@@ -665,11 +686,11 @@ function applyCascadeOffset(targetMatchId, diffMins) {
 }
 function renderGantt() {
     const container = document.getElementById("ganttContainer");
-    const courts = ["上グラ", "下グラ", "体育館", "ハード", "オムニ", "卓球場"];
+    const courts = getSelectedCourts();
     const startH = 8;
     const endH = 16;
     const totalMins = (endH - startH) * 60;
-    let html = `<div class="relative border-b border-slate-200 dark:border-slate-800 pb-2 mb-3 flex text-[10px] font-mono font-bold text-slate-400 pl-20">`;
+    let html = `<div class="relative border-b border-slate-200 dark:border-slate-800 pb-2 mb-3 flex text-[11px] font-mono font-black text-slate-500 pl-20">`;
     for (let h = startH; h <= endH; h++) {
         const leftP = ((h - startH) * 60 / totalMins) * 100;
         html += `<div class="absolute" style="left: ${leftP}%">${String(h).padStart(2, "0")}:00</div>`;
@@ -680,9 +701,9 @@ function renderGantt() {
             .filter((m) => m.court === court)
             .sort((a, b) => a.start.localeCompare(b.start));
         html += `
-      <div class="relative h-9 flex items-center border-b border-slate-100 dark:border-slate-800/60 pl-20 my-1">
+      <div class="relative h-14 flex items-center border-b border-slate-100 dark:border-slate-800/60 pl-20 my-1">
         <div class="absolute left-0 w-16 font-black text-xs text-slate-700 dark:text-slate-300">${court}</div>
-        <div class="relative w-full h-6 bg-slate-100 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden">
+        <div class="relative w-full h-10 bg-slate-100 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden">
     `;
         matches.forEach((m) => {
             const adjStart = calcAdjustedTime(m.start, m.offsetMins);
@@ -699,9 +720,9 @@ function renderGantt() {
             if (m.status === "FINISHED")
                 bgClass = "bg-emerald-500 text-white";
             html += `
-        <div class="absolute top-0.5 bottom-0.5 rounded px-1.5 text-[9px] font-bold flex items-center justify-between shadow ${bgClass}"
-             style="left: ${left}%; width: ${width}%;" title="${m.title} (${adjStart}-${adjEnd})">
-          <span class="truncate">${m.title}</span>
+        <div class="absolute top-1 bottom-1 rounded border border-white/30 px-1.5 text-[9px] font-bold flex items-center justify-between shadow cursor-pointer ${bgClass}"
+             style="left: ${left}%; width: ${width}%;" title="${m.grade} ${m.sport} ${m.title} (${adjStart}-${adjEnd})" onclick="openModal('${m.id}')">
+          <span class="truncate">${m.grade} / ${m.sport} / ${m.title}</span>
         </div>
       `;
         });
@@ -793,11 +814,11 @@ function renderResultsTab() {
           <h3 class="font-black text-xs text-slate-800 dark:text-slate-100">${cat.blockTitle}｜${cat.sport}</h3>
         </div>
         <span class="text-[10px] font-bold px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-full">
-          ${cat.format === "league" ? "総当たり戦" : cat.format === "tournament" ? "トーナメント" : "単発形式"}
+          ${cat.format === "league" ? "総当たり戦" : cat.format === "tournament" ? "トーナメント" : cat.format === "table_tennis_round_robin" ? "卓球総当たり" : cat.format === "exhibition" ? "エキシビション" : "単発形式"}
         </span>
       </div>
 
-      <div class="text-[10px] font-bold text-slate-400">${cat.format === "league" ? `勝利 3pt / 引き分け 1pt / 敗戦 0pt｜${competitionComplete ? "順位確定" : "全試合終了後に順位確定"}` : cat.format === "tournament" ? `決勝・3位決定戦 ${competitionComplete ? "終了｜順位確定" : "終了後に順位確定"}` : "勝利 30pt"}</div>
+      <div class="text-[10px] font-bold text-slate-400">${cat.format === "league" ? `勝利 3pt / 引き分け 1pt / 敗戦 0pt｜${competitionComplete ? "順位確定" : "全試合終了後に順位確定"}` : cat.format === "tournament" ? `決勝・3位決定戦 ${competitionComplete ? "終了｜順位確定" : "終了後に順位確定"}` : cat.format === "table_tennis_round_robin" ? `卓球総当たり｜${competitionComplete ? "順位確定" : "全試合終了後に順位確定"}` : "勝利 30pt"}</div>
 
       <div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 p-2.5">
         <div class="text-[10px] font-black text-slate-500 dark:text-slate-400 mb-1.5">ブロック順位と得点割</div>
@@ -928,9 +949,10 @@ function calculateScoresAndRanks() {
 }
 function applyBulkOperations() {
     const court = document.getElementById("bulkCourt")?.value ?? "ALL";
+    const sport = document.getElementById("bulkSport")?.value ?? "ALL";
     const status = document.getElementById("bulkStatus")?.value ?? "NO_CHANGE";
     const delay = Number(document.getElementById("bulkDelay")?.value ?? 0);
-    const targets = appState.schedule.filter((match) => court === "ALL" || match.court === court);
+    const targets = appState.schedule.filter((match) => (court === "ALL" || match.court === court) && (sport === "ALL" || match.sport === sport));
     if (targets.length === 0) {
         alert("対象となる試合がありません。");
         return;
@@ -1188,7 +1210,7 @@ function isMatch(value) {
         && typeof match.sport === "string"
         && typeof match.grade === "string"
         && typeof match.title === "string"
-        && ["tournament", "league", "single"].includes(match.format ?? "")
+        && ["tournament", "league", "single", "table_tennis_round_robin", "exhibition"].includes(match.format ?? "")
         && typeof match.teamA === "string"
         && typeof match.teamB === "string"
         && (match.scoreA === null || typeof match.scoreA === "number")

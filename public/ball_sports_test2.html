@@ -140,15 +140,17 @@
             <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 flex flex-wrap justify-between items-center gap-3 shadow-sm">
                 <div class="flex flex-wrap items-center gap-2 text-xs font-bold">
                     <span class="text-slate-500 dark:text-slate-400"><i class="fa-solid fa-filter text-sky-500 mr-1"></i>コート:</span>
-                    <select id="courtFilter" onchange="renderTimeline()" class="bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 px-2.5 py-1.5 outline-none focus:border-sky-500">
-                        <option value="ALL">全コート</option>
-                        <option value="上グラ">上グラ</option>
-                        <option value="下グラ">下グラ</option>
-                        <option value="体育館">体育館</option>
-                        <option value="ハード">ハード</option>
-                        <option value="オムニ">オムニ</option>
-                        <option value="卓球場">卓球場</option>
-                    </select>
+                    <div id="courtFilterGroup" class="flex flex-wrap items-center gap-1.5">
+                        <label class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-slate-100 px-2 py-1 dark:border-slate-700 dark:bg-slate-950">
+                            <input type="checkbox" class="court-filter-checkbox" value="ALL" checked onchange="renderTimeline(); renderGantt();"> 全て
+                        </label>
+                        <label class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-slate-100 px-2 py-1 dark:border-slate-700 dark:bg-slate-950"><input type="checkbox" class="court-filter-checkbox" value="上グラ" checked onchange="renderTimeline(); renderGantt();"> 上グラ</label>
+                        <label class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-slate-100 px-2 py-1 dark:border-slate-700 dark:bg-slate-950"><input type="checkbox" class="court-filter-checkbox" value="下グラ" checked onchange="renderTimeline(); renderGantt();"> 下グラ</label>
+                        <label class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-slate-100 px-2 py-1 dark:border-slate-700 dark:bg-slate-950"><input type="checkbox" class="court-filter-checkbox" value="体育館" checked onchange="renderTimeline(); renderGantt();"> 体育館</label>
+                        <label class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-slate-100 px-2 py-1 dark:border-slate-700 dark:bg-slate-950"><input type="checkbox" class="court-filter-checkbox" value="ハード" checked onchange="renderTimeline(); renderGantt();"> ハード</label>
+                        <label class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-slate-100 px-2 py-1 dark:border-slate-700 dark:bg-slate-950"><input type="checkbox" class="court-filter-checkbox" value="オムニ" checked onchange="renderTimeline(); renderGantt();"> オムニ</label>
+                        <label class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-slate-100 px-2 py-1 dark:border-slate-700 dark:bg-slate-950"><input type="checkbox" class="court-filter-checkbox" value="卓球場" checked onchange="renderTimeline(); renderGantt();"> 卓球場</label>
+                    </div>
 
                     <span class="text-slate-500 dark:text-slate-400 ml-2">ステータス:</span>
                     <select id="statusFilter" onchange="renderTimeline()" class="bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 px-2.5 py-1.5 outline-none focus:border-sky-500">
@@ -290,6 +292,9 @@
                         <select id="bulkCourt" class="p-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg font-bold text-slate-800 dark:text-slate-100">
                             <option value="ALL">全会場</option><option value="上グラ">上グラ</option><option value="下グラ">下グラ</option><option value="体育館">体育館</option><option value="ハード">ハード</option><option value="オムニ">オムニ</option><option value="卓球場">卓球場</option>
                         </select>
+                        <select id="bulkSport" class="p-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg font-bold text-slate-800 dark:text-slate-100">
+                            <option value="ALL">全競技</option><option value="サッカー">サッカー</option><option value="バスケ">バスケ</option><option value="バレー">バレー</option><option value="アルティメット">アルティメット</option><option value="ドッジボール">ドッジボール</option><option value="卓球">卓球</option><option value="野球">野球</option>
+                        </select>
                         <select id="bulkStatus" class="p-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg font-bold text-slate-800 dark:text-slate-100">
                             <option value="NO_CHANGE">ステータス変更なし</option><option value="BEFORE">全て開始前</option><option value="IN_PROGRESS">全て進行中</option><option value="FINISHED">全て終了</option>
                         </select>
@@ -338,6 +343,7 @@
                             <select id="addFormat" class="w-full p-2 bg-slate-50 dark:bg-slate-950 border border-sky-500/50 rounded-lg text-sky-600 dark:text-sky-400 font-bold">
                                 <option value="tournament">トーナメント戦</option>
                                 <option value="league">総当たり戦 (リーグ戦)</option>
+                                <option value="table_tennis_round_robin">卓球総当たり</option>
                                 <option value="single">単発試合 / エキシビション</option>
                             </select>
                         </div>
