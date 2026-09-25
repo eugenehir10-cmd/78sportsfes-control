@@ -152,6 +152,76 @@ function updateSyncStatus(label: string, tone: "success" | "warning" | "sky" = "
   }
 }
 
+function decodeStringifiedValue(value: string | unknown): unknown {
+  if (typeof value !== "string") return value;
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+
+  if ((trimmed.startsWith("\"") && trimmed.endsWith("\"")) || (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
+    try {
+      return JSON.parse(trimmed);
+    }
+    catch {
+      return trimmed.slice(1, -1);
+    }
+  }
+
+  try {
+    return JSON.parse(trimmed);
+  }
+  catch {
+    return value;
+  }
+}
+
+function normalizeScheduleEntries(value: unknown): any[] | null {
+  if (Array.isArray(value)) {
+    const parsed = value.map((entry) => typeof entry === "string" ? decodeStringifiedValue(entry) : entry)
+      .filter((entry) => entry !== null && entry !== undefined);
+    if (parsed.length === 0) return null;
+    return parsed.some((entry) => typeof entry === "string") ? null : parsed;
+  }
+
+  if (typeof value === "string") {
+    try {
+      return normalizeScheduleEntries(JSON.parse(value));
+    }
+    catch {
+      return null;
+    }
+  }
+
+  return null;
+}
+
+function extractRemoteSchedule(data: any): any[] | null {
+  if (!data || typeof data !== "object") return null;
+
+  const candidates = [
+    data.schedule,
+    data.matches,
+    data.data?.schedule,
+    data.data?.matches,
+    decodeStringifiedValue(data.schedule),
+    decodeStringifiedValue(data.matches),
+    decodeStringifiedValue(data.data?.schedule),
+    decodeStringifiedValue(data.data?.matches)
+  ];
+
+  for (const candidate of candidates) {
+    const normalized = normalizeScheduleEntries(candidate);
+    if (normalized) return normalized;
+  }
+
+  return null;
+}
+
+function normalizeRemoteAnnouncement(data: any): string {
+  const direct = typeof data.announcement === "string" ? data.announcement : (typeof data.data?.announcement === "string" ? data.data.announcement : "");
+  const value = typeof direct === "string" ? decodeStringifiedValue(direct) : "";
+  return typeof value === "string" ? value : "";
+}
+
 async function initFirebaseSync(): Promise<void> {
   if (!window.firebase || !window.firebase.apps) return;
 
@@ -165,8 +235,10 @@ async function initFirebaseSync(): Promise<void> {
     updateSyncStatus("同期中", "success");
 
     const candidates = [
+      { collection: "app_data", doc: "ball_sports_test2_main" },
+      { collection: "app_data", doc: "ball_sports_data_v4" },
       { collection: "sportsfes", doc: "main" },
-      { collection: "app_data", doc: "ball_sports_data_v4" }
+      { collection: "app_data", doc: "sportsfes_main" }
     ];
 
     let loaded = false;
@@ -175,11 +247,10 @@ async function initFirebaseSync(): Promise<void> {
       if (!docSnap.exists) continue;
 
       const data = docSnap.data() || {};
-      const remoteSchedule = Array.isArray(data.schedule) ? data.schedule : Array.isArray(data.matches) ? data.matches : null;
+      const remoteSchedule = extractRemoteSchedule(data);
       if (remoteSchedule && remoteSchedule.length > 0 && remoteSchedule.every((match: any) => typeof match === "object")) {
         appState.schedule = normalizeCompetitionSchedule(remoteSchedule);
-        const remoteAnnouncement = typeof data.announcement === "string" ? data.announcement : "";
-        appState.announcement = remoteAnnouncement;
+        appState.announcement = normalizeRemoteAnnouncement(data);
         localStorage.setItem("gym78_ball_day_v1_schedule", JSON.stringify(appState.schedule));
         localStorage.setItem("gym78_ball_day_v1_announcement", appState.announcement);
         loaded = true;
@@ -188,10 +259,24 @@ async function initFirebaseSync(): Promise<void> {
     }
 
     if (!loaded && firebaseSync.db) {
-      const legacyDoc = await firebaseSync.db.collection("sportsfes").doc("main").get();
-      if (legacyDoc.exists && Array.isArray(legacyDoc.data()?.schedule)) {
-        appState.schedule = normalizeCompetitionSchedule(legacyDoc.data().schedule);
+      for (const docId of ["ball_sports_test2_main", "ball_sports_data_v4", "sportsfes_main", "main"]) {
+        const legacyDoc = await firebaseSync.db.collection("app_data").doc(docId).get();
+        if (!legacyDoc.exists) continue;
+        const data = legacyDoc.data() || {};
+        const remoteSchedule = extractRemoteSchedule(data);
+        if (remoteSchedule && remoteSchedule.length > 0 && remoteSchedule.every((match: any) => typeof match === "object")) {
+          appState.schedule = normalizeCompetitionSchedule(remoteSchedule);
+          appState.announcement = normalizeRemoteAnnouncement(data);
+          localStorage.setItem("gym78_ball_day_v1_schedule", JSON.stringify(appState.schedule));
+          localStorage.setItem("gym78_ball_day_v1_announcement", appState.announcement);
+          loaded = true;
+          break;
+        }
       }
+    }
+
+    if (!loaded) {
+      updateSyncStatus("待機中", "sky");
     }
   }
   catch {
@@ -208,9 +293,11 @@ async function syncStateToFirebase(): Promise<void> {
     const payload = {
       schedule: appState.schedule,
       announcement: appState.announcement,
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
+      apdatedAt: new Date().toISOString()
     };
 
+    await firebaseSync.db.collection("app_data").doc("ball_sports_test2_main").set(payload, { merge: true });
     await firebaseSync.db.collection("app_data").doc("ball_sports_data_v4").set(payload, { merge: true });
     await firebaseSync.db.collection("sportsfes").doc("main").set(payload, { merge: true });
     updateSyncStatus("同期済み", "success");

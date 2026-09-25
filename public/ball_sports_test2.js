@@ -9,8 +9,6 @@ const FIREBASE_CONFIG = {
     appId: "1:96596815858:web:5f85526bf785ccc5d8056b",
     measurementId: "G-TCPMRTY3P1"
 };
-const FIREBASE_DOC_ID = "ball_sports_test2_main";
-const FIREBASE_LEGACY_DOC_IDS = ["ball_sports_data_v4", "sportsfes_main", "main"];
 const INITIAL_SCHEDULE = [
     { id: "m1", blockId: "initial_c1_soccer", blockTitle: "第1試合", court: "上グラ", sport: "サッカー", grade: "中1", title: "第一試合", format: "league", teamA: "A", teamB: "B", scoreA: null, scoreB: null, start: "08:20", end: "08:30", referee: "相山", staff: "進行", status: "BEFORE", offsetMins: 0, pointRule: [150, 100, 50, 0] },
     { id: "m1_2", blockId: "initial_c1_soccer", blockTitle: "第1試合", court: "上グラ", sport: "サッカー", grade: "中1", title: "第二試合", format: "league", teamA: "A", teamB: "C", scoreA: null, scoreB: null, start: "08:35", end: "08:45", referee: "相山", staff: "進行", status: "BEFORE", offsetMins: 0, pointRule: [150, 100, 50, 0] },
@@ -105,40 +103,69 @@ function updateSyncStatus(label, tone = "sky") {
         dot.className = `inline-block h-2 w-2 rounded-full ${tone === "success" ? "bg-emerald-500" : tone === "warning" ? "bg-amber-500" : "bg-sky-500"}`;
     }
 }
-function extractRemoteSchedule(data) {
-    if (!data || typeof data !== "object")
-        return null;
-    if (Array.isArray(data.schedule))
-        return data.schedule;
-    if (Array.isArray(data.matches))
-        return data.matches;
-    if (data.data && typeof data.data === "object") {
-        if (Array.isArray(data.data.schedule))
-            return data.data.schedule;
-        if (Array.isArray(data.data.matches))
-            return data.data.matches;
+function decodeStringifiedValue(value) {
+    if (typeof value !== "string")
+        return value;
+    const trimmed = value.trim();
+    if (!trimmed)
+        return "";
+    if ((trimmed.startsWith("\"") && trimmed.endsWith("\"")) || (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
+        try {
+            return JSON.parse(trimmed);
+        }
+        catch {
+            return trimmed.slice(1, -1);
+        }
+    }
+    try {
+        return JSON.parse(trimmed);
+    }
+    catch {
+        return value;
+    }
+}
+function normalizeScheduleEntries(value) {
+    if (Array.isArray(value)) {
+        const parsed = value.map((entry) => typeof entry === "string" ? decodeStringifiedValue(entry) : entry)
+            .filter((entry) => entry !== null && entry !== undefined);
+        if (parsed.length === 0)
+            return null;
+        return parsed.some((entry) => typeof entry === "string") ? null : parsed;
+    }
+    if (typeof value === "string") {
+        try {
+            return normalizeScheduleEntries(JSON.parse(value));
+        }
+        catch {
+            return null;
+        }
     }
     return null;
 }
-function applyRemoteDocumentData(data) {
-    const remoteSchedule = extractRemoteSchedule(data);
-    if (!remoteSchedule || remoteSchedule.length === 0 || !remoteSchedule.every((match) => typeof match === "object"))
-        return false;
-    appState.schedule = normalizeCompetitionSchedule(remoteSchedule);
-    const remoteAnnouncement = typeof data.announcement === "string" ? data.announcement : (typeof data.data?.announcement === "string" ? data.data.announcement : "");
-    appState.announcement = remoteAnnouncement;
-    localStorage.setItem("gym78_ball_day_v1_schedule", JSON.stringify(appState.schedule));
-    localStorage.setItem("gym78_ball_day_v1_announcement", appState.announcement);
-    updateSyncStatus("同期済み", "success");
-    renderCourtDelaySummary();
-    renderTimeline();
-    renderResultsTab();
-    calculateScoresAndRanks();
-    if (appState.announcement)
-        showAnnouncement(appState.announcement);
-    else
-        document.getElementById("announcementBar")?.classList.add("hidden");
-    return true;
+function extractRemoteSchedule(data) {
+    if (!data || typeof data !== "object")
+        return null;
+    const candidates = [
+        data.schedule,
+        data.matches,
+        data.data?.schedule,
+        data.data?.matches,
+        decodeStringifiedValue(data.schedule),
+        decodeStringifiedValue(data.matches),
+        decodeStringifiedValue(data.data?.schedule),
+        decodeStringifiedValue(data.data?.matches)
+    ];
+    for (const candidate of candidates) {
+        const normalized = normalizeScheduleEntries(candidate);
+        if (normalized)
+            return normalized;
+    }
+    return null;
+}
+function normalizeRemoteAnnouncement(data) {
+    const direct = typeof data.announcement === "string" ? data.announcement : (typeof data.data?.announcement === "string" ? data.data.announcement : "");
+    const value = typeof direct === "string" ? decodeStringifiedValue(direct) : "";
+    return typeof value === "string" ? value : "";
 }
 async function initFirebaseSync() {
     if (!window.firebase || !window.firebase.apps)
@@ -152,7 +179,7 @@ async function initFirebaseSync() {
         firebaseSync.online = true;
         updateSyncStatus("同期中", "success");
         const candidates = [
-            { collection: "app_data", doc: FIREBASE_DOC_ID },
+            { collection: "app_data", doc: "ball_sports_test2_main" },
             { collection: "app_data", doc: "ball_sports_data_v4" },
             { collection: "sportsfes", doc: "main" },
             { collection: "app_data", doc: "sportsfes_main" }
@@ -162,17 +189,29 @@ async function initFirebaseSync() {
             const docSnap = await firebaseSync.db.collection(collection).doc(doc).get();
             if (!docSnap.exists)
                 continue;
-            if (applyRemoteDocumentData(docSnap.data())) {
+            const data = docSnap.data() || {};
+            const remoteSchedule = extractRemoteSchedule(data);
+            if (remoteSchedule && remoteSchedule.length > 0 && remoteSchedule.every((match) => typeof match === "object")) {
+                appState.schedule = normalizeCompetitionSchedule(remoteSchedule);
+                appState.announcement = normalizeRemoteAnnouncement(data);
+                localStorage.setItem("gym78_ball_day_v1_schedule", JSON.stringify(appState.schedule));
+                localStorage.setItem("gym78_ball_day_v1_announcement", appState.announcement);
                 loaded = true;
                 break;
             }
         }
         if (!loaded && firebaseSync.db) {
-            for (const docId of FIREBASE_LEGACY_DOC_IDS) {
+            for (const docId of ["ball_sports_test2_main", "ball_sports_data_v4", "sportsfes_main", "main"]) {
                 const legacyDoc = await firebaseSync.db.collection("app_data").doc(docId).get();
                 if (!legacyDoc.exists)
                     continue;
-                if (applyRemoteDocumentData(legacyDoc.data())) {
+                const data = legacyDoc.data() || {};
+                const remoteSchedule = extractRemoteSchedule(data);
+                if (remoteSchedule && remoteSchedule.length > 0 && remoteSchedule.every((match) => typeof match === "object")) {
+                    appState.schedule = normalizeCompetitionSchedule(remoteSchedule);
+                    appState.announcement = normalizeRemoteAnnouncement(data);
+                    localStorage.setItem("gym78_ball_day_v1_schedule", JSON.stringify(appState.schedule));
+                    localStorage.setItem("gym78_ball_day_v1_announcement", appState.announcement);
                     loaded = true;
                     break;
                 }
@@ -195,9 +234,10 @@ async function syncStateToFirebase() {
         const payload = {
             schedule: appState.schedule,
             announcement: appState.announcement,
-            updatedAt: new Date().toISOString()
+            updatedAt: new Date().toISOString(),
+            apdatedAt: new Date().toISOString()
         };
-        await firebaseSync.db.collection("app_data").doc(FIREBASE_DOC_ID).set(payload, { merge: true });
+        await firebaseSync.db.collection("app_data").doc("ball_sports_test2_main").set(payload, { merge: true });
         await firebaseSync.db.collection("app_data").doc("ball_sports_data_v4").set(payload, { merge: true });
         await firebaseSync.db.collection("sportsfes").doc("main").set(payload, { merge: true });
         updateSyncStatus("同期済み", "success");
@@ -210,10 +250,6 @@ document.addEventListener("DOMContentLoaded", () => {
     startClock();
     updateSyncStatus("待機中", "sky");
     initFirebaseSync();
-    setInterval(() => {
-        if (firebaseSync.initialized)
-            syncStateToFirebase();
-    }, 15000);
     renderCourtDelaySummary();
     renderTimeline();
     renderResultsTab();
@@ -263,8 +299,6 @@ function startClock() {
 function saveState() {
     localStorage.setItem("gym78_ball_day_v1_schedule", JSON.stringify(appState.schedule));
     localStorage.setItem("gym78_ball_day_v1_announcement", appState.announcement);
-    if (firebaseSync.initialized)
-        syncStateToFirebase();
 }
 function calcAdjustedTime(timeStr, offsetMins) {
     const [h, m] = timeStr.split(":").map(Number);
