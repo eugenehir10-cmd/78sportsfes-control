@@ -169,6 +169,10 @@ document.addEventListener("DOMContentLoaded", () => {
     startClock();
     updateSyncStatus("待機中", "sky");
     initFirebaseSync();
+    setInterval(() => {
+        if (firebaseSync.initialized)
+            syncStateToFirebase();
+    }, 15000);
     renderCourtDelaySummary();
     renderTimeline();
     renderResultsTab();
@@ -218,6 +222,8 @@ function startClock() {
 function saveState() {
     localStorage.setItem("gym78_ball_day_v1_schedule", JSON.stringify(appState.schedule));
     localStorage.setItem("gym78_ball_day_v1_announcement", appState.announcement);
+    if (firebaseSync.initialized)
+        syncStateToFirebase();
 }
 function calcAdjustedTime(timeStr, offsetMins) {
     const [h, m] = timeStr.split(":").map(Number);
