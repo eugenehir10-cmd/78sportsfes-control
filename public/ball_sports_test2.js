@@ -126,7 +126,8 @@ function decodeStringifiedValue(value) {
 }
 function normalizeScheduleEntries(value) {
     if (Array.isArray(value)) {
-        const parsed = value.map((entry) => typeof entry === "string" ? decodeStringifiedValue(entry) : entry)
+        const parsed = value
+            .map((entry) => typeof entry === "string" ? decodeStringifiedValue(entry) : entry)
             .filter((entry) => entry !== null && entry !== undefined);
         if (parsed.length === 0)
             return null;
@@ -142,18 +143,24 @@ function normalizeScheduleEntries(value) {
     }
     return null;
 }
-function extractRemoteSchedule(data) {
+function getPayloadEnvelope(data) {
     if (!data || typeof data !== "object")
         return null;
+    return data.data && typeof data.data === "object" ? data.data : data;
+}
+function extractRemoteSchedule(data) {
+    const payload = getPayloadEnvelope(data);
+    if (!payload || typeof payload !== "object")
+        return null;
     const candidates = [
-        data.schedule,
-        data.matches,
-        data.data?.schedule,
-        data.data?.matches,
-        decodeStringifiedValue(data.schedule),
-        decodeStringifiedValue(data.matches),
-        decodeStringifiedValue(data.data?.schedule),
-        decodeStringifiedValue(data.data?.matches)
+        payload.schedule,
+        payload.matches,
+        data?.schedule,
+        data?.matches,
+        decodeStringifiedValue(payload.schedule),
+        decodeStringifiedValue(payload.matches),
+        decodeStringifiedValue(data?.schedule),
+        decodeStringifiedValue(data?.matches)
     ];
     for (const candidate of candidates) {
         const normalized = normalizeScheduleEntries(candidate);
@@ -163,9 +170,29 @@ function extractRemoteSchedule(data) {
     return null;
 }
 function normalizeRemoteAnnouncement(data) {
-    const direct = typeof data.announcement === "string" ? data.announcement : (typeof data.data?.announcement === "string" ? data.data.announcement : "");
+    const payload = getPayloadEnvelope(data) || data || {};
+    const direct = typeof payload.announcement === "string" ? payload.announcement : "";
     const value = typeof direct === "string" ? decodeStringifiedValue(direct) : "";
     return typeof value === "string" ? value : "";
+}
+function applyRemoteDocumentData(data) {
+    const remoteSchedule = extractRemoteSchedule(data);
+    if (!remoteSchedule || remoteSchedule.length === 0 || !remoteSchedule.every((match) => typeof match === "object"))
+        return false;
+    appState.schedule = normalizeCompetitionSchedule(remoteSchedule);
+    appState.announcement = normalizeRemoteAnnouncement(data);
+    localStorage.setItem("gym78_ball_day_v1_schedule", JSON.stringify(appState.schedule));
+    localStorage.setItem("gym78_ball_day_v1_announcement", appState.announcement);
+    updateSyncStatus("同期済み", "success");
+    renderCourtDelaySummary();
+    renderTimeline();
+    renderResultsTab();
+    calculateScoresAndRanks();
+    if (appState.announcement)
+        showAnnouncement(appState.announcement);
+    else
+        document.getElementById("announcementBar")?.classList.add("hidden");
+    return true;
 }
 async function initFirebaseSync() {
     if (!window.firebase || !window.firebase.apps)
@@ -178,43 +205,21 @@ async function initFirebaseSync() {
         firebaseSync.initialized = true;
         firebaseSync.online = true;
         updateSyncStatus("同期中", "success");
-        const candidates = [
+        const documentCandidates = [
             { collection: "app_data", doc: "ball_sports_test2_main" },
             { collection: "app_data", doc: "ball_sports_data_v4" },
-            { collection: "sportsfes", doc: "main" },
-            { collection: "app_data", doc: "sportsfes_main" }
+            { collection: "app_data", doc: "sportsfes_main" },
+            { collection: "app_data", doc: "main" },
+            { collection: "sportsfes", doc: "main" }
         ];
         let loaded = false;
-        for (const { collection, doc } of candidates) {
+        for (const { collection, doc } of documentCandidates) {
             const docSnap = await firebaseSync.db.collection(collection).doc(doc).get();
             if (!docSnap.exists)
                 continue;
-            const data = docSnap.data() || {};
-            const remoteSchedule = extractRemoteSchedule(data);
-            if (remoteSchedule && remoteSchedule.length > 0 && remoteSchedule.every((match) => typeof match === "object")) {
-                appState.schedule = normalizeCompetitionSchedule(remoteSchedule);
-                appState.announcement = normalizeRemoteAnnouncement(data);
-                localStorage.setItem("gym78_ball_day_v1_schedule", JSON.stringify(appState.schedule));
-                localStorage.setItem("gym78_ball_day_v1_announcement", appState.announcement);
+            if (applyRemoteDocumentData(docSnap.data())) {
                 loaded = true;
                 break;
-            }
-        }
-        if (!loaded && firebaseSync.db) {
-            for (const docId of ["ball_sports_test2_main", "ball_sports_data_v4", "sportsfes_main", "main"]) {
-                const legacyDoc = await firebaseSync.db.collection("app_data").doc(docId).get();
-                if (!legacyDoc.exists)
-                    continue;
-                const data = legacyDoc.data() || {};
-                const remoteSchedule = extractRemoteSchedule(data);
-                if (remoteSchedule && remoteSchedule.length > 0 && remoteSchedule.every((match) => typeof match === "object")) {
-                    appState.schedule = normalizeCompetitionSchedule(remoteSchedule);
-                    appState.announcement = normalizeRemoteAnnouncement(data);
-                    localStorage.setItem("gym78_ball_day_v1_schedule", JSON.stringify(appState.schedule));
-                    localStorage.setItem("gym78_ball_day_v1_announcement", appState.announcement);
-                    loaded = true;
-                    break;
-                }
             }
         }
         if (!loaded) {
@@ -237,9 +242,13 @@ async function syncStateToFirebase() {
             updatedAt: new Date().toISOString(),
             apdatedAt: new Date().toISOString()
         };
-        await firebaseSync.db.collection("app_data").doc("ball_sports_test2_main").set(payload, { merge: true });
-        await firebaseSync.db.collection("app_data").doc("ball_sports_data_v4").set(payload, { merge: true });
-        await firebaseSync.db.collection("sportsfes").doc("main").set(payload, { merge: true });
+        const wrapped = {
+            data: payload,
+            ...payload
+        };
+        await firebaseSync.db.collection("app_data").doc("ball_sports_test2_main").set(wrapped, { merge: true });
+        await firebaseSync.db.collection("app_data").doc("ball_sports_data_v4").set(wrapped, { merge: true });
+        await firebaseSync.db.collection("sportsfes").doc("main").set(wrapped, { merge: true });
         updateSyncStatus("同期済み", "success");
     }
     catch {
