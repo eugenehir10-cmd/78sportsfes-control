@@ -111,16 +111,35 @@ async function initFirebaseSync() {
         firebaseSync.initialized = true;
         firebaseSync.online = true;
         updateSyncStatus("同期中", "success");
-        const docSnap = await firebaseSync.db.collection("sportsfes").doc("main").get();
-        if (docSnap.exists && Array.isArray(docSnap.data()?.schedule)) {
-            const remoteSchedule = docSnap.data().schedule;
-            if (remoteSchedule.length > 0 && remoteSchedule.every((match) => typeof match === "object")) {
+
+        const candidates = [
+            { collection: "sportsfes", doc: "main" },
+            { collection: "app_data", doc: "ball_sports_data_v4" }
+        ];
+
+        let loaded = false;
+        for (const { collection, doc } of candidates) {
+            const docSnap = await firebaseSync.db.collection(collection).doc(doc).get();
+            if (!docSnap.exists) continue;
+
+            const data = docSnap.data() || {};
+            const remoteSchedule = Array.isArray(data.schedule) ? data.schedule : Array.isArray(data.matches) ? data.matches : null;
+            if (remoteSchedule && remoteSchedule.length > 0 && remoteSchedule.every((match) => typeof match === "object")) {
                 appState.schedule = normalizeCompetitionSchedule(remoteSchedule);
-                const remoteAnnouncement = docSnap.data()?.announcement ?? "";
-                if (typeof remoteAnnouncement === "string")
-                    appState.announcement = remoteAnnouncement;
+                const remoteAnnouncement = typeof data.announcement === "string" ? data.announcement : "";
+                appState.announcement = remoteAnnouncement;
                 localStorage.setItem("gym78_ball_day_v1_schedule", JSON.stringify(appState.schedule));
                 localStorage.setItem("gym78_ball_day_v1_announcement", appState.announcement);
+                loaded = true;
+                break;
+            }
+        }
+
+        if (!loaded && firebaseSync.db) {
+            const legacyDoc = await firebaseSync.db.collection("sportsfes").doc("main").get();
+            if (legacyDoc.exists && Array.isArray(legacyDoc.data()?.schedule)) {
+                const remoteSchedule = legacyDoc.data().schedule;
+                appState.schedule = normalizeCompetitionSchedule(remoteSchedule);
             }
         }
     }
@@ -134,11 +153,14 @@ async function syncStateToFirebase() {
     if (!firebaseSync.db || !firebaseSync.initialized)
         return;
     try {
-        await firebaseSync.db.collection("sportsfes").doc("main").set({
+        const payload = {
             schedule: appState.schedule,
             announcement: appState.announcement,
-            updatedAt: new Date().toISOString() 
-        }, { merge: true });
+            updatedAt: new Date().toISOString()
+        };
+
+        await firebaseSync.db.collection("app_data").doc("ball_sports_data_v4").set(payload, { merge: true });
+        await firebaseSync.db.collection("sportsfes").doc("main").set(payload, { merge: true });
         updateSyncStatus("同期済み", "success");
     }
     catch {
