@@ -233,9 +233,13 @@ function normalizeRemoteAnnouncement(data: any): string {
 
 function applyRemoteDocumentData(data: any): boolean {
   const remoteSchedule = extractRemoteSchedule(data);
-  if (!remoteSchedule || remoteSchedule.length === 0 || !remoteSchedule.every((match: any) => typeof match === "object")) return false;
+  if (!remoteSchedule || !Array.isArray(remoteSchedule) || remoteSchedule.length === 0) {
+    console.warn("[同期] 有効なスケジュールなし");
+    return false;
+  }
 
-  appState.schedule = normalizeCompetitionSchedule(remoteSchedule);
+  const needsNormalize = remoteSchedule.some((match: any) => !match.blockId);
+  appState.schedule = needsNormalize ? normalizeCompetitionSchedule(remoteSchedule) : remoteSchedule;
   appState.announcement = normalizeRemoteAnnouncement(data);
   localStorage.setItem("gym78_ball_day_v1_schedule", JSON.stringify(appState.schedule));
   localStorage.setItem("gym78_ball_day_v1_announcement", appState.announcement);
@@ -246,6 +250,7 @@ function applyRemoteDocumentData(data: any): boolean {
   calculateScoresAndRanks();
   if (appState.announcement) showAnnouncement(appState.announcement);
   else document.getElementById("announcementBar")?.classList.add("hidden");
+  console.log("[同期完了]", appState.schedule.length, "件");
   return true;
 }
 
@@ -280,11 +285,11 @@ async function initFirebaseSync(): Promise<void> {
     firebaseSync.db = firebase.firestore(firebaseSync.app);
     firebaseSync.initialized = true;
     firebaseSync.online = true;
-    updateSyncStatus("同期中", "success");
+    updateSyncStatus("接続中", "sky");
 
     const documentCandidates = [
-      { collection: "app_data", doc: "ball_sports_test2_main" },
       { collection: "app_data", doc: "ball_sports_data_v4" },
+      { collection: "app_data", doc: "ball_sports_test2_main" },
       { collection: "app_data", doc: "sportsfes_main" },
       { collection: "app_data", doc: "main" },
       { collection: "sportsfes", doc: "main" }
@@ -292,21 +297,28 @@ async function initFirebaseSync(): Promise<void> {
 
     let loaded = false;
     for (const { collection, doc } of documentCandidates) {
-      const docSnap = await firebaseSync.db.collection(collection).doc(doc).get();
-      if (!docSnap.exists) continue;
-      if (applyRemoteDocumentData(docSnap.data())) {
-        loaded = true;
-        break;
+      try {
+        const docSnap = await firebaseSync.db.collection(collection).doc(doc).get();
+        if (docSnap.exists && applyRemoteDocumentData(docSnap.data())) {
+          loaded = true;
+          console.log("[Firebase] ロード元:", `${collection}/${doc}`);
+          break;
+        }
+      }
+      catch (e) {
+        console.warn(`[Firebase] ${collection}/${doc} 読込スキップ:`, e);
       }
     }
 
     if (!loaded) {
-      updateSyncStatus("待機中", "sky");
+      updateSyncStatus("ローカルモード", "warning");
+      console.log("[Firebase] リモートデータなし、ローカルデータを使用");
     }
 
     subscribeToRemoteData();
   }
-  catch {
+  catch (err) {
+    console.error("[Firebase 初期化失敗]", err);
     firebaseSync.initialized = false;
     firebaseSync.online = false;
     updateSyncStatus("オフライン", "warning");
@@ -320,20 +332,15 @@ async function syncStateToFirebase(): Promise<void> {
     const payload = {
       schedule: appState.schedule,
       announcement: appState.announcement,
-      updatedAt: new Date().toISOString(),
-      apdatedAt: new Date().toISOString()
-    };
-    const wrapped = {
-      data: payload,
-      ...payload
+      updatedAt: new Date().toISOString()
     };
 
-    await firebaseSync.db.collection("app_data").doc("ball_sports_test2_main").set(wrapped, { merge: true });
-    await firebaseSync.db.collection("app_data").doc("ball_sports_data_v4").set(wrapped, { merge: true });
-    await firebaseSync.db.collection("sportsfes").doc("main").set(wrapped, { merge: true });
+    const mainDoc = firebaseSync.db.collection("app_data").doc("ball_sports_data_v4");
+    await mainDoc.set(payload, { merge: true });
     updateSyncStatus("同期済み", "success");
   }
-  catch {
+  catch (err) {
+    console.error("[Firebase 同期エラー]", err);
     updateSyncStatus("同期失敗", "warning");
   }
 }
@@ -390,9 +397,12 @@ function startClock(): void {
   requestAnimationFrame(update);
 }
 
+const originalSaveState = saveState;
 function saveState(): void {
-  localStorage.setItem("gym78_ball_day_v1_schedule", JSON.stringify(appState.schedule));
-  localStorage.setItem("gym78_ball_day_v1_announcement", appState.announcement);
+  originalSaveState();
+  if (firebaseSync.initialized) {
+    syncStateToFirebase().catch((err) => console.warn("[自動同期スキップ]", err));
+  }
 }
 
 function calcAdjustedTime(timeStr: string, offsetMins: number): string {
