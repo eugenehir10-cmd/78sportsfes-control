@@ -397,9 +397,9 @@ function startClock(): void {
   requestAnimationFrame(update);
 }
 
-const originalSaveState = saveState;
 function saveState(): void {
-  originalSaveState();
+  localStorage.setItem("gym78_ball_day_v1_schedule", JSON.stringify(appState.schedule));
+  localStorage.setItem("gym78_ball_day_v1_announcement", appState.announcement);
   if (firebaseSync.initialized) {
     syncStateToFirebase().catch((err) => console.warn("[自動同期スキップ]", err));
   }
