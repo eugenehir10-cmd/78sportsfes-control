@@ -9,6 +9,8 @@ const FIREBASE_CONFIG = {
     appId: "1:96596815858:web:5f85526bf785ccc5d8056b",
     measurementId: "G-TCPMRTY3P1"
 };
+const FIREBASE_DOC_ID = "ball_sports_test2_main";
+const FIREBASE_LEGACY_DOC_IDS = ["ball_sports_data_v4", "sportsfes_main", "main"];
 const INITIAL_SCHEDULE = [
     { id: "m1", blockId: "initial_c1_soccer", blockTitle: "第1試合", court: "上グラ", sport: "サッカー", grade: "中1", title: "第一試合", format: "league", teamA: "A", teamB: "B", scoreA: null, scoreB: null, start: "08:20", end: "08:30", referee: "相山", staff: "進行", status: "BEFORE", offsetMins: 0, pointRule: [150, 100, 50, 0] },
     { id: "m1_2", blockId: "initial_c1_soccer", blockTitle: "第1試合", court: "上グラ", sport: "サッカー", grade: "中1", title: "第二試合", format: "league", teamA: "A", teamB: "C", scoreA: null, scoreB: null, start: "08:35", end: "08:45", referee: "相山", staff: "進行", status: "BEFORE", offsetMins: 0, pointRule: [150, 100, 50, 0] },
@@ -150,6 +152,7 @@ async function initFirebaseSync() {
         firebaseSync.online = true;
         updateSyncStatus("同期中", "success");
         const candidates = [
+            { collection: "app_data", doc: FIREBASE_DOC_ID },
             { collection: "app_data", doc: "ball_sports_data_v4" },
             { collection: "sportsfes", doc: "main" },
             { collection: "app_data", doc: "sportsfes_main" }
@@ -165,11 +168,13 @@ async function initFirebaseSync() {
             }
         }
         if (!loaded && firebaseSync.db) {
-            const legacyDoc = await firebaseSync.db.collection("sportsfes").doc("main").get();
-            if (legacyDoc.exists && legacyDoc.data()) {
-                const legacyData = legacyDoc.data();
-                if (applyRemoteDocumentData(legacyData)) {
+            for (const docId of FIREBASE_LEGACY_DOC_IDS) {
+                const legacyDoc = await firebaseSync.db.collection("app_data").doc(docId).get();
+                if (!legacyDoc.exists)
+                    continue;
+                if (applyRemoteDocumentData(legacyDoc.data())) {
                     loaded = true;
+                    break;
                 }
             }
         }
@@ -192,6 +197,7 @@ async function syncStateToFirebase() {
             announcement: appState.announcement,
             updatedAt: new Date().toISOString()
         };
+        await firebaseSync.db.collection("app_data").doc(FIREBASE_DOC_ID).set(payload, { merge: true });
         await firebaseSync.db.collection("app_data").doc("ball_sports_data_v4").set(payload, { merge: true });
         await firebaseSync.db.collection("sportsfes").doc("main").set(payload, { merge: true });
         updateSyncStatus("同期済み", "success");
