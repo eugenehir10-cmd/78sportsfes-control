@@ -51,29 +51,80 @@ function parseTimeMinutes(value) {
         return 0;
     return hours * 60 + minutes;
 }
+function normalizeLegacyStatus(status) {
+    const value = String(status ?? "").toLowerCase();
+    if (["done", "finished", "complete", "end", "ended"].includes(value) || value === "fin")
+        return "FINISHED";
+    if (["live", "in_progress", "inprogress", "running", "now"].includes(value) || value === "progress")
+        return "IN_PROGRESS";
+    return "BEFORE";
+}
+function normalizeScheduleEntry(source) {
+    if (!source || typeof source !== "object")
+        return null;
+    const legacyCourt = source.court ?? source.venue ?? source.place ?? source.location ?? "上グラ";
+    const courtMap = { "上グラウンド": "上グラ", "下グラウンド": "下グラ", "上グラ": "上グラ", "下グラ": "下グラ" };
+    const court = courtMap[String(legacyCourt)] ?? String(legacyCourt);
+    const grade = source.grade ?? "中1";
+    const sport = source.sport ?? "球技";
+    const title = source.title ?? source.blockTitle ?? "試合";
+    const blockTitle = source.blockTitle ?? (typeof title === "string" && title.includes("試合") ? title : "試合");
+    const blockId = source.blockId ?? `block_${source.id ?? Date.now()}`;
+    const startValue = typeof source.start === "string" ? source.start : typeof source.time === "string" ? source.time : "08:00";
+    const durationValue = Number.isFinite(Number(source.duration)) ? Number(source.duration) : 30;
+    const endValue = typeof source.end === "string" ? source.end : addMinutesToTime(startValue, durationValue);
+    const format = ["league", "tournament", "single", "table_tennis_round_robin", "exhibition"].includes(source.format)
+        ? source.format
+        : (source.type === "tournament" ? "tournament" : "league");
+    return {
+        ...source,
+        id: typeof source.id === "string" ? source.id : `${blockId}_${Date.now()}`,
+        blockId,
+        blockTitle,
+        court,
+        sport,
+        grade,
+        title,
+        format,
+        teamA: source.teamA ?? source.rank1 ?? source.team_a ?? "A",
+        teamB: source.teamB ?? source.rank2 ?? source.team_b ?? "B",
+        scoreA: source.scoreA ?? null,
+        scoreB: source.scoreB ?? null,
+        referee: source.referee ?? "",
+        staff: source.staff ?? "",
+        start: startValue,
+        end: endValue,
+        status: normalizeLegacyStatus(source.status),
+        offsetMins: Number.isFinite(Number(source.offsetMins)) ? Number(source.offsetMins) : Number.isFinite(Number(source.delay)) ? Number(source.delay) : 0,
+        pointRule: Array.isArray(source.pointRule) ? source.pointRule : [150, 100, 50, 0]
+    };
+}
 function normalizeCompetitionSchedule(sourceSchedule) {
     const normalized = [];
     sourceSchedule.forEach((source) => {
         if (!source || typeof source !== "object")
             return;
+        const canonical = normalizeScheduleEntry(source);
+        if (!canonical)
+            return;
         if (source.blockId) {
-            normalized.push(source);
+            normalized.push(canonical);
             return;
         }
-        const blockId = `block_${source.id}`;
-        const blockTitle = "第1試合";
-        const startValue = typeof source.start === "string" ? source.start : typeof source.startTime === "string" ? source.startTime : "08:00";
-        const endValue = typeof source.end === "string" ? source.end : typeof source.endTime === "string" ? source.endTime : addMinutesToTime(startValue, 30);
+        const blockId = `block_${canonical.id ?? Date.now()}`;
+        const blockTitle = canonical.blockTitle || "第1試合";
+        const startValue = canonical.start || "08:00";
+        const endValue = canonical.end || addMinutesToTime(startValue, 30);
         const startMinutes = parseTimeMinutes(startValue);
         const endMinutes = parseTimeMinutes(endValue);
         const duration = Math.max(10, Math.round(Math.max(endMinutes - startMinutes, 30)));
-        const definitions = source.format === "tournament"
+        const definitions = canonical.format === "tournament"
             ? [["準決勝1", "A", "B"], ["準決勝2", "C", "D"], ["3位決定戦", "準決勝1の敗者", "準決勝2の敗者"], ["決勝", "準決勝1の勝者", "準決勝2の勝者"]]
             : LEAGUE_PAIRS.map((pair, index) => [`第${index + 1}試合`, pair[0], pair[1]]);
         definitions.forEach((definition, index) => {
             const start = addMinutesToTime(startValue, index * (duration + 5));
             normalized.push({
-                ...source,
+                ...canonical,
                 id: `${blockId}_${index + 1}`,
                 blockId,
                 blockTitle,
@@ -85,7 +136,7 @@ function normalizeCompetitionSchedule(sourceSchedule) {
                 start,
                 end: addMinutesToTime(start, duration),
                 offsetMins: 0,
-                pointRule: source.pointRule ?? [150, 100, 50, 0]
+                pointRule: canonical.pointRule ?? [150, 100, 50, 0]
             });
         });
     });
@@ -99,10 +150,15 @@ function loadPersistedSchedule() {
         const parsed = JSON.parse(raw);
         if (!Array.isArray(parsed) || parsed.length === 0)
             return INITIAL_SCHEDULE;
-        if (parsed.some((match) => match && typeof match === "object" && match.blockId))
-            return parsed;
-        const normalized = normalizeCompetitionSchedule(parsed);
-        return normalized.length > 0 ? normalized : INITIAL_SCHEDULE;
+        const normalized = parsed
+            .map((entry) => normalizeScheduleEntry(entry))
+            .filter((entry) => entry !== null && entry !== undefined);
+        if (normalized.length === 0)
+            return INITIAL_SCHEDULE;
+        if (normalized.some((match) => match.blockId))
+            return normalized;
+        const competitionSchedule = normalizeCompetitionSchedule(normalized);
+        return competitionSchedule.length > 0 ? competitionSchedule : INITIAL_SCHEDULE;
     }
     catch {
         return INITIAL_SCHEDULE;
@@ -510,10 +566,8 @@ function renderTimeline() {
         Object.keys(groups).forEach((gKey) => {
             const matches = groups[gKey].sort((a, b) => a.start.localeCompare(b.start));
             const firstMatch = matches[0];
-            const groupLabel = firstMatch.blockId
-                ? `${firstMatch.blockTitle ?? "第1試合"}（${firstMatch.grade} ${firstMatch.sport}）`
-                : `第1試合（${firstMatch.grade} ${firstMatch.sport}）`;
-            const isExpanded = appState.expandedGroups[gKey] === true;
+            const groupLabel = `${firstMatch.grade} / ${firstMatch.sport} / ${firstMatch.blockTitle ?? firstMatch.title ?? "試合"}`;
+            const isExpanded = appState.expandedGroups[gKey] !== false;
             const finishedCount = matches.filter((m) => m.status === "FINISHED").length;
             const inProgressCount = matches.filter((m) => m.status === "IN_PROGRESS").length;
             const groupCard = document.createElement("div");
