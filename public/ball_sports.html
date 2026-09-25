@@ -426,7 +426,7 @@
           this.setStatus('online', 'オンライン');
         } catch (e) {
           console.warn('Firestore保存失敗:', e);
-          this.setStatus('offline', 'オフライン');
+          this.setStatus('syncing', '待機中');
         }
       },
       async load(key, defaultValue) {
@@ -450,7 +450,7 @@
           }
         } catch (e) {
           console.warn('Firestore読込失敗:', e);
-          this.setStatus('offline', 'オフライン');
+          this.setStatus('syncing', '待機中');
         }
         return localData;
       },
@@ -464,7 +464,7 @@
           }
         }, err => {
           console.warn('同期エラー:', err);
-          this.setStatus('offline', 'オフライン');
+          this.setStatus('syncing', '待機中');
         });
       },
       async addHistory(entry) {
