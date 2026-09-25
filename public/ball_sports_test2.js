@@ -103,6 +103,41 @@ function updateSyncStatus(label, tone = "sky") {
         dot.className = `inline-block h-2 w-2 rounded-full ${tone === "success" ? "bg-emerald-500" : tone === "warning" ? "bg-amber-500" : "bg-sky-500"}`;
     }
 }
+function extractRemoteSchedule(data) {
+    if (!data || typeof data !== "object")
+        return null;
+    if (Array.isArray(data.schedule))
+        return data.schedule;
+    if (Array.isArray(data.matches))
+        return data.matches;
+    if (data.data && typeof data.data === "object") {
+        if (Array.isArray(data.data.schedule))
+            return data.data.schedule;
+        if (Array.isArray(data.data.matches))
+            return data.data.matches;
+    }
+    return null;
+}
+function applyRemoteDocumentData(data) {
+    const remoteSchedule = extractRemoteSchedule(data);
+    if (!remoteSchedule || remoteSchedule.length === 0 || !remoteSchedule.every((match) => typeof match === "object"))
+        return false;
+    appState.schedule = normalizeCompetitionSchedule(remoteSchedule);
+    const remoteAnnouncement = typeof data.announcement === "string" ? data.announcement : (typeof data.data?.announcement === "string" ? data.data.announcement : "");
+    appState.announcement = remoteAnnouncement;
+    localStorage.setItem("gym78_ball_day_v1_schedule", JSON.stringify(appState.schedule));
+    localStorage.setItem("gym78_ball_day_v1_announcement", appState.announcement);
+    updateSyncStatus("同期済み", "success");
+    renderCourtDelaySummary();
+    renderTimeline();
+    renderResultsTab();
+    calculateScoresAndRanks();
+    if (appState.announcement)
+        showAnnouncement(appState.announcement);
+    else
+        document.getElementById("announcementBar")?.classList.add("hidden");
+    return true;
+}
 async function initFirebaseSync() {
     if (!window.firebase || !window.firebase.apps)
         return;
@@ -115,45 +150,31 @@ async function initFirebaseSync() {
         firebaseSync.online = true;
         updateSyncStatus("同期中", "success");
         const candidates = [
+            { collection: "app_data", doc: "ball_sports_data_v4" },
             { collection: "sportsfes", doc: "main" },
-            { collection: "app_data", doc: "ball_sports_data_v4" }
+            { collection: "app_data", doc: "sportsfes_main" }
         ];
         let loaded = false;
         for (const { collection, doc } of candidates) {
             const docSnap = await firebaseSync.db.collection(collection).doc(doc).get();
             if (!docSnap.exists)
                 continue;
-            const data = docSnap.data() || {};
-            const remoteSchedule = Array.isArray(data.schedule) ? data.schedule : Array.isArray(data.matches) ? data.matches : null;
-            if (remoteSchedule && remoteSchedule.length > 0 && remoteSchedule.every((match) => typeof match === "object")) {
-                appState.schedule = normalizeCompetitionSchedule(remoteSchedule);
-                const remoteAnnouncement = typeof data.announcement === "string" ? data.announcement : "";
-                appState.announcement = remoteAnnouncement;
-                localStorage.setItem("gym78_ball_day_v1_schedule", JSON.stringify(appState.schedule));
-                localStorage.setItem("gym78_ball_day_v1_announcement", appState.announcement);
+            if (applyRemoteDocumentData(docSnap.data())) {
                 loaded = true;
-                updateSyncStatus("同期済み", "success");
-                renderCourtDelaySummary();
-                renderTimeline();
-                renderResultsTab();
-                calculateScoresAndRanks();
-                if (appState.announcement)
-                    showAnnouncement(appState.announcement);
-                else
-                    document.getElementById("announcementBar")?.classList.add("hidden");
                 break;
             }
         }
         if (!loaded && firebaseSync.db) {
             const legacyDoc = await firebaseSync.db.collection("sportsfes").doc("main").get();
-            if (legacyDoc.exists && Array.isArray(legacyDoc.data()?.schedule)) {
-                appState.schedule = normalizeCompetitionSchedule(legacyDoc.data().schedule);
-                updateSyncStatus("同期済み", "success");
-                renderCourtDelaySummary();
-                renderTimeline();
-                renderResultsTab();
-                calculateScoresAndRanks();
+            if (legacyDoc.exists && legacyDoc.data()) {
+                const legacyData = legacyDoc.data();
+                if (applyRemoteDocumentData(legacyData)) {
+                    loaded = true;
+                }
             }
+        }
+        if (!loaded) {
+            updateSyncStatus("待機中", "sky");
         }
     }
     catch {
