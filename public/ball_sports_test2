@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第78回体育祭 球技日 進行管理＆本部ダッシュボード</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @keyframes pulse-red {
+            0%, 100% { background-color: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.8); }
+            50% { background-color: rgba(239, 68, 68, 0.35); border-color: rgba(220, 38, 38, 1); }
+        }
+        .delay-alert {
+            animation: pulse-red 2s infinite;
+        }
+        .high-contrast {
+            background-color: #000000 !important;
+            color: #ffffff !important;
+        }
+        .high-contrast .bg-card {
+            background-color: #1a1a1a !important;
+            border: 2px solid #ffffff !important;
+            color: #ffffff !important;
+        }
+        .high-contrast .text-muted {
+            color: #cccccc !important;
+        }
+        /* Marquee Text Animation */
+        @keyframes marquee {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+        .animate-marquee {
+            display: inline-block;
+            white-space: nowrap;
+            animation: marquee 25s linear infinite;
+        }
+        .animate-marquee:hover {
+            animation-play-state: paused;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #a8a8a8;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #787878;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans min-h-screen flex flex-col transition-colors duration-200" id="mainBody">
+
+    <!-- 緊急アナウンス テロップバー -->
+    <div id="announcementBar" class="bg-red-600 text-white font-bold py-1 px-4 overflow-hidden shadow-inner hidden">
+        <div class="flex items-center max-w-7xl mx-auto">
+            <span class="bg-white text-red-700 px-2 py-0.5 rounded text-xs mr-3 flex-shrink-0 font-extrabold flex items-center gap-1">
+                <i class="fa-solid fa-triangle-exclamation"></i> 本部緊急連絡
+            </span>
+            <div class="overflow-hidden w-full relative h-6 flex items-center">
+                <p id="announcementText" class="animate-marquee text-sm tracking-wide"></p>
+            </div>
+            <button onclick="dismissAnnouncement()" class="text-white hover:text-red-200 ml-2 flex-shrink-0">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- ヘッダー -->
+    <header class="bg-slate-900 text-white shadow-lg sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="bg-indigo-600 p-2 rounded-lg text-white font-black text-xl shadow">
+                    <i class="fa-solid fa-trophy"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold leading-none flex items-center gap-2">
+                        第78回体育祭 <span class="bg-indigo-800 text-indigo-200 text-xs px-2 py-0.5 rounded-full font-semibold">球技日 進行管理</span>
+                    </h1>
+                    <p class="text-xs text-slate-400 mt-1">リアルタイム遅延調整 & 担当者・得点本部集計システム</p>
+                </div>
+            </div>
+
+            <!-- 現在時間（ミリ秒表示） & 屋外モード切替 -->
+            <div class="flex items-center space-x-4">
+                <div class="bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg text-right shadow-inner">
+                    <div class="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">現在時刻 (ミリ秒)</div>
+                    <div id="clockDisplay" class="text-lg font-mono font-bold text-amber-400 tracking-wider">00:00:00.<span class="text-xs">000</span></div>
+                </div>
+
+                <button onclick="toggleHighContrast()" class="bg-slate-700 hover:bg-slate-600 text-xs text-slate-200 font-semibold py-2 px-3 rounded-lg border border-slate-600 transition flex items-center gap-1.5" title="日光下での視認性向上">
+                    <i class="fa-solid fa-circle-half-stroke"></i>
+                    <span class="hidden sm:inline">屋外高コントラスト</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- ナビゲーションタブ -->
+        <div class="bg-slate-800 border-t border-slate-700 px-4">
+            <div class="max-w-7xl mx-auto flex space-x-1 overflow-x-auto text-sm font-medium">
+                <button onclick="switchTab('timeline')" id="tab-timeline" class="tab-btn px-4 py-2.5 border-b-2 border-indigo-500 text-indigo-400 flex items-center gap-2 whitespace-nowrap font-bold">
+                    <i class="fa-solid fa-calendar-days"></i> タイムテーブル・遅延管理
+                </button>
+                <button onclick="switchTab('gantt')" id="tab-gantt" class="tab-btn px-4 py-2.5 border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 whitespace-nowrap">
+                    <i class="fa-solid fa-chart-gantt"></i> ガントチャート視覚化
+                </button>
+                <button onclick="switchTab('scores')" id="tab-scores" class="tab-btn px-4 py-2.5 border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 whitespace-nowrap">
+                    <i class="fa-solid fa-ranking-star"></i> 結果入力 & ABCD組得点
+                </button>
+                <button onclick="switchTab('admin')" id="tab-admin" class="tab-btn px-4 py-2.5 border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 whitespace-nowrap text-amber-400 font-bold">
+                    <i class="fa-solid fa-lock"></i> 本部ダッシュボード
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- メインコンテンツ -->
+    <main class="max-w-7xl mx-auto px-4 py-6 flex-grow w-full">
+
+        <!-- TAB 1: タイムテーブル・遅延管理 -->
+        <section id="sec-timeline" class="space-y-6">
+            <!-- 上部フィルター & コントロール -->
+            <div class="bg-white rounded-xl shadow p-4 border border-slate-200 flex flex-wrap justify-between items-center gap-4 bg-card">
+                <div class="flex flex-wrap items-center gap-3">
+                    <span class="text-xs font-bold text-slate-500 uppercase">表示フィルター:</span>
+                    <select id="courtFilter" onchange="renderSchedule()" class="bg-slate-50 border border-slate-300 rounded-lg text-sm px-3 py-1.5 font-medium text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none">
+                        <option value="ALL">全コート（6コート）</option>
+                        <option value="上グラ">上グラ (サッカー)</option>
+                        <option value="下グラ">下グラ (サッカー/アルティメット/野球)</option>
+                        <option value="体育館">体育館 (バスケ)</option>
+                        <option value="ハード">ハードコート (バレー)</option>
+                        <option value="オムニ">オムニコート (ドッジ/アルティメット)</option>
+                        <option value="卓球場">卓球場 (卓球)</option>
+                    </select>
+
+                    <select id="statusFilter" onchange="renderSchedule()" class="bg-slate-50 border border-slate-300 rounded-lg text-sm px-3 py-1.5 font-medium text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none">
+                        <option value="ALL">全てのステータス</option>
+                        <option value="DELAYED">遅延発生中のみ</option>
+                        <option value="ONGOING">進行中のみ</option>
+                        <option value="UPCOMING">開始前</option>
+                        <option value="FINISHED">終了済み</option>
+                    </select>
+                </div>
+
+                <div class="flex items-center gap-2 text-xs text-slate-500 font-medium">
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 bg-emerald-500 rounded-full inline-block"></span> 進行中</span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 bg-red-500 rounded-full inline-block"></span> 遅延中</span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 bg-slate-300 rounded-full inline-block"></span> 終了</span>
+                </div>
+            </div>
+
+            <!-- 試合タイムテーブルカードグリッド -->
+            <div id="scheduleGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- JavaScriptで動的生成 -->
+            </div>
+        </section>
+
+        <!-- TAB 2: ガントチャート視覚化 -->
+        <section id="sec-gantt" class="hidden space-y-6">
+            <div class="bg-white rounded-xl shadow p-5 border border-slate-200 bg-card">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-chart-gantt text-indigo-600"></i> 各コート進行状況タイムライン (08:00 - 16:00)
+                    </h2>
+                    <div class="text-xs text-slate-500 flex items-center gap-2">
+                        <span class="inline-block w-2.5 h-2.5 bg-red-500 rounded-full animate-ping"></span>
+                        赤い垂直線は現在の時間を示します
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto relative">
+                    <div id="ganttChartContainer" class="min-w-[800px] pt-6 pb-2">
+                        <!-- JavaScriptで動的レンダリング -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: 結果入力 & ABCD組得点集計 -->
+        <section id="sec-scores" class="hidden space-y-6">
+            <!-- 総合得点順位ボード -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div id="card-score-A" class="bg-white rounded-xl shadow p-4 border-t-4 border-red-500 bg-card text-center">
+                    <div class="text-xs font-bold text-red-600 uppercase tracking-wider">A 組</div>
+                    <div class="text-3xl font-black text-slate-800 my-1" id="totalScoreA">0 <span class="text-xs font-normal text-slate-500">pt</span></div>
+                    <div class="text-xs text-slate-500" id="rankA">順位: - 位</div>
+                </div>
+                <div id="card-score-B" class="bg-white rounded-xl shadow p-4 border-t-4 border-blue-500 bg-card text-center">
+                    <div class="text-xs font-bold text-blue-600 uppercase tracking-wider">B 組</div>
+                    <div class="text-3xl font-black text-slate-800 my-1" id="totalScoreB">0 <span class="text-xs font-normal text-slate-500">pt</span></div>
+                    <div class="text-xs text-slate-500" id="rankB">順位: - 位</div>
+                </div>
+                <div id="card-score-C" class="bg-white rounded-xl shadow p-4 border-t-4 border-yellow-500 bg-card text-center">
+                    <div class="text-xs font-bold text-yellow-600 uppercase tracking-wider">C 組</div>
+                    <div class="text-3xl font-black text-slate-800 my-1" id="totalScoreC">0 <span class="text-xs font-normal text-slate-500">pt</span></div>
+                    <div class="text-xs text-slate-500" id="rankC">順位: - 位</div>
+                </div>
+                <div id="card-score-D" class="bg-white rounded-xl shadow p-4 border-t-4 border-green-500 bg-card text-center">
+                    <div class="text-xs font-bold text-green-600 uppercase tracking-wider">D 組</div>
+                    <div class="text-3xl font-black text-slate-800 my-1" id="totalScoreD">0 <span class="text-xs font-normal text-slate-500">pt</span></div>
+                    <div class="text-xs text-slate-500" id="rankD">順位: - 位</div>
+                </div>
+            </div>
+
+            <!-- 学年・競技別 最終順位入力フォーム -->
+            <div class="bg-white rounded-xl shadow border border-slate-200 overflow-hidden bg-card">
+                <div class="bg-slate-800 text-white px-5 py-3.5 font-bold text-sm flex justify-between items-center">
+                    <span><i class="fa-solid fa-list-check text-indigo-400 mr-2"></i> 学年・競技別 最終順位結果入力</span>
+                    <span class="text-xs text-slate-400 font-normal">順位に応じて点数が自動加算されます</span>
+                </div>
+                <div class="p-5 overflow-x-auto">
+                    <table class="w-full text-sm text-left">
+                        <thead class="text-xs text-slate-600 uppercase bg-slate-100 border-b border-slate-200">
+                            <tr>
+                                <th class="px-4 py-3 font-bold">学年・競技</th>
+                                <th class="px-4 py-3 font-bold text-amber-600">🥇 1位 (100pt)</th>
+                                <th class="px-4 py-3 font-bold text-slate-500">🥈 2位 (75pt)</th>
+                                <th class="px-4 py-3 font-bold text-amber-800">🥉 3位 (50pt)</th>
+                                <th class="px-4 py-3 font-bold text-slate-400">4位 (25pt)</th>
+                                <th class="px-4 py-3 font-bold text-center">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="scoreInputTableBody" class="divide-y divide-slate-200">
+                            <!-- JavaScriptで動的生成 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 4: 本部ダッシュボード (パスワード保護) -->
+        <section id="sec-admin" class="hidden space-y-6">
+
+            <!-- パスワード認証モーダル風表示 -->
+            <div id="adminAuthOverlay" class="bg-white rounded-xl shadow-md p-8 border border-slate-200 text-center max-w-md mx-auto my-12 bg-card">
+                <div class="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-4 text-xl">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <h3 class="text-lg font-bold text-slate-800 mb-1">本部用タブ パスワード保護</h3>
+                <p class="text-xs text-slate-500 mb-6">管理者用アクセスコードを入力してください（初期設定: <code class="bg-slate-100 px-1 py-0.5 rounded text-amber-700 font-bold">admin123</code>）</p>
+                <div class="space-y-4">
+                    <input type="password" id="adminPasswordInput" placeholder="パスワードを入力" class="w-full px-4 py-2 border border-slate-300 rounded-lg text-center font-bold tracking-widest focus:ring-2 focus:ring-amber-500 outline-none">
+                    <button onclick="authenticateAdmin()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 rounded-lg transition shadow">
+                        認証してログイン
+                    </button>
+                    <p id="authError" class="text-xs text-red-600 hidden font-semibold">パスワードが正しくありません</p>
+                </div>
+            </div>
+
+            <!-- 認証後表示される本部ダッシュボード -->
+            <div id="adminContent" class="hidden space-y-6">
+
+                <div class="flex flex-wrap justify-between items-center bg-slate-900 text-white p-4 rounded-xl shadow gap-4">
+                    <div class="flex items-center space-x-3">
+                        <span class="bg-amber-500 text-slate-900 px-2.5 py-1 rounded font-black text-xs uppercase">本部モード</span>
+                        <h2 class="text-base font-bold">全コート統合進行モニタリング & 調整</h2>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="lockAdmin()" class="bg-slate-800 hover:bg-slate-700 text-xs px-3 py-1.5 rounded text-slate-300 border border-slate-700 transition">
+                            <i class="fa-solid fa-lock mr-1"></i> ロック
+                        </button>
+                    </div>
+                </div>
+
+                <!-- リアルタイム進行ステータス & 得点グラフ -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- 左: 遅延サマリー & 一括調整 -->
+                    <div class="space-y-6">
+                        <div class="bg-white rounded-xl shadow p-5 border border-slate-200 bg-card">
+                            <h3 class="text-sm font-bold text-slate-800 mb-3 flex items-center justify-between">
+                                <span><i class="fa-solid fa-triangle-exclamation text-red-500 mr-2"></i>コート別 遅延ステータス</span>
+                                <span id="totalDelayBadge" class="bg-red-100 text-red-700 text-xs px-2 py-0.5 rounded-full font-bold">遅延合計: 0分</span>
+                            </h3>
+                            <div id="courtDelaySummary" class="space-y-2 text-xs">
+                                <!-- JavaScriptで動的ロード -->
+                            </div>
+                        </div>
+
+                        <!-- 一括・連動遅延調整コントロール -->
+                        <div class="bg-white rounded-xl shadow p-5 border border-slate-200 bg-card space-y-4">
+                            <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                                <i class="fa-solid fa-sliders text-indigo-600"></i> カスケード(連動) 遅延一括調整
+                            </h3>
+                            <p class="text-xs text-slate-500">指定したコートの指定試合以降をすべて一律で遅延調整します。</p>
+
+                            <div class="space-y-3 pt-1">
+                                <div>
+                                    <label class="text-xs font-bold text-slate-600">対象コート:</label>
+                                    <select id="cascadeCourtSelect" class="w-full mt-1 bg-slate-50 border border-slate-300 rounded text-xs p-2">
+                                        <option value="上グラ">上グラ</option>
+                                        <option value="下グラ">下グラ</option>
+                                        <option value="体育館">体育館</option>
+                                        <option value="ハード">ハード</option>
+                                        <option value="オムニ">オムニ</option>
+                                        <option value="卓球場">卓球場</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="text-xs font-bold text-slate-600">調整時間 (分):</label>
+                                    <div class="flex items-center gap-2 mt-1">
+                                        <button onclick="applyCascadeDelay(-5)" class="flex-1 bg-slate-100 hover:bg-slate-200 font-bold py-1.5 rounded border border-slate-300 text-xs text-slate-700">-5分</button>
+                                        <button onclick="applyCascadeDelay(-1)" class="flex-1 bg-slate-100 hover:bg-slate-200 font-bold py-1.5 rounded border border-slate-300 text-xs text-slate-700">-1分</button>
+                                        <button onclick="applyCascadeDelay(1)" class="flex-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold py-1.5 rounded border border-indigo-200 text-xs">+1分</button>
+                                        <button onclick="applyCascadeDelay(5)" class="flex-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold py-1.5 rounded border border-indigo-200 text-xs">+5分</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 緊急アナウンス発信パネル -->
+                        <div class="bg-white rounded-xl shadow p-5 border border-slate-200 bg-card space-y-3">
+                            <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                                <i class="fa-solid fa-bullhorn text-red-500"></i> 本部緊急アナウンス発信
+                            </h3>
+                            <textarea id="announcementInput" rows="2" placeholder="全体画面上部に表示するアナウンス文章を入力..." class="w-full p-2.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none"></textarea>
+                            <div class="flex gap-2">
+                                <button onclick="broadcastAnnouncement()" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-1.5 px-3 rounded text-xs transition">
+                                    テロップ表示開始
+                                </button>
+                                <button onclick="clearAnnouncement()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-1.5 px-3 rounded text-xs transition">
+                                    消去
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 右: 組別総得点グラフ & バックアップ機能 -->
+                    <div class="lg:col-span-2 space-y-6">
+                        <div class="bg-white rounded-xl shadow p-5 border border-slate-200 bg-card">
+                            <h3 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                <i class="fa-solid fa-chart-column text-indigo-600"></i> ABCD組 リアルタイム総得点チャート
+                            </h3>
+                            <div class="h-64 relative">
+                                <canvas id="scoreChart"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-xl shadow p-5 border border-slate-200 bg-card space-y-4">
+                            <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                                <i class="fa-solid fa-database text-slate-600"></i> データ管理 & バックアップ
+                            </h3>
+                            <p class="text-xs text-slate-500">現在の進行・遅延・担当者・得点データをJSON形式で書き出し/読み込みできます。</p>
+                            <div class="flex flex-wrap gap-3">
+                                <button onclick="exportData()" class="bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold py-2 px-4 rounded-lg transition flex items-center gap-2">
+                                    <i class="fa-solid fa-download"></i> JSONバックアップ出力
+                                </button>
+                                <label class="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-xs font-bold py-2 px-4 rounded-lg transition cursor-pointer flex items-center gap-2">
+                                    <i class="fa-solid fa-upload"></i> JSONデータ復元
+                                    <input type="file" id="importFile" onchange="importData(event)" class="hidden" accept=".json">
+                                </label>
+                                <button onclick="resetAllData()" class="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-bold py-2 px-4 rounded-lg transition ml-auto flex items-center gap-1">
+                                    <i class="fa-solid fa-rotate-left"></i> 初期設定にリセット
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- モーダル: 試合担当者＆詳細編集 -->
+    <div id="editModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200 bg-card">
+            <div class="bg-slate-900 text-white px-6 py-4 flex justify-between items-center">
+                <h3 class="font-bold text-base flex items-center gap-2" id="modalTitle">
+                    <i class="fa-solid fa-pen-to-square text-indigo-400"></i> 試合情報・担当者設定
+                </h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <input type="hidden" id="modalMatchId">
+
+                <div class="bg-indigo-50 border border-indigo-100 rounded-lg p-3 text-xs space-y-1">
+                    <div class="font-bold text-indigo-900" id="modalMatchDetail">種目・学年</div>
+                    <div class="text-indigo-700" id="modalCourtDetail">場所: -</div>
+                    <div class="text-indigo-700" id="modalTimeDetail">予定時刻: -</div>
+                </div>
+
+                <div class="space-y-3">
+                    <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider">担当者入力 (パート員名)</h4>
+                    <div>
+                        <label class="text-xs font-bold text-slate-700 block mb-1">審判パート担当者:</label>
+                        <input type="text" id="inputReferee" placeholder="例: 相山 (H2A1)" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-slate-700 block mb-1">競技パート担当者:</label>
+                        <input type="text" id="inputStaff" placeholder="例: 神作 (H2B10)" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-slate-700 block mb-1">出席パート担当者:</label>
+                        <input type="text" id="inputAttendance" placeholder="例: 宗行 (H1C39)" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 outline-none">
+                    </div>
+                </div>
+
+                <div class="pt-2 border-t border-slate-200">
+                    <label class="text-xs font-bold text-slate-700 block mb-1">個別遅延時間 (分):</label>
+                    <div class="flex items-center gap-2">
+                        <input type="number" id="inputDelayMinutes" value="0" class="w-24 px-3 py-2 border border-slate-300 rounded-lg text-xs font-bold text-center">
+                        <span class="text-xs text-slate-500">分遅延</span>
+                        <label class="ml-auto text-xs flex items-center gap-1 text-slate-600 font-medium">
+                            <input type="checkbox" id="checkCascade" class="rounded text-indigo-600"> 後続試合も連動
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-slate-50 px-6 py-3 border-t border-slate-200 flex justify-end gap-2">
+                <button onclick="closeModal()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-xs font-bold transition">
+                    キャンセル
+                </button>
+                <button onclick="saveModalData()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition shadow">
+                    設定を保存
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript アプリケーションロジック -->
+    <script>
+        // PDFに基づく初期タイムテーブルデータ（球技日 晴れ）
+        const INITIAL_SCHEDULE = [
+            // 上グラ
+            { id: "m1", court: "上グラ", sport: "サッカー", grade: "中3", start: "08:50", end: "09:57", referee: "", staff: "", attendance: "", delay: 0, finished: false },
+            { id: "m2", court: "上グラ", sport: "サッカー", grade: "高1", start: "10:10", end: "11:17", referee: "", staff: "", attendance: "", delay: 0, finished: false },
+            { id: "m3", court: "上グラ", sport: "サッカー", grade: "中2", start: "11:30", end: "12:37", referee: "", staff: "", attendance: "", delay: 0, finished: false },
+            { id: "m4", court: "上グラ", sport: "サッカー", grade: "対教師", start: "12:20", end: "12:40", referee: "", staff: "", attendance: "", delay: 0, finished: false },
+            { id: "m5", court: "上グラ", sport: "サッカー", grade: "高2", start: "13:15", end: "14:22", referee: "", staff: "", attendance: "", delay: 0, finished: false },
+            { id: "m6", court: "上グラ", sport: "サッカー", grade: "高3", start: "14:30", end: "15:37", referee: "", staff: "", attendance: "", delay: 0, finished: false },
+
+            // 下グラ
+            { id: "m7", court: "下グラ", sport: "サッカー", grade: "中1", start: "08:50", end: "09:57", referee: "", staff: "", attendance: "", delay: 0, finished: false },
+            { id: "m8", court: "下グラ", sport: "アルティメット", grade: "中3", start: "10:05", end: "10:57", referee: "", staff: "", attendance: "", delay: 0, finished: false },
+            { id: "m9", court: "下グラ", sport: "アルティメット", grade: "高2", start: "11:15", end: "12:07", referee: "", staff: "", attendance: "", delay: 0, finished: false },
+            { id: "m10", court: "下グラ", sport: "アルティメット", grade: "高1", start: "12:25", end: "13:17", referee: "", staff: "", attendance: "", delay: 0, finished: false },
+            { id: "m11", court: "下グラ", sport: "野球", grade: "中3", start: "13:25", end: "14:25", referee: "", staff: "", attendance: "", delay: 0, finished: false },
+            { id: "m12", court: "下グラ", sport: "野球", grade: "対教師", start: "14:30", end: "15:30", referee: "", staff: "", attendance: "", delay: 0, finished: false },
+
+            // 体育館
+            { id: "m13", court: "体育館", sport: "バスケ", grade: "中3", start: "08:45", end: "09:40", referee: "", staff: "", attendance: "", delay: 0, finished: false },
+            { id: "m14", court: "体育館", sport: "バスケ", grade: "対教師", start: "09:20", end: "09:35", referee: "", staff: "", attendance: "", delay: 0, finished: false },
+            { id: "m15", court: "体育館", sport: "バスケ", grade: "高2", start: "10:10", end: "11:05", referee: "", staff: "", attendance: "", delay: 0, finished: false },
+            { id: "m16", court: "体育館", sport: "バスケ", grade: "中1", start: "11:15", end: "12:10", referee: "", staff: "", attendance: "", delay: 0, finished: false },
+            { id: "m17", court: "体育館", sport: "バスケ", grade: "中2", start: "12:25", end: "13:20", referee: "", staff: "", attendance: "", delay: 0, finished: false },
+            { id: "m18", court: "体育館", sport: "バスケ", grade: "高1", start: "13:25", end: "14:20", referee: "", staff: "", attendance: "", delay: 0, finished: false },
+            { id: "m19", court: "体育館", sport: "バスケ", grade: "高3", start: "14:30", end: "15:25", referee: "", staff: "", attendance: "", delay: 0, finished: false },
+
+            // ハード
+            { id: "m20", court: "ハード", sport: "バレー", grade: "高2", start: "08:50", end: "10:01", referee: "", staff: "", attendance: "", delay: 0, finished: false },
+            { id: "m21", court: "ハード", sport: "バレー", grade: "高3", start: "10:05", end: "11:16", referee: "", staff: "", attendance: "", delay: 0, finished: false },
+            { id: "m22", court: "ハード", sport: "バレー", grade: "対教師", start: "13:10", end: "13:55", referee: "", staff: "", attendance: "", delay: 0, finished: false },
+            { id: "m23", court: "ハード", sport: "バレー", grade: "中3", start: "14:20", end: "15:31", referee: "", staff: "", attendance: "", delay: 0, finished: false },
+
+            // オムニ
+            { id: "m24", court: "オムニ", sport: "ドッジ", grade: "中2", start: "08:45", end: "09:40", referee: "", staff: "", attendance: "", delay: 0, finished: false },
+            { id: "m25", court: "オムニ", sport: "ドッジ", grade: "中1", start: "09:55", end: "10:50", referee: "", staff: "", attendance: "", delay: 0, finished: false },
+            { id: "m26", court: "オムニ", sport: "ドッジ", grade: "対教師", start: "10:35", end: "10:50", referee: "", staff: "", attendance: "", delay: 0, finished: false },
+
+            // 卓球場
+            { id: "m27", court: "卓球場", sport: "卓球", grade: "中1", start: "08:45", end: "09:40", referee: "", staff: "", attendance: "", delay: 0, finished: false },
+            { id: "m28", court: "卓球場", sport: "卓球", grade: "高1", start: "09:50", end: "10:45", referee: "", staff: "", attendance: "", delay: 0, finished: false },
+            { id: "m29", court: "卓球場", sport: "卓球", grade: "高2", start: "10:50", end: "11:45", referee: "", staff: "", attendance: "", delay: 0, finished: false },
+            { id: "m30", court: "卓球場", sport: "卓球", grade: "対教師", start: "11:30", end: "11:50", referee: "", staff: "", attendance: "", delay: 0, finished: false },
+            { id: "m31", court: "卓球場", sport: "卓球", grade: "中2", start: "12:20", end: "13:15", referee: "", staff: "", attendance: "", delay: 0, finished: false },
+            { id: "m32", court: "卓球場", sport: "卓球", grade: "中3", start: "13:25", end: "14:20", referee: "", staff: "", attendance: "", delay: 0, finished: false },
+            { id: "m33", court: "卓球場", sport: "卓球", grade: "高3", start: "14:30", end: "15:25", referee: "", staff: "", attendance: "", delay: 0, finished: false }
+        ];
+
+        // 学年・競技別の得点順位データ初期構造
+        const INITIAL_SCORES = [
+            { category: "中1 サッカー", first: "A", second: "B", third: "C", fourth: "D" },
+            { category: "中1 バスケ", first: "B", second: "A", third: "D", fourth: "C" },
+            { category: "中1 ドッジ", first: "C", second: "D", third: "A", fourth: "B" },
+            { category: "中1 卓球", first: "A", second: "C", third: "B", fourth: "D" },
+            { category: "中2 サッカー", first: "", second: "", third: "", fourth: "" },
+            { category: "中2 バスケ", first: "", second: "", third: "", fourth: "" },
+            { category: "中2 ドッジ", first: "", second: "", third: "", fourth: "" },
+            { category: "中2 アルティメット", first: "", second: "", third: "", fourth: "" },
+            { category: "中2 卓球", first: "", second: "", third: "", fourth: "" },
+            { category: "中3 サッカー", first: "", second: "", third: "", fourth: "" },
+            { category: "中3 バスケ", first: "", second: "", third: "", fourth: "" },
+            { category: "中3 バレー", first: "", second: "", third: "", fourth: "" },
+            { category: "中3 アルティメット", first: "", second: "", third: "", fourth: "" },
+            { category: "高1 サッカー", first: "", second: "", third: "", fourth: "" },
+            { category: "高1 バスケ", first: "", second: "", third: "", fourth: "" },
+            { category: "高1 バレー", first: "", second: "", third: "", fourth: "" },
+            { category: "高2 サッカー", first: "", second: "", third: "", fourth: "" },
+            { category: "高2 バスケ", first: "", second: "", third: "", fourth: "" },
+            { category: "高3 サッカー", first: "", second: "", third: "", fourth: "" },
+            { category: "高3 野球", first: "", second: "", third: "", fourth: "" }
+        ];
+
+        // グローバルアプリケーション状態
+        let appState = {
+            schedule: JSON.parse(localStorage.getItem('gym78_schedule')) || INITIAL_SCHEDULE,
+            scores: JSON.parse(localStorage.getItem('gym78_scores')) || INITIAL_SCORES,
+            isAdmin: false,
+            announcement: localStorage.getItem('gym78_announcement') || ""
+        };
+
+        let scoreChartInstance = null;
+
+        // 初期化処理
+        document.addEventListener('DOMContentLoaded', () => {
+            startClock();
+            renderSchedule();
+            renderScoreTable();
+            calculateAndRenderTotalScores();
+            if (appState.announcement) {
+                showAnnouncement(appState.announcement);
+            }
+        });
+
+        // リアルタイムクロック (ミリ秒精度)
+        function startClock() {
+            const clockEl = document.getElementById('clockDisplay');
+            function update() {
+                const now = new Date();
+                const hrs = String(now.getHours()).padStart(2, '0');
+                const mins = String(now.getMinutes()).padStart(2, '0');
+                const secs = String(now.getSeconds()).padStart(2, '0');
+                const ms = String(now.getMilliseconds()).padStart(3, '0');
+                clockEl.innerHTML = `${hrs}:${mins}:${secs}.<span class="text-xs">${ms}</span>`;
+
+                // ガントチャートの現在時間バー更新
+                updateGanttCurrentTimeBar(now);
+                requestAnimationFrame(update);
+            }
+            requestAnimationFrame(update);
+        }
+
+        // 時刻文字列 (HH:MM) に分数（遅延）を加算
+        function addMinutesToTimeStr(timeStr, minsToAdd) {
+            const [h, m] = timeStr.split(':').map(Number);
+            const date = new Date();
+            date.setHours(h, m + minsToAdd, 0, 0);
+            const resH = String(date.getHours()).padStart(2, '0');
+            const resM = String(date.getMinutes()).padStart(2, '0');
+            return `${resH}:${resM}`;
+        }
+
+        // 状態保存
+        function saveState() {
+            localStorage.setItem('gym78_schedule', JSON.stringify(appState.schedule));
+            localStorage.setItem('gym78_scores', JSON.stringify(appState.scores));
+            localStorage.setItem('gym78_announcement', appState.announcement);
+        }
+
+        // TAB切り替え
+        function switchTab(tabName) {
+            document.querySelectorAll('main > section').forEach(sec => sec.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('border-indigo-500', 'text-indigo-400', 'font-bold');
+                btn.classList.add('border-transparent', 'text-slate-400');
+            });
+
+            document.getElementById(`sec-${tabName}`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`tab-${tabName}`);
+            activeBtn.classList.add('border-indigo-500', 'text-indigo-400', 'font-bold');
+            activeBtn.classList.remove('border-transparent', 'text-slate-400');
+
+            if (tabName === 'gantt') renderGantt();
+            if (tabName === 'admin') updateAdminDashboard();
+        }
+
+        // タイムテーブルレンダリング
+        function renderSchedule() {
+            const grid = document.getElementById('scheduleGrid');
+            const courtFilter = document.getElementById('courtFilter').value;
+            const statusFilter = document.getElementById('statusFilter').value;
+
+            grid.innerHTML = '';
+
+            const filtered = appState.schedule.filter(m => {
+                if (courtFilter !== 'ALL' && m.court !== courtFilter) return false;
+                if (statusFilter === 'DELAYED' && m.delay <= 0) return false;
+                if (statusFilter === 'FINISHED' && !m.finished) return false;
+                return true;
+            });
+
+            filtered.forEach(m => {
+                const actualStart = addMinutesToTimeStr(m.start, m.delay);
+                const actualEnd = addMinutesToTimeStr(m.end, m.delay);
+                const isDelayed = m.delay > 0;
+
+                const card = document.createElement('div');
+                card.className = `bg-white rounded-xl shadow border p-4 bg-card transition relative flex flex-col justify-between ${isDelayed ? 'delay-alert border-red-500' : 'border-slate-200'}`;
+
+                card.innerHTML = `
+                    <div>
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <span class="bg-slate-800 text-white text-[10px] px-2 py-0.5 rounded font-bold mr-1">${m.court}</span>
+                                <span class="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">${m.sport}</span>
+                            </div>
+                            <span class="text-xs font-black text-slate-700 bg-slate-100 px-2 py-0.5 rounded">${m.grade}</span>
+                        </div>
+
+                        <!-- 時間表示 -->
+                        <div class="my-3">
+                            <div class="text-xs text-slate-400 font-semibold flex items-center gap-1">
+                                <i class="fa-regular fa-clock"></i> 予定: ${m.start} - ${m.end}
+                            </div>
+                            <div class="text-lg font-black ${isDelayed ? 'text-red-600' : 'text-slate-800'} flex items-center justify-between mt-0.5">
+                                <span>${actualStart} - ${actualEnd}</span>
+                                ${isDelayed ? `<span class="bg-red-600 text-white text-xs px-2 py-0.5 rounded-full font-bold shadow animate-bounce">+${m.delay}分遅延</span>` : ''}
+                            </div>
+                        </div>
+
+                        <!-- 担当者一覧 -->
+                        <div class="bg-slate-50 rounded-lg p-2.5 text-xs space-y-1 my-3 border border-slate-100">
+                            <div class="flex justify-between"><span class="text-slate-400 font-medium">審判担当:</span> <span class="font-bold text-slate-700">${m.referee || '未入力'}</span></div>
+                            <div class="flex justify-between"><span class="text-slate-400 font-medium">競技担当:</span> <span class="font-bold text-slate-700">${m.staff || '未入力'}</span></div>
+                            <div class="flex justify-between"><span class="text-slate-400 font-medium">出席担当:</span> <span class="font-bold text-slate-700">${m.attendance || '未入力'}</span></div>
+                        </div>
+                    </div>
+
+                    <!-- 操作コントロールボタン -->
+                    <div class="pt-3 border-t border-slate-100 flex flex-wrap gap-1.5 justify-between items-center">
+                        <div class="flex items-center gap-1">
+                            <button onclick="adjustDelay('${m.id}', -1)" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-2 py-1 rounded text-xs border border-slate-300">-1分</button>
+                            <button onclick="adjustDelay('${m.id}', 1)" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold px-2 py-1 rounded text-xs border border-indigo-200">+1分</button>
+                            <button onclick="adjustDelay('${m.id}', 5)" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold px-2 py-1 rounded text-xs border border-indigo-200">+5分</button>
+                        </div>
+                        <button onclick="openModal('${m.id}')" class="bg-slate-800 hover:bg-slate-700 text-white font-bold px-2.5 py-1 rounded text-xs transition flex items-center gap-1">
+                            <i class="fa-solid fa-pen"></i> 担当・編集
+                        </button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // 個別遅延調整（1分/5分増減）
+        function adjustDelay(matchId, minutes) {
+            const match = appState.schedule.find(m => m.id === matchId);
+            if (match) {
+                match.delay = Math.max(0, match.delay + minutes);
+                saveState();
+                renderSchedule();
+                if (document.getElementById('sec-admin').classList.contains('hidden') === false) {
+                    updateAdminDashboard();
+                }
+            }
+        }
+
+        // ガントチャート描画
+        function renderGantt() {
+            const container = document.getElementById('ganttChartContainer');
+            const courts = ["上グラ", "下グラ", "体育館", "ハード", "オムニ", "卓球場"];
+            const startHour = 8;
+            const endHour = 16;
+            const totalMins = (endHour - startHour) * 60;
+
+            let html = `
+                <div class="relative border-b border-slate-300 pb-2 mb-4 flex text-xs font-bold text-slate-400 pl-24">
+            `;
+            for (let h = startHour; h <= endHour; h++) {
+                const leftPercent = ((h - startHour) * 60 / totalMins) * 100;
+                html += `<div class="absolute" style="left: ${leftPercent}%">${String(h).padStart(2, '0')}:00</div>`;
+            }
+            html += `</div>`;
+
+            // 各コートのタイムライン行
+            courts.forEach(court => {
+                const courtMatches = appState.schedule.filter(m => m.court === court);
+                html += `
+                    <div class="relative h-12 flex items-center border-b border-slate-100 pl-24 my-1">
+                        <div class="absolute left-0 w-20 font-bold text-xs text-slate-700">${court}</div>
+                        <div class="relative w-full h-8 bg-slate-100 rounded-lg overflow-hidden border border-slate-200">
+                `;
+
+                courtMatches.forEach(m => {
+                    const actualStart = addMinutesToTimeStr(m.start, m.delay);
+                    const actualEnd = addMinutesToTimeStr(m.end, m.delay);
+
+                    const [sH, sM] = actualStart.split(':').map(Number);
+                    const [eH, eM] = actualEnd.split(':').map(Number);
+
+                    const startMinsTotal = (sH - startHour) * 60 + sM;
+                    const endMinsTotal = (eH - startHour) * 60 + eM;
+
+                    const left = (startMinsTotal / totalMins) * 100;
+                    const width = ((endMinsTotal - startMinsTotal) / totalMins) * 100;
+                    const isDelayed = m.delay > 0;
+
+                    html += `
+                        <div class="absolute top-1 bottom-1 rounded px-1.5 text-[10px] font-bold text-white flex items-center justify-between shadow cursor-pointer ${isDelayed ? 'bg-red-500' : 'bg-indigo-600'}"
+                             style="left: ${left}%; width: ${width}%;"
+                             title="${m.grade} ${m.sport} (${actualStart}-${actualEnd})">
+                            <span class="truncate">${m.grade} ${m.sport}</span>
+                            ${isDelayed ? `<span class="ml-1 bg-white text-red-600 rounded px-1 text-[9px]">+${m.delay}</span>` : ''}
+                        </div>
+                    `;
+                });
+
+                html += `
+                        </div>
+                    </div>
+                `;
+            });
+
+            // 現在時間ラインコンテナ追加
+            html += `<div id="ganttCurrentTimeLine" class="absolute top-8 bottom-0 w-0.5 bg-red-600 z-20 pointer-events-none shadow"><div class="bg-red-600 text-white text-[9px] px-1 py-0.5 rounded -ml-4 -mt-4 font-mono font-bold">現在</div></div>`;
+
+            container.innerHTML = html;
+        }
+
+        // ガントチャートの現在時間指示線の位置更新
+        function updateGanttCurrentTimeBar(now) {
+            const line = document.getElementById('ganttCurrentTimeLine');
+            if (!line) return;
+
+            const startHour = 8;
+            const endHour = 16;
+            const totalMins = (endHour - startHour) * 60;
+
+            const currentMins = (now.getHours() - startHour) * 60 + now.getMinutes() + (now.getSeconds() / 60);
+            if (currentMins >= 0 && currentMins <= totalMins) {
+                const percent = (currentMins / totalMins) * 100;
+                line.style.left = `calc(6rem + (100% - 6rem) * ${percent / 100})`;
+                line.style.display = 'block';
+            } else {
+                line.style.display = 'none';
+            }
+        }
+
+        // 得点入力テーブルの描画
+        function renderScoreTable() {
+            const tbody = document.getElementById('scoreInputTableBody');
+            tbody.innerHTML = '';
+
+            appState.scores.forEach((s, idx) => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition";
+                tr.innerHTML = `
+                    <td class="px-4 py-3 font-bold text-slate-800">${s.category}</td>
+                    <td class="px-4 py-3">${createClassSelect(idx, 'first', s.first)}</td>
+                    <td class="px-4 py-3">${createClassSelect(idx, 'second', s.second)}</td>
+                    <td class="px-4 py-3">${createClassSelect(idx, 'third', s.third)}</td>
+                    <td class="px-4 py-3">${createClassSelect(idx, 'fourth', s.fourth)}</td>
+                    <td class="px-4 py-3 text-center">
+                        <button onclick="updateScores(${idx})" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3 py-1 rounded text-xs transition">
+                            反映
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function createClassSelect(index, rankKey, selectedVal) {
+            const classes = ["", "A", "B", "C", "D"];
+            let options = classes.map(c => `<option value="${c}" ${c === selectedVal ? 'selected' : ''}>${c ? c + '組' : '未確定'}</option>`).join('');
+            return `<select id="score_${index}_${rankKey}" class="bg-slate-50 border border-slate-300 rounded text-xs px-2 py-1 font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500">${options}</select>`;
+        }
+
+        // 順位データの更新＆点数集計
+        function updateScores(index) {
+            appState.scores[index].first = document.getElementById(`score_${index}_first`).value;
+            appState.scores[index].second = document.getElementById(`score_${index}_second`).value;
+            appState.scores[index].third = document.getElementById(`score_${index}_third`).value;
+            appState.scores[index].fourth = document.getElementById(`score_${index}_fourth`).value;
+
+            saveState();
+            calculateAndRenderTotalScores();
+        }
+
+        // 総合得点計算（1位:100pt, 2位:75pt, 3位:50pt, 4位:25pt）
+        function calculateAndRenderTotalScores() {
+            const totals = { A: 0, B: 0, C: 0, D: 0 };
+
+            appState.scores.forEach(s => {
+                if (s.first && totals[s.first] !== undefined) totals[s.first] += 100;
+                if (s.second && totals[s.second] !== undefined) totals[s.second] += 75;
+                if (s.third && totals[s.third] !== undefined) totals[s.third] += 50;
+                if (s.fourth && totals[s.fourth] !== undefined) totals[s.fourth] += 25;
+            });
+
+            document.getElementById('totalScoreA').innerHTML = `${totals.A} <span class="text-xs font-normal text-slate-500">pt</span>`;
+            document.getElementById('totalScoreB').innerHTML = `${totals.B} <span class="text-xs font-normal text-slate-500">pt</span>`;
+            document.getElementById('totalScoreC').innerHTML = `${totals.C} <span class="text-xs font-normal text-slate-500">pt</span>`;
+            document.getElementById('totalScoreD').innerHTML = `${totals.D} <span class="text-xs font-normal text-slate-500">pt</span>`;
+
+            // 順位付け
+            const sorted = Object.keys(totals).sort((a, b) => totals[b] - totals[a]);
+            sorted.forEach((team, rankIndex) => {
+                document.getElementById(`rank${team}`).innerText = `現在総合: ${rankIndex + 1}位`;
+            });
+
+            if (scoreChartInstance) {
+                scoreChartInstance.data.datasets[0].data = [totals.A, totals.B, totals.C, totals.D];
+                scoreChartInstance.update();
+            }
+        }
+
+        // モーダル編集画面
+        function openModal(matchId) {
+            const match = appState.schedule.find(m => m.id === matchId);
+            if (!match) return;
+
+            document.getElementById('modalMatchId').value = match.id;
+            document.getElementById('modalMatchDetail').innerText = `${match.grade} ${match.sport}`;
+            document.getElementById('modalCourtDetail').innerText = `場所: ${match.court}`;
+            document.getElementById('modalTimeDetail').innerText = `予定時刻: ${match.start} - ${match.end}`;
+
+            document.getElementById('inputReferee').value = match.referee;
+            document.getElementById('inputStaff').value = match.staff;
+            document.getElementById('inputAttendance').value = match.attendance;
+            document.getElementById('inputDelayMinutes').value = match.delay;
+            document.getElementById('checkCascade').checked = false;
+
+            document.getElementById('editModal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('editModal').classList.add('hidden');
+        }
+
+        function saveModalData() {
+            const matchId = document.getElementById('modalMatchId').value;
+            const match = appState.schedule.find(m => m.id === matchId);
+
+            if (match) {
+                match.referee = document.getElementById('inputReferee').value;
+                match.staff = document.getElementById('inputStaff').value;
+                match.attendance = document.getElementById('inputAttendance').value;
+
+                const newDelay = parseInt(document.getElementById('inputDelayMinutes').value) || 0;
+                const delayDiff = newDelay - match.delay;
+                const isCascade = document.getElementById('checkCascade').checked;
+
+                if (isCascade && delayDiff !== 0) {
+                    // 後続試合連動調整
+                    appState.schedule.filter(m => m.court === match.court && m.start >= match.start).forEach(m => {
+                        m.delay = Math.max(0, m.delay + delayDiff);
+                    });
+                } else {
+                    match.delay = newDelay;
+                }
+
+                saveState();
+                renderSchedule();
+                closeModal();
+            }
+        }
+
+        // 本部認証認証プロセス
+        function authenticateAdmin() {
+            const pass = document.getElementById('adminPasswordInput').value;
+            if (pass === 'admin123') {
+                appState.isAdmin = true;
+                document.getElementById('adminAuthOverlay').classList.add('hidden');
+                document.getElementById('adminContent').classList.remove('hidden');
+                updateAdminDashboard();
+                initChart();
+            } else {
+                document.getElementById('authError').classList.remove('hidden');
+            }
+        }
+
+        function lockAdmin() {
+            appState.isAdmin = false;
+            document.getElementById('adminAuthOverlay').classList.remove('hidden');
+            document.getElementById('adminContent').classList.add('hidden');
+            document.getElementById('adminPasswordInput').value = '';
+        }
+
+        // 本部ダッシュボード情報更新
+        function updateAdminDashboard() {
+            if (!appState.isAdmin) return;
+
+            const summaryEl = document.getElementById('courtDelaySummary');
+            const courts = ["上グラ", "下グラ", "体育館", "ハード", "オムニ", "卓球場"];
+            let totalDelaySum = 0;
+            let html = '';
+
+            courts.forEach(court => {
+                const courtMatches = appState.schedule.filter(m => m.court === court);
+                const courtDelayMax = Math.max(0, ...courtMatches.map(m => m.delay));
+                totalDelaySum += courtDelayMax;
+
+                html += `
+                    <div class="flex justify-between items-center p-2 rounded ${courtDelayMax > 0 ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-slate-50 text-slate-700'}">
+                        <span class="font-bold">${court}</span>
+                        <span class="font-mono font-bold">${courtDelayMax > 0 ? `+${courtDelayMax}分遅延` : '正常進行'}</span>
+                    </div>
+                `;
+            });
+
+            summaryEl.innerHTML = html;
+            document.getElementById('totalDelayBadge').innerText = `全体遅延影響: +${totalDelaySum}分`;
+        }
+
+        // 連動（カスケード）遅延調整発動
+        function applyCascadeDelay(minutes) {
+            const court = document.getElementById('cascadeCourtSelect').value;
+            appState.schedule.filter(m => m.court === court).forEach(m => {
+                m.delay = Math.max(0, m.delay + minutes);
+            });
+            saveState();
+            renderSchedule();
+            updateAdminDashboard();
+        }
+
+        // 緊急アナウンス送信
+        function broadcastAnnouncement() {
+            const text = document.getElementById('announcementInput').value;
+            if (!text) return;
+            appState.announcement = text;
+            saveState();
+            showAnnouncement(text);
+        }
+
+        function clearAnnouncement() {
+            appState.announcement = "";
+            saveState();
+            document.getElementById('announcementBar').classList.add('hidden');
+            document.getElementById('announcementInput').value = "";
+        }
+
+        function showAnnouncement(text) {
+            document.getElementById('announcementText').innerText = text;
+            document.getElementById('announcementBar').classList.remove('hidden');
+        }
+
+        function dismissAnnouncement() {
+            document.getElementById('announcementBar').classList.add('hidden');
+        }
+
+        // 得点グラフ初期化 (Chart.js)
+        function initChart() {
+            const ctx = document.getElementById('scoreChart').getContext('2d');
+            if (scoreChartInstance) scoreChartInstance.destroy();
+
+            scoreChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['A組', 'B組', 'C組', 'D組'],
+                    datasets: [{
+                        label: '総得点 (pt)',
+                        data: [0, 0, 0, 0],
+                        backgroundColor: [
+                            'rgba(239, 68, 68, 0.7)',
+                            'rgba(59, 130, 246, 0.7)',
+                            'rgba(234, 179, 8, 0.7)',
+                            'rgba(34, 197, 94, 0.7)'
+                        ],
+                        borderColor: [
+                            'rgb(239, 68, 68)',
+                            'rgb(59, 130, 246)',
+                            'rgb(234, 179, 8)',
+                            'rgb(34, 197, 94)'
+                        ],
+                        borderWidth: 2,
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+
+            calculateAndRenderTotalScores();
+        }
+
+        // 屋外高コントラスト表示切替
+        function toggleHighContrast() {
+            document.getElementById('mainBody').classList.toggle('high-contrast');
+        }
+
+        // データエクスポート (JSON)
+        function exportData() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appState, null, 2));
+            const dlAnchorElem = document.createElement('a');
+            dlAnchorElem.setAttribute("href", dataStr);
+            dlAnchorElem.setAttribute("download", `gym78_backup_${new Date().toISOString().slice(0,10)}.json`);
+            dlAnchorElem.click();
+        }
+
+        // データインポート (JSON)
+        function importData(event) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if (imported.schedule && imported.scores) {
+                        appState = imported;
+                        saveState();
+                        location.reload();
+                    }
+                } catch(err) {
+                    alert("無効なJSONファイルです");
+                }
+            };
+            reader.readAsText(event.target.files[0]);
+        }
+
+        // 完全リセット
+        function resetAllData() {
+            if (confirm("全ての進行・遅延・担当者・得点データを初期化しますか？")) {
+                localStorage.clear();
+                location.reload();
+            }
+        }
+    </script>
+</body>
+</html>
