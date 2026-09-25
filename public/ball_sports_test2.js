@@ -153,7 +153,7 @@ function saveState() {
 }
 document.addEventListener("DOMContentLoaded", () => {
     startClock();
-    updateSyncStatus("同期待機", "sky");
+    updateSyncStatus("待機中", "sky");
     initFirebaseSync();
     setTimelineViewMode(appState.timelineViewMode);
     refreshSportSelectors();
