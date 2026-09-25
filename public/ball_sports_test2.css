@@ -41,9 +41,13 @@ textarea {
   font-size: 0.9375rem;
 }
 
+button {
+  min-height: 2.75rem;
+}
+
 .tab-btn {
   font-size: 0.875rem !important;
-  min-height: 2.75rem;
+  min-height: 2.9rem;
 }
 
 .tab-btn i,
@@ -75,8 +79,81 @@ button i.fa-brands {
 }
 
 .score-input {
-  min-height: 2.25rem;
+  min-height: 2.6rem;
+  width: 4.2rem;
+  max-width: 4.2rem;
   font-size: 1rem !important;
+  padding: 0.45rem 0.25rem;
+  text-align: center;
+}
+
+.time-config-input,
+#timeConfigList input[type="time"],
+#editModal input[type="time"],
+#editModal input[type="number"],
+#editModal select {
+  min-height: 2.75rem;
+  font-size: 1rem !important;
+}
+
+html.dark .timeline-group-header {
+  background: rgba(148, 163, 184, 0.16) !important;
+}
+
+html.dark .timeline-group-header .bg-sky-500,
+html.dark .timeline-group-header .bg-sky-600 {
+  background: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+html.dark .bg-amber-200,
+html.dark .bg-amber-300 {
+  background: #fcd34d !important;
+  color: #1f2937 !important;
+}
+
+#timelineContainer .text-slate-400,
+#resultsContentContainer .text-slate-400,
+#adminContent .text-slate-400 {
+  color: #68778a !important;
+}
+
+html.dark #timelineContainer .text-slate-400,
+html.dark #resultsContentContainer .text-slate-400,
+html.dark #adminContent .text-slate-400 {
+  color: #dfe7f3 !important;
+}
+
+#timeConfigList .time-setting-row {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 1fr;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.6rem 0.7rem;
+  background: rgba(15, 23, 42, 0.03);
+  border: 1px solid var(--line);
+  border-radius: 0.85rem;
+}
+
+@media (max-width: 640px) {
+  #timeConfigList .time-setting-row {
+    grid-template-columns: 1fr;
+  }
+
+  .tab-btn {
+    min-height: 3rem;
+    padding-left: 0.9rem;
+    padding-right: 0.9rem;
+  }
+
+  .action-btn,
+  .score-input,
+  button,
+  select,
+  input,
+  textarea {
+    min-height: 2.9rem;
+  }
 }
 
 button,

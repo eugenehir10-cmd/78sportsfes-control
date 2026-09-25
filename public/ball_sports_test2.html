@@ -172,18 +172,29 @@
         <!-- TAB 2: ガントチャート -->
         <section id="sec-gantt" class="hidden space-y-3">
             <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm">
-                <div class="flex justify-between items-center mb-3">
+                <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-3 mb-3">
                     <h2 class="text-xs font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
                         <i class="fa-solid fa-chart-gantt text-sky-500"></i> 全コート進行状況視覚化ガントチャート (08:00 - 16:00)
                     </h2>
-                    <div class="text-[10px] flex items-center gap-3">
-                        <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-slate-400 inline-block"></span>開始前</span>
-                        <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-amber-500 inline-block"></span>進行中</span>
-                        <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-emerald-500 inline-block"></span>終了</span>
+                    <div class="flex flex-wrap items-center gap-3">
+                        <select id="ganttCourtFilter" onchange="renderGantt()" class="bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 px-2.5 py-1.5 outline-none">
+                            <option value="ALL">全コート</option>
+                            <option value="上グラ">上グラ</option>
+                            <option value="下グラ">下グラ</option>
+                            <option value="体育館">体育館</option>
+                            <option value="ハード">ハード</option>
+                            <option value="オムニ">オムニ</option>
+                            <option value="卓球場">卓球場</option>
+                        </select>
+                        <div class="text-[10px] flex items-center gap-3">
+                            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-slate-400 inline-block"></span>開始前</span>
+                            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-amber-500 inline-block"></span>進行中</span>
+                            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-emerald-500 inline-block"></span>終了</span>
+                        </div>
                     </div>
                 </div>
-                <div class="overflow-x-auto relative pt-4 pb-2">
-                    <div id="ganttContainer" class="min-w-[800px]">
+                <div class="overflow-x-auto relative pt-2 pb-2">
+                    <div id="ganttContainer" class="min-w-[760px]">
                         <!-- Dynamic Gantt -->
                     </div>
                 </div>
@@ -192,22 +203,27 @@
 
         <!-- TAB 3: 結果 & 勝敗表・トーナメント -->
         <section id="sec-results" class="hidden space-y-4">
-            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 flex justify-between items-center shadow-sm">
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shadow-sm">
                 <div>
                     <h2 class="text-xs font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
                         <i class="fa-solid fa-sitemap text-sky-500"></i> 各種目トーナメント / 総当たり（リーグ戦）状況表
                     </h2>
                     <p class="text-[11px] text-slate-500 dark:text-slate-400">タイムラインで入力された試合結果が自動集計されています。</p>
                 </div>
-                <select id="resultGradeFilter" onchange="renderResultsTab()" class="bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-xs font-bold rounded-lg px-2.5 py-1 text-slate-700 dark:text-slate-200">
-                    <option value="ALL">全ての学年</option>
-                    <option value="中1">中1</option>
-                    <option value="中2">中2</option>
-                    <option value="中3">中3</option>
-                    <option value="高1">高1</option>
-                    <option value="高2">高2</option>
-                    <option value="高3">高3</option>
-                </select>
+                <div class="flex items-center gap-2">
+                    <select id="resultGradeFilter" onchange="renderResultsTab()" class="bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-xs font-bold rounded-lg px-2.5 py-1 text-slate-700 dark:text-slate-200">
+                        <option value="ALL">全ての学年</option>
+                        <option value="中1">中1</option>
+                        <option value="中2">中2</option>
+                        <option value="中3">中3</option>
+                        <option value="高1">高1</option>
+                        <option value="高2">高2</option>
+                        <option value="高3">高3</option>
+                    </select>
+                    <button onclick="exportResultsCsv()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-[11px] px-3 py-2 rounded-lg shadow-sm transition">
+                        <i class="fa-solid fa-file-csv mr-1"></i> CSV出力
+                    </button>
+                </div>
             </div>
 
             <div id="resultsContentContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -299,7 +315,15 @@
                         </div>
                         <div>
                             <label class="font-bold text-slate-500 dark:text-slate-400 block mb-1">競技名:</label>
-                            <input type="text" id="addSport" placeholder="例: サッカー, ドッジボール" class="w-full p-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-100 font-bold">
+                            <select id="addSport" class="w-full p-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-100 font-bold">
+                                <option value="サッカー">サッカー</option>
+                                <option value="バスケ">バスケ</option>
+                                <option value="バレー">バレー</option>
+                                <option value="アルティメット">アルティメット</option>
+                                <option value="ドッジボール">ドッジボール</option>
+                                <option value="卓球">卓球</option>
+                                <option value="野球">野球</option>
+                            </select>
                         </div>
                         <div>
                             <label class="font-bold text-slate-500 dark:text-slate-400 block mb-1">対戦方式 (大会形式):</label>
@@ -354,6 +378,39 @@
                     <button onclick="createCompetitionBlock()" class="w-full bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 text-white font-black py-2.5 rounded-lg text-xs transition border border-slate-700">
                         <i class="fa-solid fa-diagram-project mr-1"></i> A〜Dの競技ブロックを自動作成
                     </button>
+                </div>
+
+                <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-3 shadow-sm">
+                    <h3 class="text-xs font-black text-slate-800 dark:text-slate-100 flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
+                        <i class="fa-solid fa-clock text-sky-500"></i> 詳細時間設定（各試合ごと）
+                    </h3>
+                    <div class="flex flex-col md:flex-row gap-2 items-start md:items-center">
+                        <label class="font-bold text-slate-500 dark:text-slate-400 block text-[11px]">競技ブロック:</label>
+                        <select id="timeConfigBlockSelect" onchange="renderTimeConfigEditor()" class="flex-1 w-full md:max-w-md p-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-100 font-bold text-xs"></select>
+                    </div>
+                    <div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 p-2.5">
+                        <div class="text-[10px] font-black text-slate-500 dark:text-slate-400 mb-2">各組合計得点</div>
+                        <div id="teamScoreSummary"></div>
+                    </div>
+                    <div id="timeConfigList" class="space-y-2"></div>
+                    <button onclick="saveTimeConfig()" class="w-full bg-sky-600 hover:bg-sky-500 text-white font-black py-2.5 rounded-lg text-xs transition shadow-md">
+                        <i class="fa-solid fa-floppy-disk mr-1"></i> 試合時間を保存
+                    </button>
+                </div>
+
+                <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-3 shadow-sm">
+                    <h3 class="text-xs font-black text-slate-800 dark:text-slate-100 flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
+                        <i class="fa-solid fa-trash text-rose-500"></i> 競技削除
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3 items-end">
+                        <div>
+                            <label class="font-bold text-slate-500 dark:text-slate-400 block mb-1 text-[11px]">削除する競技:</label>
+                            <select id="deleteSportSelect" class="w-full p-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-100 font-bold text-xs"></select>
+                        </div>
+                        <button onclick="deleteSelectedSport()" class="bg-rose-600 hover:bg-rose-500 text-white font-black py-2.5 px-4 rounded-lg text-xs transition shadow-md">
+                            <i class="fa-solid fa-trash mr-1"></i> 削除
+                        </button>
+                    </div>
                 </div>
 
                 <!-- 3. テロップ放送 & データ操作 -->
@@ -449,8 +506,114 @@
                         <input type="text" id="inputTeamB" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-2 text-center font-bold text-slate-800 dark:text-slate-100" placeholder="B組">
                     </div>
                     <div class="grid grid-cols-2 gap-2">
-                        <input type="number" id="inputModalScoreA" min="0" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-2 text-center font-mono font-bold text-sky-600 dark:text-sky-400" placeholder="A組スコア">
-                        <input type="number" id="inputModalScoreB" min="0" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-2 text-center font-mono font-bold text-sky-600 dark:text-sky-400" placeholder="B組スコア">
+                        <select id="inputModalScoreA" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-2 text-center font-mono font-bold text-sky-600 dark:text-sky-400">
+                            <option value="">未入力</option>
+                            <option value="0">0</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                            <option value="6">6</option>
+                            <option value="7">7</option>
+                            <option value="8">8</option>
+                            <option value="9">9</option>
+                            <option value="10">10</option>
+                            <option value="11">11</option>
+                            <option value="12">12</option>
+                            <option value="13">13</option>
+                            <option value="14">14</option>
+                            <option value="15">15</option>
+                            <option value="16">16</option>
+                            <option value="17">17</option>
+                            <option value="18">18</option>
+                            <option value="19">19</option>
+                            <option value="20">20</option>
+                            <option value="21">21</option>
+                            <option value="22">22</option>
+                            <option value="23">23</option>
+                            <option value="24">24</option>
+                            <option value="25">25</option>
+                            <option value="26">26</option>
+                            <option value="27">27</option>
+                            <option value="28">28</option>
+                            <option value="29">29</option>
+                            <option value="30">30</option>
+                            <option value="31">31</option>
+                            <option value="32">32</option>
+                            <option value="33">33</option>
+                            <option value="34">34</option>
+                            <option value="35">35</option>
+                            <option value="36">36</option>
+                            <option value="37">37</option>
+                            <option value="38">38</option>
+                            <option value="39">39</option>
+                            <option value="40">40</option>
+                            <option value="41">41</option>
+                            <option value="42">42</option>
+                            <option value="43">43</option>
+                            <option value="44">44</option>
+                            <option value="45">45</option>
+                            <option value="46">46</option>
+                            <option value="47">47</option>
+                            <option value="48">48</option>
+                            <option value="49">49</option>
+                            <option value="50">50</option>
+                        </select>
+                        <select id="inputModalScoreB" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-2 text-center font-mono font-bold text-sky-600 dark:text-sky-400">
+                            <option value="">未入力</option>
+                            <option value="0">0</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                            <option value="6">6</option>
+                            <option value="7">7</option>
+                            <option value="8">8</option>
+                            <option value="9">9</option>
+                            <option value="10">10</option>
+                            <option value="11">11</option>
+                            <option value="12">12</option>
+                            <option value="13">13</option>
+                            <option value="14">14</option>
+                            <option value="15">15</option>
+                            <option value="16">16</option>
+                            <option value="17">17</option>
+                            <option value="18">18</option>
+                            <option value="19">19</option>
+                            <option value="20">20</option>
+                            <option value="21">21</option>
+                            <option value="22">22</option>
+                            <option value="23">23</option>
+                            <option value="24">24</option>
+                            <option value="25">25</option>
+                            <option value="26">26</option>
+                            <option value="27">27</option>
+                            <option value="28">28</option>
+                            <option value="29">29</option>
+                            <option value="30">30</option>
+                            <option value="31">31</option>
+                            <option value="32">32</option>
+                            <option value="33">33</option>
+                            <option value="34">34</option>
+                            <option value="35">35</option>
+                            <option value="36">36</option>
+                            <option value="37">37</option>
+                            <option value="38">38</option>
+                            <option value="39">39</option>
+                            <option value="40">40</option>
+                            <option value="41">41</option>
+                            <option value="42">42</option>
+                            <option value="43">43</option>
+                            <option value="44">44</option>
+                            <option value="45">45</option>
+                            <option value="46">46</option>
+                            <option value="47">47</option>
+                            <option value="48">48</option>
+                            <option value="49">49</option>
+                            <option value="50">50</option>
+                        </select>
                     </div>
                 </div>
 
