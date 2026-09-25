@@ -321,6 +321,10 @@
                             <button onclick="exportData()" class="flex-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 text-xs font-bold py-2 rounded-lg transition">
                                 <i class="fa-solid fa-download text-sky-500 mr-1"></i> データ出力 (JSON)
                             </button>
+                            <button onclick="document.getElementById('importDataInput')?.click()" class="flex-1 bg-sky-50 dark:bg-sky-950/40 hover:bg-sky-100 text-sky-700 dark:text-sky-300 border border-sky-300 dark:border-sky-500/30 text-xs font-bold py-2 rounded-lg transition">
+                                <i class="fa-solid fa-upload text-sky-500 mr-1"></i> データ取込
+                            </button>
+                            <input type="file" id="importDataInput" accept="application/json,.json" class="hidden" onchange="importData(this)">
                             <button onclick="resetAllData()" class="bg-rose-100 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-500/30 text-xs font-bold py-2 px-3 rounded-lg transition">
                                 初期化リセット
                             </button>

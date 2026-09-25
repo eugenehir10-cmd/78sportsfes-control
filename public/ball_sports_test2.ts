@@ -684,6 +684,58 @@ function exportData(): void {
   dl.click();
 }
 
+function isMatch(value: unknown): value is Match {
+  if (!value || typeof value !== "object") return false;
+  const match = value as Partial<Match>;
+  return typeof match.id === "string"
+    && typeof match.court === "string"
+    && typeof match.sport === "string"
+    && typeof match.grade === "string"
+    && typeof match.title === "string"
+    && ["tournament", "league", "single"].includes(match.format ?? "")
+    && typeof match.teamA === "string"
+    && typeof match.teamB === "string"
+    && (match.scoreA === null || typeof match.scoreA === "number")
+    && (match.scoreB === null || typeof match.scoreB === "number")
+    && typeof match.start === "string"
+    && typeof match.end === "string"
+    && typeof match.referee === "string"
+    && typeof match.staff === "string"
+    && ["BEFORE", "IN_PROGRESS", "FINISHED"].includes(match.status ?? "")
+    && typeof match.offsetMins === "number";
+}
+
+function importData(input: HTMLInputElement): void {
+  const file = input.files?.[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const imported = JSON.parse(String(reader.result)) as Partial<AppState>;
+      if (!Array.isArray(imported.schedule) || !imported.schedule.every(isMatch)) {
+        throw new Error("invalid schedule");
+      }
+
+      appState.schedule = imported.schedule;
+      appState.announcement = typeof imported.announcement === "string" ? imported.announcement : "";
+      saveState();
+      renderCourtDelaySummary();
+      renderTimeline();
+      renderResultsTab();
+      calculateScoresAndRanks();
+      if (appState.announcement) showAnnouncement(appState.announcement);
+      else document.getElementById("announcementBar")?.classList.add("hidden");
+      alert(`${appState.schedule.length}件の試合データを取り込みました。`);
+    } catch {
+      alert("データを読み込めませんでした。出力したJSONファイルを選択してください。");
+    } finally {
+      input.value = "";
+    }
+  };
+  reader.readAsText(file);
+}
+
 function resetAllData(): void {
   if (confirm("全てのデータを初期状態にリセットしますか？")) {
     localStorage.clear();
@@ -713,4 +765,5 @@ function resetAllData(): void {
 (window as any).renderGantt = renderGantt;
 (window as any).setTimelineViewMode = setTimelineViewMode;
 (window as any).exportData = exportData;
+(window as any).importData = importData;
 (window as any).resetAllData = resetAllData;
