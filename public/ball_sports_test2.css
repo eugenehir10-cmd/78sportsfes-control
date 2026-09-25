@@ -1,13 +1,21 @@
 html.dark body {
-  background: radial-gradient(circle at top, rgba(14, 116, 144, 0.18), transparent 48%), #020817;
+  background: radial-gradient(circle at top, rgba(20, 184, 166, 0.14), transparent 44%), #0b1110;
   color: #f1f5f9;
 }
 
 body {
-  background: radial-gradient(circle at top, rgba(14, 165, 233, 0.14), transparent 28%),
-    linear-gradient(180deg, #f8fbff 0%, #eef4ff 38%, #f8fafc 100%);
+  background: radial-gradient(circle at top, rgba(20, 184, 166, 0.1), transparent 28%),
+    linear-gradient(180deg, #f7faf8 0%, #edf3f0 42%, #f8faf9 100%);
   color: #0f172a;
   transition: background-color 0.2s, color 0.2s;
+}
+
+body > header {
+  background: linear-gradient(110deg, rgba(255, 255, 255, 0.98), rgba(240, 250, 247, 0.98), rgba(246, 244, 235, 0.98)) !important;
+}
+
+html.dark body > header {
+  background: linear-gradient(110deg, #101817, #12201e 58%, #1b1b17) !important;
 }
 
 body::before {
@@ -22,16 +30,16 @@ body::before {
 }
 
 .surface-card {
-  background: rgba(255, 255, 255, 0.88);
+  background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(148, 163, 184, 0.22);
+  border: 1px solid rgba(71, 101, 94, 0.2);
   box-shadow: 0 12px 30px rgba(15, 23, 42, 0.05);
 }
 
 html.dark .surface-card {
-  background: rgba(15, 23, 42, 0.92);
-  border-color: rgba(51, 65, 85, 0.8);
-  box-shadow: inset 0 1px 0 rgba(148, 163, 184, 0.08), 0 18px 30px rgba(2, 6, 23, 0.35);
+  background: rgba(20, 31, 29, 0.94);
+  border-color: rgba(82, 125, 115, 0.46);
+  box-shadow: inset 0 1px 0 rgba(167, 243, 208, 0.07), 0 18px 30px rgba(3, 12, 10, 0.38);
 }
 
 .stat-tile {
@@ -83,7 +91,7 @@ html.dark .surface-card {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #7dd3fc, #94a3b8);
+  background: linear-gradient(180deg, #5eead4, #94a3b8);
   border-radius: 999px;
 }
 
