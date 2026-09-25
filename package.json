@@ -1,0 +1,23 @@
+{
+  "name": "78sportsfes-control",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eugenehir10-cmd/78sportsfes-control.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/eugenehir10-cmd/78sportsfes-control/issues"
+  },
+  "homepage": "https://github.com/eugenehir10-cmd/78sportsfes-control#readme",
+  "devDependencies": {
+    "typescript": "^7.0.2"
+  }
+}
