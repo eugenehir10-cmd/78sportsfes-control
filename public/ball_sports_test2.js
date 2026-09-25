@@ -77,13 +77,38 @@ function normalizeCompetitionSchedule(sourceSchedule) {
     });
     return normalized;
 }
+function loadPersistedSchedule() {
+    try {
+        const raw = localStorage.getItem("gym78_ball_day_v1_schedule");
+        if (!raw)
+            return INITIAL_SCHEDULE;
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed))
+            return INITIAL_SCHEDULE;
+        if (parsed.some((match) => match && typeof match === "object" && match.blockId))
+            return parsed;
+        return normalizeCompetitionSchedule(parsed);
+    }
+    catch {
+        return INITIAL_SCHEDULE;
+    }
+}
+function loadPersistedAnnouncement() {
+    try {
+        const raw = localStorage.getItem("gym78_ball_day_v1_announcement");
+        return typeof raw === "string" ? raw : "";
+    }
+    catch {
+        return "";
+    }
+}
 let appState = {
-    schedule: normalizeCompetitionSchedule(JSON.parse(localStorage.getItem("gym78_ball_day_v1_schedule") ?? "null") || INITIAL_SCHEDULE),
+    schedule: loadPersistedSchedule(),
     timelineViewMode: "grouped",
     expandedGroups: {},
     selectedModalStatus: "BEFORE",
     isAdmin: false,
-    announcement: localStorage.getItem("gym78_ball_day_v1_announcement") || ""
+    announcement: loadPersistedAnnouncement()
 };
 let firebaseSync = {
     app: null,
