@@ -132,6 +132,15 @@ async function initFirebaseSync() {
                 localStorage.setItem("gym78_ball_day_v1_schedule", JSON.stringify(appState.schedule));
                 localStorage.setItem("gym78_ball_day_v1_announcement", appState.announcement);
                 loaded = true;
+                updateSyncStatus("同期済み", "success");
+                renderCourtDelaySummary();
+                renderTimeline();
+                renderResultsTab();
+                calculateScoresAndRanks();
+                if (appState.announcement)
+                    showAnnouncement(appState.announcement);
+                else
+                    document.getElementById("announcementBar")?.classList.add("hidden");
                 break;
             }
         }
@@ -139,6 +148,11 @@ async function initFirebaseSync() {
             const legacyDoc = await firebaseSync.db.collection("sportsfes").doc("main").get();
             if (legacyDoc.exists && Array.isArray(legacyDoc.data()?.schedule)) {
                 appState.schedule = normalizeCompetitionSchedule(legacyDoc.data().schedule);
+                updateSyncStatus("同期済み", "success");
+                renderCourtDelaySummary();
+                renderTimeline();
+                renderResultsTab();
+                calculateScoresAndRanks();
             }
         }
     }
