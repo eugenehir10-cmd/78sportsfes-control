@@ -6,6 +6,8 @@
     <title>第78回体育祭｜球技日 進行本部</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -74,9 +76,15 @@
                     <span id="themeBtnText" class="text-[11px]">ダークモード (暗いUI)</span>
                 </button>
 
-                <div class="bg-slate-100/90 dark:bg-slate-950/80 border border-slate-300/80 dark:border-slate-800 px-3 py-1.5 rounded-xl text-right shadow-sm">
-                    <div class="text-[8px] text-slate-400 dark:text-slate-500 uppercase tracking-widest font-extrabold">時刻</div>
-                    <div id="clockDisplay" class="text-sm font-mono font-bold text-sky-600 dark:text-sky-400 tracking-wider">00:00:00.<span class="text-[10px] text-sky-500">000</span></div>
+                <div class="flex items-center gap-2">
+                    <div id="syncStatusBadge" class="inline-flex items-center gap-1.5 rounded-full border border-sky-300 bg-sky-100 px-2 py-1 text-[10px] font-bold text-sky-700 dark:border-sky-700 dark:bg-sky-950/40 dark:text-sky-300">
+                        <span class="inline-block h-2 w-2 rounded-full bg-sky-500"></span>
+                        <span id="syncStatusText">同期待機</span>
+                    </div>
+                    <div class="bg-slate-100/90 dark:bg-slate-950/80 border border-slate-300/80 dark:border-slate-800 px-3 py-1.5 rounded-xl text-right shadow-sm">
+                        <div class="text-[8px] text-slate-400 dark:text-slate-500 uppercase tracking-widest font-extrabold">時刻</div>
+                        <div id="clockDisplay" class="text-sm font-mono font-bold text-sky-600 dark:text-sky-400 tracking-wider">00:00:00.<span class="text-[10px] text-sky-500">000</span></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -153,8 +161,8 @@
 
                 <div class="flex items-center gap-2">
                     <span class="text-xs font-bold text-slate-400">表示構造:</span>
-                    <button id="viewGroupBtn" onclick="setTimelineViewMode('grouped')" class="px-3 py-1 text-xs font-bold rounded-lg bg-sky-500 text-white shadow-sm">学年・競技別 (グループ表示)</button>
-                    <button id="viewCourtBtn" onclick="setTimelineViewMode('byCourt')" class="px-3 py-1 text-xs font-bold rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">コート別一覧</button>
+                    <button id="viewGroupBtn" onclick="setTimelineViewMode('grouped')" class="px-3 py-1 text-xs font-bold rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">学年・競技別 (グループ表示)</button>
+                    <button id="viewCourtBtn" onclick="setTimelineViewMode('byCourt')" class="px-3 py-1 text-xs font-bold rounded-lg bg-sky-500 text-white shadow-sm">コート別一覧</button>
                 </div>
             </div>
 
@@ -164,7 +172,7 @@
             </div>
 
             <!-- タイムラインコンテンツ -->
-            <div id="timelineContainer" class="space-y-3">
+            <div id="timelineContainer" class="court-lane-scroll">
                 <!-- Dynamic Content -->
             </div>
         </section>
@@ -400,16 +408,49 @@
 
                 <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-3 shadow-sm">
                     <h3 class="text-xs font-black text-slate-800 dark:text-slate-100 flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
-                        <i class="fa-solid fa-trash text-rose-500"></i> 競技削除
+                        <i class="fa-solid fa-trash text-rose-500"></i> 競技・学年・会場の限定削除
                     </h3>
-                    <div class="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3 items-end">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
                         <div>
-                            <label class="font-bold text-slate-500 dark:text-slate-400 block mb-1 text-[11px]">削除する競技:</label>
+                            <label class="font-bold text-slate-500 dark:text-slate-400 block mb-1 text-[11px]">競技:</label>
                             <select id="deleteSportSelect" class="w-full p-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-100 font-bold text-xs"></select>
                         </div>
-                        <button onclick="deleteSelectedSport()" class="bg-rose-600 hover:bg-rose-500 text-white font-black py-2.5 px-4 rounded-lg text-xs transition shadow-md">
-                            <i class="fa-solid fa-trash mr-1"></i> 削除
-                        </button>
+                        <div>
+                            <label class="font-bold text-slate-500 dark:text-slate-400 block mb-1 text-[11px]">学年:</label>
+                            <select id="deleteGradeSelect" class="w-full p-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-100 font-bold text-xs">
+                                <option value="ALL">全学年</option>
+                                <option value="中1">中1</option>
+                                <option value="中2">中2</option>
+                                <option value="中3">中3</option>
+                                <option value="高1">高1</option>
+                                <option value="高2">高2</option>
+                                <option value="高3">高3</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="font-bold text-slate-500 dark:text-slate-400 block mb-1 text-[11px]">会場:</label>
+                            <select id="deleteCourtSelect" class="w-full p-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-100 font-bold text-xs">
+                                <option value="ALL">全会場</option>
+                                <option value="上グラ">上グラ</option>
+                                <option value="下グラ">下グラ</option>
+                                <option value="体育館">体育館</option>
+                                <option value="ハード">ハード</option>
+                                <option value="オムニ">オムニ</option>
+                                <option value="卓球場">卓球場</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="rounded-lg border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-950/20 p-3 text-[10px] text-amber-700 dark:text-amber-300 font-bold">
+                        注意: 削除対象は選択した競技・学年・会場の条件に一致する試合のみです。取り消せません。
+                    </div>
+                    <div class="border-t border-slate-200 dark:border-slate-800 pt-3">
+                        <label class="font-bold text-slate-500 dark:text-slate-400 block mb-1 text-[11px]">高度操作パスワード（再認証）:</label>
+                        <div class="flex gap-2">
+                            <input id="deleteConfirmationPassword" type="password" placeholder="admin123" class="flex-1 p-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-100 font-bold text-xs">
+                            <button onclick="deleteSelectedCompetition()" class="bg-rose-600 hover:bg-rose-500 text-white font-black py-2.5 px-4 rounded-lg text-xs transition shadow-md whitespace-nowrap">
+                                <i class="fa-solid fa-trash mr-1"></i> 削除実行
+                            </button>
+                        </div>
                     </div>
                 </div>
 

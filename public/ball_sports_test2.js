@@ -67,16 +67,95 @@ function normalizeCompetitionSchedule(sourceSchedule) {
     });
     return normalized;
 }
+const FIREBASE_CONFIG = {
+    apiKey: "AIzaSyCVYfQSmKyPvbDWrAp6FNMUmuu3_GyrM00",
+    authDomain: "thsportsfes.firebaseapp.com",
+    projectId: "thsportsfes",
+    storageBucket: "thsportsfes.appspot.com",
+    messagingSenderId: "96596815858",
+    appId: "1:96596815858:web:5f85526bf785ccc5d8056b"
+};
+let firebaseSync = {
+    app: null,
+    db: null,
+    initialized: false,
+    online: false
+};
 let appState = {
     schedule: normalizeCompetitionSchedule(JSON.parse(localStorage.getItem("gym78_ball_day_v1_schedule") ?? "null") || INITIAL_SCHEDULE),
-    timelineViewMode: "grouped",
+    timelineViewMode: "byCourt",
     expandedGroups: {},
     selectedModalStatus: "BEFORE",
     isAdmin: false,
     announcement: localStorage.getItem("gym78_ball_day_v1_announcement") || ""
 };
+function updateSyncStatus(label, tone = "sky") {
+    const badge = document.getElementById("syncStatusBadge");
+    const text = document.getElementById("syncStatusText");
+    if (!badge || !text)
+        return;
+    text.textContent = label;
+    badge.className = `inline-flex items-center gap-1.5 rounded-full border px-2 py-1 text-[10px] font-bold ${tone === "success" ? "border-emerald-300 bg-emerald-100 text-emerald-700 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300" : tone === "warning" ? "border-amber-300 bg-amber-100 text-amber-700 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-300" : "border-sky-300 bg-sky-100 text-sky-700 dark:border-sky-700 dark:bg-sky-950/40 dark:text-sky-300"}`;
+    const dot = badge.querySelector("span");
+    if (dot) {
+        dot.className = `inline-block h-2 w-2 rounded-full ${tone === "success" ? "bg-emerald-500" : tone === "warning" ? "bg-amber-500" : "bg-sky-500"}`;
+    }
+}
+async function initFirebaseSync() {
+    if (!window.firebase || !window.firebase.apps)
+        return;
+    try {
+        if (!firebaseSync.app)
+            firebaseSync.app = firebase.apps.length ? firebase.apps[0] : firebase.initializeApp(FIREBASE_CONFIG);
+        firebaseSync.db = firebase.firestore(firebaseSync.app);
+        firebaseSync.initialized = true;
+        firebaseSync.online = true;
+        updateSyncStatus("同期中", "success");
+        const docSnap = await firebaseSync.db.collection("sportsfes").doc("main").get();
+        if (docSnap.exists && Array.isArray(docSnap.data()?.schedule)) {
+            const remoteSchedule = docSnap.data().schedule;
+            if (remoteSchedule.length > 0 && remoteSchedule.every((match) => typeof match === "object")) {
+                appState.schedule = normalizeCompetitionSchedule(remoteSchedule);
+                const remoteAnnouncement = docSnap.data()?.announcement ?? "";
+                if (typeof remoteAnnouncement === "string")
+                    appState.announcement = remoteAnnouncement;
+                localStorage.setItem("gym78_ball_day_v1_schedule", JSON.stringify(appState.schedule));
+                localStorage.setItem("gym78_ball_day_v1_announcement", appState.announcement);
+            }
+        }
+    }
+    catch {
+        firebaseSync.initialized = false;
+        firebaseSync.online = false;
+        updateSyncStatus("オフライン", "warning");
+    }
+}
+async function syncStateToFirebase() {
+    if (!firebaseSync.db || !firebaseSync.initialized)
+        return;
+    try {
+        await firebaseSync.db.collection("sportsfes").doc("main").set({
+            schedule: appState.schedule,
+            announcement: appState.announcement,
+            updatedAt: new Date().toISOString() 
+        }, { merge: true });
+        updateSyncStatus("同期済み", "success");
+    }
+    catch {
+        updateSyncStatus("同期失敗", "warning");
+    }
+}
+function saveState() {
+    localStorage.setItem("gym78_ball_day_v1_schedule", JSON.stringify(appState.schedule));
+    localStorage.setItem("gym78_ball_day_v1_announcement", appState.announcement);
+    if (firebaseSync.initialized)
+        syncStateToFirebase();
+}
 document.addEventListener("DOMContentLoaded", () => {
     startClock();
+    updateSyncStatus("同期待機", "sky");
+    initFirebaseSync();
+    setTimelineViewMode(appState.timelineViewMode);
     refreshSportSelectors();
     renderCourtDelaySummary();
     renderTimeline();
@@ -657,6 +736,8 @@ function getAvailableSports() {
 function refreshSportSelectors() {
     const addSportSelect = document.getElementById("addSport");
     const deleteSportSelect = document.getElementById("deleteSportSelect");
+    const deleteGradeSelect = document.getElementById("deleteGradeSelect");
+    const deleteCourtSelect = document.getElementById("deleteCourtSelect");
     const sports = getAvailableSports();
     if (addSportSelect) {
         const currentValue = addSportSelect.value || sports[0];
@@ -664,19 +745,53 @@ function refreshSportSelectors() {
         addSportSelect.value = sports.includes(currentValue) ? currentValue : sports[0];
     }
     if (deleteSportSelect) {
+        const currentValue = deleteSportSelect.value || sports[0];
         deleteSportSelect.innerHTML = sports.map((sport) => `<option value="${sport}">${sport}</option>`).join("");
+        deleteSportSelect.value = sports.includes(currentValue) ? currentValue : sports[0];
+    }
+    if (deleteGradeSelect) {
+        const currentValue = deleteGradeSelect.value || "ALL";
+        deleteGradeSelect.value = ["ALL", "中1", "中2", "中3", "高1", "高2", "高3"].includes(currentValue) ? currentValue : "ALL";
+    }
+    if (deleteCourtSelect) {
+        const currentValue = deleteCourtSelect.value || "ALL";
+        deleteCourtSelect.value = ["ALL", "上グラ", "下グラ", "体育館", "ハード", "オムニ", "卓球場"].includes(currentValue) ? currentValue : "ALL";
     }
 }
-function deleteSelectedSport() {
+function deleteSelectedCompetition() {
     const deleteSportSelect = document.getElementById("deleteSportSelect");
-    if (!deleteSportSelect)
+    const deleteGradeSelect = document.getElementById("deleteGradeSelect");
+    const deleteCourtSelect = document.getElementById("deleteCourtSelect");
+    const deletePassword = document.getElementById("deleteConfirmationPassword")?.value ?? "";
+    if (!deleteSportSelect || !deleteGradeSelect || !deleteCourtSelect)
         return;
+    if (deletePassword !== "admin123") {
+        alert("削除の再認証に失敗しました。管理者パスワードを入力してください。");
+        return;
+    }
     const sportToDelete = deleteSportSelect.value;
+    const gradeToDelete = deleteGradeSelect.value;
+    const courtToDelete = deleteCourtSelect.value;
     if (!sportToDelete)
         return;
-    if (!confirm(`「${sportToDelete}」の全ての試合を削除しますか？`))
+    const targetMatches = appState.schedule.filter((match) => {
+        const sportMatch = match.sport === sportToDelete;
+        const gradeMatch = gradeToDelete === "ALL" || match.grade === gradeToDelete;
+        const courtMatch = courtToDelete === "ALL" || match.court === courtToDelete;
+        return sportMatch && gradeMatch && courtMatch;
+    });
+    if (targetMatches.length === 0) {
+        alert("削除対象の試合がありません。条件を見直してください。");
         return;
-    appState.schedule = appState.schedule.filter((match) => match.sport !== sportToDelete);
+    }
+    const summary = `${sportToDelete}${gradeToDelete === "ALL" ? " 全学年" : ` / ${gradeToDelete}`} ${courtToDelete === "ALL" ? "全会場" : ` / ${courtToDelete}`}`;
+    if (!confirm(`${summary} に一致する ${targetMatches.length}件を削除しますか？`))
+        return;
+    appState.schedule = appState.schedule.filter((match) => !(
+        match.sport === sportToDelete &&
+        (gradeToDelete === "ALL" || match.grade === gradeToDelete) &&
+        (courtToDelete === "ALL" || match.court === courtToDelete)
+    ));
     saveState();
     renderTimeline();
     renderCourtDelaySummary();
@@ -684,7 +799,10 @@ function deleteSelectedSport() {
     renderGantt();
     renderTimeConfigEditor();
     refreshSportSelectors();
-    alert(`「${sportToDelete}」を削除しました。`);
+    const passwordField = document.getElementById("deleteConfirmationPassword");
+    if (passwordField)
+        passwordField.value = "";
+    alert(`${summary} の試合を削除しました。`);
 }
 function renderResultsTab() {
     const container = document.getElementById("resultsContentContainer");
@@ -1227,5 +1345,8 @@ window.exportData = exportData;
 window.importData = importData;
 window.resetAllData = resetAllData;
 window.applyBulkOperations = applyBulkOperations;
-window.deleteSelectedSport = deleteSelectedSport;
+window.deleteSelectedCompetition = deleteSelectedCompetition;
+window.deleteSelectedSport = deleteSelectedCompetition;
 window.refreshSportSelectors = refreshSportSelectors;
+window.initFirebaseSync = initFirebaseSync;
+window.syncStateToFirebase = syncStateToFirebase;
