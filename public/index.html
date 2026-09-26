@@ -579,6 +579,101 @@
         font-size: 1.75rem !important;
       }
     }
+
+    :root {
+      color-scheme: dark;
+      --portal-cyan: #67e8f9;
+      --portal-blue: #60a5fa;
+      --portal-lime: #a3e635;
+    }
+    body {
+      background:
+        radial-gradient(ellipse 55% 38% at 12% 4%, rgba(37,99,235,0.16), transparent 68%),
+        radial-gradient(ellipse 48% 36% at 88% 22%, rgba(8,145,178,0.12), transparent 70%),
+        radial-gradient(ellipse 42% 32% at 50% 100%, rgba(101,163,13,0.07), transparent 72%),
+        linear-gradient(180deg, #070b12 0%, #0a1018 52%, #06090e 100%);
+    }
+    .countdown-card {
+      border-color: rgba(103,232,249,0.2);
+      background:
+        linear-gradient(145deg, rgba(22,31,43,0.94), rgba(9,13,20,0.97)),
+        radial-gradient(ellipse at 50% 0%, rgba(56,189,248,0.16), transparent 64%);
+      box-shadow:
+        0 32px 90px rgba(0,0,0,0.54),
+        0 0 70px rgba(14,165,233,0.06),
+        inset 0 1px 0 rgba(255,255,255,0.08);
+    }
+    .countdown-card::before {
+      background: linear-gradient(105deg, rgba(103,232,249,0.4), transparent 34%, transparent 70%, rgba(163,230,53,0.22));
+    }
+    .time-block,
+    .ms-block {
+      border-color: rgba(148,163,184,0.19);
+      background: linear-gradient(155deg, rgba(37,48,63,0.92), rgba(12,18,28,0.98));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 14px 30px rgba(0,0,0,0.32);
+    }
+    .ms-block {
+      border-color: rgba(103,232,249,0.26);
+      background: linear-gradient(155deg, rgba(20,54,67,0.92), rgba(10,22,31,0.98));
+    }
+    #countdown .font-mono-num {
+      font-variant-numeric: tabular-nums;
+      text-shadow: 0 0 26px rgba(103,232,249,0.15);
+    }
+    .func-card {
+      min-height: 258px;
+      display: flex;
+      flex-direction: column;
+      border-color: rgba(148,163,184,0.16);
+      background: linear-gradient(145deg, rgba(25,34,46,0.9), rgba(10,14,21,0.97));
+      box-shadow: 0 18px 45px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.055);
+    }
+    .func-card > div:last-child {
+      margin-top: auto !important;
+      padding-top: 2rem;
+    }
+    .func-card:hover,
+    .func-card:active {
+      transform: translateY(-6px) scale(1.01);
+      border-color: rgba(255,255,255,0.28);
+    }
+    .func-card-blue { --card-accent: #60a5fa; }
+    .func-card-emerald { --card-accent: #34d399; }
+    .func-card-purple { --card-accent: #c4b5fd; }
+    .func-card .icon-box {
+      box-shadow: 0 0 30px color-mix(in srgb, var(--card-accent) 12%, transparent);
+    }
+    .func-card:focus-visible {
+      outline: 2px solid var(--card-accent, var(--portal-cyan));
+      outline-offset: 4px;
+    }
+    @media (max-width: 640px) {
+      .func-card {
+        min-height: 0;
+      }
+      .func-card > div:last-child {
+        padding-top: 1rem;
+      }
+    }
+    @media (hover: none) {
+      .func-card:hover,
+      .time-block:hover {
+        transform: none;
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+      }
+      .particles {
+        display: none;
+      }
+    }
   </style>
 </head>
 <body class="text-white max-w-6xl mx-auto px-4 py-12 md:py-16 relative z-10">
@@ -619,7 +714,7 @@
       <p class="text-gray-400 text-[10px] md:text-xs tracking-[0.3em] uppercase">Countdown to October 1st</p>
     </div>
     
-    <div id="countdown" class="flex justify-center gap-1.5 md:gap-3 lg:gap-5 flex-wrap items-end">
+    <div id="countdown" class="flex justify-center gap-1.5 md:gap-3 lg:gap-5 flex-wrap items-end" role="timer" aria-live="off" aria-label="体育祭までのカウントダウン">
       <!-- 動的に挿入 -->
     </div>
     
@@ -736,22 +831,54 @@
       const container = document.getElementById('countdown');
 
       if (diff <= 0) {
-        container.innerHTML = `
-          <div class="w-full py-8 md:py-12">
-            <div class="flex items-center justify-center gap-3 mb-6">
-              <img 
-                src="https://p16-flow-image-sign.ibyteimg.com/tos-mya-i-uo7y4d541q/a3ab12918aba45a2a2329845f6dcc9e9.jpg~tplv-0es2k971ck-image.image?rcl=202609240247184651974C1893822DA5C7&rk3s=8e244e95&rrcfp=935dee89&x-expires=1790794039&x-signature=CNjmqAzc0rP2t6PzpuA9Xa2Qioc%3D" 
-                alt="78th Logo" 
-                class="w-12 h-12 md:w-16 md:h-16"
-                style="filter: drop-shadow(0 0 20px rgba(255,255,255,0.2));"
-              >
+        if (container.dataset.state !== 'event-day') {
+          container.innerHTML = `
+            <div class="w-full py-8 md:py-12">
+              <div class="flex items-center justify-center gap-3 mb-6">
+                <img
+                  src="https://p16-flow-image-sign.ibyteimg.com/tos-mya-i-uo7y4d541q/a3ab12918aba45a2a2329845f6dcc9e9.jpg~tplv-0es2k971ck-image.image?rcl=202609240247184651974C1893822DA5C7&rk3s=8e244e95&rrcfp=935dee89&x-expires=1790794039&x-signature=CNjmqAzc0rP2t6PzpuA9Xa2Qioc%3D"
+                  alt="78th Logo"
+                  class="w-12 h-12 md:w-16 md:h-16"
+                  style="filter: drop-shadow(0 0 20px rgba(255,255,255,0.2));"
+                >
+              </div>
+              <p class="text-2xl md:text-5xl lg:text-6xl font-bold gradient-text glow-text tracking-[0.1em]">体育祭当日！</p>
+              <p class="text-gray-400 mt-4 md:mt-6 tracking-[0.2em] uppercase text-xs md:text-sm">Let's make it unforgettable!</p>
             </div>
-            <p class="text-2xl md:text-5xl lg:text-6xl font-bold gradient-text glow-text tracking-[0.1em]">体育祭当日！</p>
-            <p class="text-gray-400 mt-4 md:mt-6 tracking-[0.2em] uppercase text-xs md:text-sm">Let's make it unforgettable!</p>
+          `;
+          container.dataset.state = 'event-day';
+          lucide.createIcons();
+        }
+        return;
+      }
+
+      if (container.dataset.state !== 'countdown') {
+        container.innerHTML = `
+          <div class="time-block rounded-2xl px-5 py-5 md:px-8 md:py-8 lg:px-10 lg:py-9 min-w-[90px] md:min-w-[120px] lg:min-w-[140px] float-num">
+            <div id="countdownDays" class="font-mono-num text-3xl md:text-5xl lg:text-7xl font-extrabold text-white leading-none tracking-tight"></div>
+            <div class="text-[9px] md:text-[10px] text-gray-500 mt-4 tracking-[0.3em] uppercase font-semibold">Days</div>
+          </div>
+          <div class="text-gray-600 text-2xl md:text-3xl lg:text-4xl font-light hidden sm:inline pb-8 pulse-dot">:</div>
+          <div class="time-block rounded-2xl px-5 py-5 md:px-8 md:py-8 lg:px-10 lg:py-9 min-w-[75px] md:min-w-[100px] lg:min-w-[120px] float-num" style="animation-delay: 0.5s">
+            <div id="countdownHours" class="font-mono-num text-3xl md:text-5xl lg:text-7xl font-extrabold text-white leading-none tracking-tight"></div>
+            <div class="text-[9px] md:text-[10px] text-gray-500 mt-4 tracking-[0.3em] uppercase font-semibold">Hours</div>
+          </div>
+          <div class="text-gray-600 text-2xl md:text-3xl lg:text-4xl font-light hidden sm:inline pb-8 pulse-dot">:</div>
+          <div class="time-block rounded-2xl px-5 py-5 md:px-8 md:py-8 lg:px-10 lg:py-9 min-w-[75px] md:min-w-[100px] lg:min-w-[120px] float-num" style="animation-delay: 1s">
+            <div id="countdownMinutes" class="font-mono-num text-3xl md:text-5xl lg:text-7xl font-extrabold text-white leading-none tracking-tight"></div>
+            <div class="text-[9px] md:text-[10px] text-gray-500 mt-4 tracking-[0.3em] uppercase font-semibold">Mins</div>
+          </div>
+          <div class="text-gray-600 text-2xl md:text-3xl lg:text-4xl font-light hidden sm:inline pb-8 pulse-dot">:</div>
+          <div class="time-block rounded-2xl px-5 py-5 md:px-8 md:py-8 lg:px-10 lg:py-9 min-w-[75px] md:min-w-[100px] lg:min-w-[120px] float-num" style="animation-delay: 1.5s">
+            <div id="countdownSeconds" class="font-mono-num text-3xl md:text-5xl lg:text-7xl font-extrabold text-white leading-none tracking-tight"></div>
+            <div class="text-[9px] md:text-[10px] text-gray-500 mt-4 tracking-[0.3em] uppercase font-semibold">Secs</div>
+          </div>
+          <div class="ms-block rounded-2xl px-4 py-5 md:px-6 md:py-8 lg:px-8 lg:py-9 min-w-[65px] md:min-w-[85px] lg:min-w-[100px] float-num" style="animation-delay: 2s">
+            <div id="countdownCentiseconds" class="font-mono-num text-2xl md:text-4xl lg:text-6xl font-extrabold text-white leading-none tracking-tight" style="text-shadow: 0 0 20px rgba(255,255,255,0.2);"></div>
+            <div class="text-[9px] md:text-[10px] text-gray-400 mt-4 tracking-[0.3em] uppercase font-semibold">MS</div>
           </div>
         `;
-        lucide.createIcons();
-        return;
+        container.dataset.state = 'countdown';
       }
 
       const days = Math.floor(diff / (1000 * 60 * 60 * 24));
@@ -759,36 +886,15 @@
       const mins = Math.floor((diff / (1000 * 60)) % 60);
       const secs = Math.floor((diff / 1000) % 60);
       const ms = Math.floor((diff % 1000) / 10);
-
-      container.innerHTML = `
-        <div class="time-block rounded-2xl px-5 py-5 md:px-8 md:py-8 lg:px-10 lg:py-9 min-w-[90px] md:min-w-[120px] lg:min-w-[140px] float-num">
-          <div class="font-mono-num text-3xl md:text-5xl lg:text-7xl font-extrabold text-white leading-none tracking-tight">${days}</div>
-          <div class="text-[9px] md:text-[10px] text-gray-500 mt-4 tracking-[0.3em] uppercase font-semibold">Days</div>
-        </div>
-        <div class="text-gray-600 text-2xl md:text-3xl lg:text-4xl font-light hidden sm:inline pb-8 pulse-dot">:</div>
-        <div class="time-block rounded-2xl px-5 py-5 md:px-8 md:py-8 lg:px-10 lg:py-9 min-w-[75px] md:min-w-[100px] lg:min-w-[120px] float-num" style="animation-delay: 0.5s">
-          <div class="font-mono-num text-3xl md:text-5xl lg:text-7xl font-extrabold text-white leading-none tracking-tight">${pad(hours)}</div>
-          <div class="text-[9px] md:text-[10px] text-gray-500 mt-4 tracking-[0.3em] uppercase font-semibold">Hours</div>
-        </div>
-        <div class="text-gray-600 text-2xl md:text-3xl lg:text-4xl font-light hidden sm:inline pb-8 pulse-dot">:</div>
-        <div class="time-block rounded-2xl px-5 py-5 md:px-8 md:py-8 lg:px-10 lg:py-9 min-w-[75px] md:min-w-[100px] lg:min-w-[120px] float-num" style="animation-delay: 1s">
-          <div class="font-mono-num text-3xl md:text-5xl lg:text-7xl font-extrabold text-white leading-none tracking-tight">${pad(mins)}</div>
-          <div class="text-[9px] md:text-[10px] text-gray-500 mt-4 tracking-[0.3em] uppercase font-semibold">Mins</div>
-        </div>
-        <div class="text-gray-600 text-2xl md:text-3xl lg:text-4xl font-light hidden sm:inline pb-8 pulse-dot">:</div>
-        <div class="time-block rounded-2xl px-5 py-5 md:px-8 md:py-8 lg:px-10 lg:py-9 min-w-[75px] md:min-w-[100px] lg:min-w-[120px] float-num" style="animation-delay: 1.5s">
-          <div class="font-mono-num text-3xl md:text-5xl lg:text-7xl font-extrabold text-white leading-none tracking-tight">${pad(secs)}</div>
-          <div class="text-[9px] md:text-[10px] text-gray-500 mt-4 tracking-[0.3em] uppercase font-semibold">Secs</div>
-        </div>
-        <div class="ms-block rounded-2xl px-4 py-5 md:px-6 md:py-8 lg:px-8 lg:py-9 min-w-[65px] md:min-w-[85px] lg:min-w-[100px] float-num" style="animation-delay: 2s">
-          <div class="font-mono-num text-2xl md:text-4xl lg:text-6xl font-extrabold text-white leading-none tracking-tight" style="text-shadow: 0 0 20px rgba(255,255,255,0.2);">${pad(ms)}</div>
-          <div class="text-[9px] md:text-[10px] text-gray-400 mt-4 tracking-[0.3em] uppercase font-semibold">MS</div>
-        </div>
-      `;
+      document.getElementById('countdownDays').textContent = String(days);
+      document.getElementById('countdownHours').textContent = pad(hours);
+      document.getElementById('countdownMinutes').textContent = pad(mins);
+      document.getElementById('countdownSeconds').textContent = pad(secs);
+      document.getElementById('countdownCentiseconds').textContent = pad(ms);
     }
 
     updateCountdown();
-    setInterval(updateCountdown, 10);
+    setInterval(updateCountdown, 100);
   </script>
 </body>
 </html>
