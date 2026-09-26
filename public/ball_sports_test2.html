@@ -343,8 +343,9 @@
                             <select id="addFormat" class="w-full p-2 bg-slate-50 dark:bg-slate-950 border border-sky-500/50 rounded-lg text-sky-600 dark:text-sky-400 font-bold">
                                 <option value="tournament">トーナメント戦</option>
                                 <option value="league">総当たり戦 (リーグ戦)</option>
-                                <option value="table_tennis_round_robin">卓球総当たり</option>
-                                <option value="single">単発試合 / エキシビション</option>
+                                <option value="table_tennis_round_robin">卓球トーナメント (6組合せ×3巡)</option>
+                                <option value="single">単発試合</option>
+                                <option value="exhibition">エキシビション (優勝チーム対教師)</option>
                             </select>
                         </div>
                         <div>
@@ -489,6 +490,9 @@
                                 初期化リセット
                             </button>
                         </div>
+                        <button onclick="resetScoreLogs()" class="w-full bg-rose-50 dark:bg-rose-950/30 hover:bg-rose-100 dark:hover:bg-rose-950/50 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-500/30 text-xs font-bold py-2 rounded-lg transition">
+                            <i class="fa-solid fa-eraser mr-1"></i> 得点ログのみ消去 (時間・対戦表は保持)
+                        </button>
                     </div>
                 </div>
             </div>
@@ -710,6 +714,6 @@
         </div>
     </div>
 
-    <script src="./ball_sports_test2.js?v=20260926T4" defer></script>
+    <script src="./ball_sports_test2.js?v=20260926T5" defer></script>
 </body>
 </html>

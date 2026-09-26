@@ -86,6 +86,17 @@ const INITIAL_SCHEDULE: Match[] = [
 ];
 
 const LEAGUE_PAIRS: Array<[string, string]> = [["A", "B"], ["A", "C"], ["A", "D"], ["B", "C"], ["B", "D"], ["C", "D"]];
+const TOURNAMENT_PAIRS: Array<[string, string, string]> = [["準決勝1", "A", "B"], ["準決勝2", "C", "D"], ["3位決定戦", "準決勝1の敗者", "準決勝2の敗者"], ["決勝", "準決勝1の勝者", "準決勝2の勝者"]];
+
+function getFormatMatchDefinitions(format: MatchFormat): Array<[string, string, string]> {
+  if (format === "tournament") return TOURNAMENT_PAIRS;
+  if (format === "exhibition") return [["エキシビション", "優勝チーム", "教師"]];
+  if (format === "single") return [["単発試合", "A", "B"]];
+  if (format === "table_tennis_round_robin") {
+    return Array.from({ length: 3 }, (_, roundIndex) => LEAGUE_PAIRS.map((pair, pairIndex): [string, string, string] => [`${roundIndex + 1}回戦 第${pairIndex + 1}試合`, pair[0], pair[1]])).flat();
+  }
+  return LEAGUE_PAIRS.map((pair, index): [string, string, string] => [`第${index + 1}試合`, pair[0], pair[1]]);
+}
 
 function parseTimeMinutes(value: string | undefined): number {
   if (typeof value !== "string" || !value.includes(":")) return 0;
@@ -112,9 +123,7 @@ function normalizeCompetitionSchedule(sourceSchedule: Match[]): Match[] {
     const startMinutes = parseTimeMinutes(startValue);
     const endMinutes = parseTimeMinutes(endValue);
     const duration = Math.max(10, Math.round(Math.max(endMinutes - startMinutes, 30)));
-    const definitions = source.format === "tournament"
-      ? [["準決勝1", "A", "B"], ["準決勝2", "C", "D"], ["3位決定戦", "準決勝1の敗者", "準決勝2の敗者"], ["決勝", "準決勝1の勝者", "準決勝2の勝者"]]
-      : LEAGUE_PAIRS.map((pair, index) => [`第${index + 1}試合`, pair[0], pair[1]]);
+    const definitions = getFormatMatchDefinitions(source.format);
 
     definitions.forEach((definition, index) => {
       const start = addMinutesToTime(startValue, index * (duration + 5));
@@ -138,18 +147,22 @@ function normalizeCompetitionSchedule(sourceSchedule: Match[]): Match[] {
   return normalized;
 }
 
+function cloneInitialSchedule(): Match[] {
+  return INITIAL_SCHEDULE.map((match) => ({ ...match }));
+}
+
 function loadPersistedSchedule(): Match[] {
   try {
     const raw = localStorage.getItem("gym78_ball_day_v1_schedule");
-    if (!raw) return INITIAL_SCHEDULE;
+    if (!raw) return cloneInitialSchedule();
     const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed) || parsed.length === 0) return INITIAL_SCHEDULE;
+    if (!Array.isArray(parsed) || parsed.length === 0) return cloneInitialSchedule();
     if (parsed.some((match) => match && typeof match === "object" && match.blockId)) return parsed;
     const normalized = normalizeCompetitionSchedule(parsed);
-    return normalized.length > 0 ? normalized : INITIAL_SCHEDULE;
+    return normalized.length > 0 ? normalized : cloneInitialSchedule();
   }
   catch {
-    return INITIAL_SCHEDULE;
+    return cloneInitialSchedule();
   }
 }
 
@@ -181,6 +194,8 @@ let firebaseSync: { app: any; db: any; initialized: boolean; online: boolean; un
   unsubscribe: null
 };
 (window as any).firebaseSync = firebaseSync;
+let firebaseWriteInFlight = false;
+let firebaseWritePending = false;
 
 function updateSyncStatus(label: string, tone: "success" | "warning" | "sky" = "sky"): void {
   const badge = document.getElementById("syncStatusBadge");
@@ -283,9 +298,14 @@ function applyRemoteDocumentData(data: any): boolean {
   }
 
   const needsNormalize = remoteSchedule.some((match: any) => !match.blockId);
-  appState.schedule = needsNormalize ? normalizeCompetitionSchedule(remoteSchedule) : remoteSchedule;
+  const nextSchedule = needsNormalize ? normalizeCompetitionSchedule(remoteSchedule) : remoteSchedule;
+  const nextAnnouncement = normalizeRemoteAnnouncement(data);
+  const currentSignature = JSON.stringify({ schedule: appState.schedule ?? [], announcement: appState.announcement });
+  const nextSignature = JSON.stringify({ schedule: nextSchedule ?? [], announcement: nextAnnouncement });
+  if (currentSignature === nextSignature) return true;
+  appState.schedule = nextSchedule;
   if (appState.schedule.length === 0) appState.schedule = INITIAL_SCHEDULE;
-  appState.announcement = normalizeRemoteAnnouncement(data);
+  appState.announcement = nextAnnouncement;
   localStorage.setItem("gym78_ball_day_v1_schedule", JSON.stringify(appState.schedule));
   localStorage.setItem("gym78_ball_day_v1_announcement", appState.announcement);
   updateSyncStatus("同期済み", "success");
@@ -333,8 +353,8 @@ async function initFirebaseSync(): Promise<void> {
     updateSyncStatus("接続中", "sky");
 
     const documentCandidates = [
-      { collection: "sportsfes", doc: "main" },
       { collection: "app_data", doc: "ball_sports_data_v4" },
+      { collection: "sportsfes", doc: "main" },
       { collection: "app_data", doc: "ball_sports_test2_main" },
       { collection: "app_data", doc: "sportsfes_main" },
       { collection: "app_data", doc: "main" }
@@ -372,23 +392,32 @@ async function initFirebaseSync(): Promise<void> {
 
 async function syncStateToFirebase(): Promise<void> {
   if (!firebaseSync.db || !firebaseSync.initialized) return;
+  if (firebaseWriteInFlight) {
+    firebaseWritePending = true;
+    return;
+  }
+  firebaseWriteInFlight = true;
 
   try {
-    const payload = {
-      schedule: appState.schedule,
-      announcement: appState.announcement,
-      updatedAt: new Date().toISOString()
-    };
-
     const mainDoc = firebaseSync.db.collection("app_data").doc("ball_sports_data_v4");
-    const legacyDoc = firebaseSync.db.collection("sportsfes").doc("main");
-    await mainDoc.set(payload, { merge: true });
-    await legacyDoc.set(payload, { merge: true });
+    do {
+      firebaseWritePending = false;
+      const payload = {
+        schedule: appState.schedule,
+        announcement: appState.announcement,
+        updatedAt: new Date().toISOString()
+      };
+      await mainDoc.set(payload, { merge: true });
+    } while (firebaseWritePending);
     updateSyncStatus("同期済み", "success");
   }
   catch (err) {
     console.error("[Firebase 同期エラー]", err);
     updateSyncStatus("同期失敗", "warning");
+  }
+  finally {
+    firebaseWriteInFlight = false;
+    if (firebaseWritePending) syncStateToFirebase();
   }
 }
 
@@ -589,9 +618,7 @@ function renderTimeline(): void {
     Object.keys(groups).forEach((gKey) => {
       const matches = groups[gKey].sort((a, b) => a.start.localeCompare(b.start));
       const firstMatch = matches[0];
-      const groupLabel = firstMatch.blockId
-        ? `${firstMatch.blockTitle ?? "第1試合"}（${firstMatch.grade} ${firstMatch.sport}）`
-        : `第1試合（${firstMatch.grade} ${firstMatch.sport}）`;
+      const groupLabel = `${firstMatch.grade} / ${firstMatch.sport}`;
       const isExpanded = appState.expandedGroups[gKey] === true;
       const finishedCount = matches.filter((m) => m.status === "FINISHED").length;
       const inProgressCount = matches.filter((m) => m.status === "IN_PROGRESS").length;
@@ -719,6 +746,7 @@ function quickSaveScore(matchId: string, newStatus: MatchStatus): void {
   m.scoreB = valB !== "" ? parseInt(valB, 10) : null;
   m.status = newStatus;
   updateTournamentBracket(m.blockId);
+  updateExhibitionTeams(m.sport);
 
   saveState();
   renderTimeline();
@@ -734,6 +762,40 @@ function getWinner(match: Match): string | null {
 function getLoser(match: Match): string | null {
   if (match.status !== "FINISHED" || match.scoreA === null || match.scoreB === null || match.scoreA === match.scoreB) return null;
   return match.scoreA < match.scoreB ? match.teamA : match.teamB;
+}
+
+function isCompetitionComplete(matches: Match[], format: MatchFormat): boolean {
+  if (format === "exhibition" || matches.length === 0) return false;
+  const hasResult = (match: Match) => match.status === "FINISHED" && match.scoreA !== null && match.scoreB !== null;
+  if (format === "tournament") {
+    const final = matches.find((match) => match.title === "決勝");
+    const thirdPlace = matches.find((match) => match.title === "3位決定戦");
+    return !!final && !!thirdPlace && hasResult(final) && hasResult(thirdPlace);
+  }
+  return matches.every(hasResult);
+}
+
+function updateExhibitionTeams(sport: string): void {
+  const competitions = new Map<string, Match[]>();
+  appState.schedule.forEach((match) => {
+    if (match.sport !== sport || match.format === "exhibition") return;
+    const key = match.blockId ?? `${match.grade} - ${match.sport}`;
+    if (!competitions.has(key)) competitions.set(key, []);
+    competitions.get(key)?.push(match);
+  });
+  const completed = [...competitions.values()].filter((matches) => isCompetitionComplete(matches, matches[0].format));
+  const latest = completed[completed.length - 1];
+  let champion: string | null = null;
+  if (latest) {
+    if (latest[0].format === "tournament") {
+      const final = latest.find((match) => match.title === "決勝");
+      champion = final ? getWinner(final) : null;
+    } else {
+      champion = calculateCompetitionStandings(latest, latest[0].format).find((standing) => standing.rank === 1)?.team ?? null;
+    }
+  }
+  appState.schedule.filter((match) => match.sport === sport && match.format === "exhibition" && match.status !== "FINISHED")
+    .forEach((match) => { match.teamA = champion ?? "優勝チーム"; });
 }
 
 function updateTournamentBracket(blockId?: string): void {
@@ -901,12 +963,8 @@ function renderResultsTab(): void {
     });
 
     const standings = calculateCompetitionStandings(cat.matches, cat.format);
-    const competitionComplete = cat.format === "league"
-      ? cat.matches.every((match) => match.status === "FINISHED")
-      : cat.format !== "tournament"
-        || (cat.matches.some((match) => match.title === "決勝" && match.status === "FINISHED")
-          && cat.matches.some((match) => match.title === "3位決定戦" && match.status === "FINISHED"));
-    const standingsHtml = `
+    const competitionComplete = isCompetitionComplete(cat.matches, cat.format);
+    const standingsHtml = cat.format === "exhibition" ? '<p class="py-3 text-center text-[11px] font-bold text-slate-400">エキシビションは得点集計対象外です。</p>' : `
       <div class="overflow-x-auto">
         <table class="w-full text-[11px] min-w-[420px]">
           <thead><tr class="text-left text-slate-400 border-b border-slate-200 dark:border-slate-800"><th class="py-1">順位</th><th>組</th><th>勝</th><th>分</th><th>敗</th><th>競技点</th></tr></thead>
@@ -919,14 +977,14 @@ function renderResultsTab(): void {
       <div class="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-2.5">
         <div class="flex items-center gap-2">
           <span class="bg-gradient-to-r from-sky-500 to-indigo-600 text-white font-black text-xs px-2 py-0.5 rounded-full shadow-sm">${cat.grade}</span>
-          <h3 class="font-black text-xs text-slate-800 dark:text-slate-100">${cat.blockTitle}｜${cat.sport}</h3>
+          <h3 class="font-black text-xs text-slate-800 dark:text-slate-100">${cat.sport}</h3>
         </div>
         <span class="text-[10px] font-bold px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-full">
           ${cat.format === "league" ? "総当たり戦" : cat.format === "tournament" ? "トーナメント" : cat.format === "table_tennis_round_robin" ? "卓球総当たり" : cat.format === "exhibition" ? "エキシビション" : "単発形式"}
         </span>
       </div>
 
-      <div class="text-[10px] font-bold text-slate-400">${cat.format === "league" ? `勝利 3pt / 引き分け 1pt / 敗戦 0pt｜${competitionComplete ? "順位確定" : "全試合終了後に順位確定"}` : cat.format === "tournament" ? `決勝・3位決定戦 ${competitionComplete ? "終了｜順位確定" : "終了後に順位確定"}` : cat.format === "table_tennis_round_robin" ? `卓球総当たり｜${competitionComplete ? "順位確定" : "全試合終了後に順位確定"}` : "勝利 30pt"}</div>
+      <div class="text-[10px] font-bold text-slate-400">${cat.format === "exhibition" ? "得点集計対象外" : cat.format === "league" ? `勝利 3pt / 引き分け 1pt / 敗戦 0pt｜${competitionComplete ? "順位確定" : "全試合終了後に順位確定"}` : cat.format === "tournament" ? `決勝・3位決定戦 ${competitionComplete ? "終了｜順位確定" : "終了後に順位確定"}` : cat.format === "table_tennis_round_robin" ? `卓球総当たり｜${competitionComplete ? "順位確定" : "全試合終了後に順位確定"}` : "勝利 30pt"}</div>
 
       <div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 p-2.5">
         <div class="text-[10px] font-black text-slate-500 dark:text-slate-400 mb-1.5">ブロック順位と得点割</div>
@@ -943,6 +1001,7 @@ function renderResultsTab(): void {
 }
 
 function calculateCompetitionStandings(matches: Match[], format: MatchFormat): Array<{ team: string; wins: number; draws: number; losses: number; points: number; rank: number; rankPoints: number }> {
+  if (format === "exhibition") return [];
   if (format === "tournament") return calculateTournamentStandings(matches);
 
   const teams = Array.from(new Set(matches.flatMap((match) => [match.teamA, match.teamB]).filter(Boolean)));
@@ -976,7 +1035,7 @@ function calculateCompetitionStandings(matches: Match[], format: MatchFormat): A
   const pointRule = matches.find((match) => match.pointRule)?.pointRule ?? [150, 100, 50, 0];
   return teams
     .sort((a, b) => stats[b].points - stats[a].points || (stats[b].scored - stats[b].conceded) - (stats[a].scored - stats[a].conceded) || stats[b].scored - stats[a].scored)
-    .map((team, index) => ({ ...stats[team], team, rank: index + 1, rankPoints: matches.every((match) => match.status === "FINISHED") ? pointRule[index] ?? 0 : 0 }));
+    .map((team, index) => ({ ...stats[team], team, rank: index + 1, rankPoints: isCompetitionComplete(matches, format) ? pointRule[index] ?? 0 : 0 }));
 }
 
 function calculateTournamentStandings(matches: Match[]): Array<{ team: string; wins: number; draws: number; losses: number; points: number; rank: number; rankPoints: number }> {
@@ -1026,7 +1085,7 @@ function calculateTournamentStandings(matches: Match[]): Array<{ team: string; w
     team,
     ...stats[team],
     rank: index + 1,
-    rankPoints: index < 4 && final?.status === "FINISHED" && thirdPlace?.status === "FINISHED" ? pointRule[index] ?? 0 : 0
+    rankPoints: isCompetitionComplete(matches, "tournament") && index < 4 ? pointRule[index] ?? 0 : 0
   }));
 }
 
@@ -1035,7 +1094,8 @@ function calculateScoresAndRanks(): void {
 
   const categories: Record<string, Match[]> = {};
   appState.schedule.forEach((match) => {
-    const key = `${match.grade} - ${match.sport}`;
+    if (match.format === "exhibition") return;
+    const key = match.blockId ?? `${match.grade} - ${match.sport}`;
     if (!categories[key]) categories[key] = [];
     categories[key].push(match);
   });
@@ -1165,15 +1225,8 @@ function createCompetitionBlock(): void {
   const blockId = `block_${Date.now()}`;
   const blockTitle = (document.getElementById("addTitle") as HTMLInputElement | null)?.value.trim() || "第1試合";
   const pointRule = getAddPointRule();
-  const definitions = format === "league"
-    ? [
-        ["第1節", "A", "B"], ["第2節", "A", "C"], ["第3節", "A", "D"],
-        ["第4節", "B", "C"], ["第5節", "B", "D"], ["第6節", "C", "D"]
-      ]
-    : [
-      ["準決勝1", "A", "B"], ["準決勝2", "C", "D"],
-        ["3位決定戦", "敗者1", "敗者2"], ["決勝", "勝者1", "勝者2"]
-      ];
+  const scheduleFormat: MatchFormat = sport === "卓球" && format === "tournament" ? "table_tennis_round_robin" : format;
+  const definitions = getFormatMatchDefinitions(scheduleFormat);
 
   definitions.forEach((definition, index) => {
     appState.schedule.push({
@@ -1184,7 +1237,7 @@ function createCompetitionBlock(): void {
       sport,
       grade,
       title: definition[0],
-      format,
+      format: scheduleFormat,
       teamA: definition[1],
       teamB: definition[2],
       scoreA: null,
@@ -1199,11 +1252,13 @@ function createCompetitionBlock(): void {
     });
   });
 
+  appState.expandedGroups[blockId] = true;
   saveState();
   renderTimeline();
   renderCourtDelaySummary();
   renderResultsTab();
-  alert(`${grade} ${sport}の${format === "league" ? "総当たり" : "トーナメント"}ブロックを${definitions.length}試合作成しました。`);
+  calculateScoresAndRanks();
+  alert(`${grade} ${sport}の試合ブロックを${definitions.length}試合作成しました。`);
 }
 
 function openModal(matchId: string): void {
@@ -1267,6 +1322,7 @@ function saveModalData(): void {
   m.scoreA = scoreA === "" ? null : Math.max(0, parseInt(scoreA, 10) || 0);
   m.scoreB = scoreB === "" ? null : Math.max(0, parseInt(scoreB, 10) || 0);
   updateTournamentBracket(m.blockId);
+  updateExhibitionTeams(m.sport);
   m.referee = (document.getElementById("inputReferee") as HTMLInputElement).value;
   m.staff = (document.getElementById("inputStaff") as HTMLInputElement).value;
   m.pointRule = parsePointRule((document.getElementById("inputCompetitionPoints") as HTMLInputElement).value);
@@ -1387,11 +1443,35 @@ function importData(input: HTMLInputElement): void {
   reader.readAsText(file);
 }
 
+function resetScoreLogs(): void {
+  if (!confirm("全試合の得点と進行状態を消去します。競技時間・対戦表は保持されます。")) return;
+  appState.schedule.forEach((match) => {
+    match.scoreA = null;
+    match.scoreB = null;
+    match.status = "BEFORE";
+  });
+  const blockIds = new Set(appState.schedule.map((match) => match.blockId).filter(Boolean));
+  blockIds.forEach((blockId) => updateTournamentBracket(blockId));
+  [...new Set(appState.schedule.map((match) => match.sport))].forEach(updateExhibitionTeams);
+  saveState();
+  renderTimeline();
+  renderCourtDelaySummary();
+  renderResultsTab();
+  calculateScoresAndRanks();
+  alert("得点ログを消去しました。");
+}
+
 function resetAllData(): void {
-  if (confirm("全てのデータを初期状態にリセットしますか？")) {
-    localStorage.clear();
-    location.reload();
-  }
+  if (!confirm("全てのデータを初期状態にリセットしますか？")) return;
+  appState.schedule = cloneInitialSchedule();
+  appState.announcement = "";
+  appState.expandedGroups = {};
+  saveState();
+  renderTimeline();
+  renderCourtDelaySummary();
+  renderResultsTab();
+  calculateScoresAndRanks();
+  document.getElementById("announcementBar")?.classList.add("hidden");
 }
 
 (window as any).toggleTheme = toggleTheme;
@@ -1419,5 +1499,6 @@ function resetAllData(): void {
 (window as any).setTimelineViewMode = setTimelineViewMode;
 (window as any).exportData = exportData;
 (window as any).importData = importData;
+(window as any).resetScoreLogs = resetScoreLogs;
 (window as any).resetAllData = resetAllData;
 (window as any).applyBulkOperations = applyBulkOperations;

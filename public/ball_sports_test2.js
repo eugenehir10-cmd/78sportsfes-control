@@ -41,14 +41,16 @@ const INITIAL_SCHEDULE = [
     { id: "m24", court: "卓球場", sport: "卓球", grade: "中2", title: "第4試合", format: "league", teamA: "B", teamB: "D", scoreA: null, scoreB: null, start: "12:00", end: "12:55", referee: "鈴木", staff: "進行", status: "BEFORE", offsetMins: 0 }
 ];
 const LEAGUE_PAIRS = [["A", "B"], ["A", "C"], ["A", "D"], ["B", "C"], ["B", "D"], ["C", "D"]];
-const TOURNAMENT_PAIRS = [["準決勝1", "A", "B"], ["準決勝2", "C", "D"], ["3位決定戦", "敗者1", "敗者2"], ["決勝", "勝者1", "勝者2"]];
+const TOURNAMENT_PAIRS = [["準決勝1", "A", "B"], ["準決勝2", "C", "D"], ["3位決定戦", "準決勝1の敗者", "準決勝2の敗者"], ["決勝", "準決勝1の勝者", "準決勝2の勝者"]];
 function getFormatMatchDefinitions(format) {
     if (format === "tournament")
         return TOURNAMENT_PAIRS;
-    if (format === "single" || format === "exhibition")
+    if (format === "exhibition")
         return [["エキシビション", "優勝チーム", "教師"]];
+    if (format === "single")
+        return [["単発試合", "A", "B"]];
     if (format === "table_tennis_round_robin") {
-        return Array.from({ length: 3 }, (_, roundIndex) => LEAGUE_PAIRS.map((pair, pairIndex) => [`${roundIndex + 1}回戦_${pairIndex + 1}`, pair[0], pair[1]]))
+        return Array.from({ length: 3 }, (_, roundIndex) => LEAGUE_PAIRS.map((pair, pairIndex) => [`${roundIndex + 1}回戦 第${pairIndex + 1}試合`, pair[0], pair[1]]))
             .flat();
     }
     return LEAGUE_PAIRS.map((pair, index) => [`第${index + 1}試合`, pair[0], pair[1]]);
@@ -171,26 +173,29 @@ function normalizeCompetitionSchedule(sourceSchedule) {
     });
     return normalized;
 }
+function cloneInitialSchedule() {
+    return INITIAL_SCHEDULE.map((match) => ({ ...match }));
+}
 function loadPersistedSchedule() {
     try {
         const raw = localStorage.getItem("gym78_ball_day_v1_schedule");
         if (!raw)
-            return INITIAL_SCHEDULE;
+            return cloneInitialSchedule();
         const parsed = JSON.parse(raw);
         if (!Array.isArray(parsed) || parsed.length === 0)
-            return INITIAL_SCHEDULE;
+            return cloneInitialSchedule();
         const normalized = parsed
             .map((entry) => normalizeScheduleEntry(entry))
             .filter((entry) => entry !== null && entry !== undefined);
         if (normalized.length === 0)
-            return INITIAL_SCHEDULE;
+            return cloneInitialSchedule();
         if (normalized.some((match) => match.blockId))
             return normalized;
         const competitionSchedule = normalizeCompetitionSchedule(normalized);
-        return competitionSchedule.length > 0 ? competitionSchedule : INITIAL_SCHEDULE;
+        return competitionSchedule.length > 0 ? competitionSchedule : cloneInitialSchedule();
     }
     catch {
-        return INITIAL_SCHEDULE;
+        return cloneInitialSchedule();
     }
 }
 function loadPersistedAnnouncement() {
@@ -219,6 +224,8 @@ let firebaseSync = {
     unsubscribe: null
 };
 window.firebaseSync = firebaseSync;
+let firebaseWriteInFlight = false;
+let firebaseWritePending = false;
 function updateSyncStatus(label, tone = "sky") {
     const badge = document.getElementById("syncStatusBadge");
     const text = document.getElementById("syncStatusText");
@@ -317,15 +324,16 @@ function applyRemoteDocumentData(data) {
     const preparedSchedule = normalizedRemoteSchedule.length > 0 ? normalizedRemoteSchedule : remoteSchedule;
     const needsNormalize = preparedSchedule.some((match) => !match.blockId || match.court === "上グラウンド" || match.court === "下グラウンド" || !["BEFORE", "IN_PROGRESS", "FINISHED"].includes(match.status ?? ""));
     const nextSchedule = needsNormalize ? normalizeCompetitionSchedule(preparedSchedule) : preparedSchedule;
-    const currentSignature = JSON.stringify(appState.schedule ?? []);
-    const nextSignature = JSON.stringify(nextSchedule ?? []);
+    const nextAnnouncement = normalizeRemoteAnnouncement(data);
+    const currentSignature = JSON.stringify({ schedule: appState.schedule ?? [], announcement: appState.announcement });
+    const nextSignature = JSON.stringify({ schedule: nextSchedule ?? [], announcement: nextAnnouncement });
     if (currentSignature === nextSignature) {
         return true;
     }
     appState.schedule = nextSchedule;
     if (appState.schedule.length === 0)
         appState.schedule = INITIAL_SCHEDULE;
-    appState.announcement = normalizeRemoteAnnouncement(data);
+    appState.announcement = nextAnnouncement;
     localStorage.setItem("gym78_ball_day_v1_schedule", JSON.stringify(appState.schedule));
     localStorage.setItem("gym78_ball_day_v1_announcement", appState.announcement);
     updateSyncStatus("同期済み", "success");
@@ -374,8 +382,8 @@ async function initFirebaseSync() {
         firebaseSync.online = true;
         updateSyncStatus("接続中", "sky");
         const documentCandidates = [
-            { collection: "sportsfes", doc: "main" },
             { collection: "app_data", doc: "ball_sports_data_v4" },
+            { collection: "sportsfes", doc: "main" },
             { collection: "app_data", doc: "ball_sports_test2_main" },
             { collection: "app_data", doc: "sportsfes_main" },
             { collection: "app_data", doc: "main" }
@@ -410,21 +418,32 @@ async function initFirebaseSync() {
 async function syncStateToFirebase() {
     if (!firebaseSync.db || !firebaseSync.initialized)
         return;
+    if (firebaseWriteInFlight) {
+        firebaseWritePending = true;
+        return;
+    }
+    firebaseWriteInFlight = true;
     try {
-        const payload = {
-            schedule: appState.schedule,
-            announcement: appState.announcement,
-            updatedAt: new Date().toISOString()
-        };
         const mainDoc = firebaseSync.db.collection("app_data").doc("ball_sports_data_v4");
-        const legacyDoc = firebaseSync.db.collection("sportsfes").doc("main");
-        await mainDoc.set(payload, { merge: true });
-        await legacyDoc.set(payload, { merge: true });
+        do {
+            firebaseWritePending = false;
+            const payload = {
+                schedule: appState.schedule,
+                announcement: appState.announcement,
+                updatedAt: new Date().toISOString()
+            };
+            await mainDoc.set(payload, { merge: true });
+        } while (firebaseWritePending);
         updateSyncStatus("同期済み", "success");
     }
     catch (err) {
         console.error("[Firebase 同期エラー]", err);
         updateSyncStatus("同期失敗", "warning");
+    }
+    finally {
+        firebaseWriteInFlight = false;
+        if (firebaseWritePending)
+            syncStateToFirebase();
     }
 }
 document.addEventListener("DOMContentLoaded", () => {
@@ -733,6 +752,7 @@ function quickSaveScore(matchId, newStatus) {
     m.scoreB = valB !== "" ? parseInt(valB, 10) : null;
     m.status = newStatus;
     updateTournamentBracket(m.blockId);
+    updateExhibitionTeams(m.sport);
     saveState();
     renderTimeline();
     renderCourtDelaySummary();
@@ -747,6 +767,40 @@ function getLoser(match) {
     if (match.status !== "FINISHED" || match.scoreA === null || match.scoreB === null || match.scoreA === match.scoreB)
         return null;
     return match.scoreA < match.scoreB ? match.teamA : match.teamB;
+}
+function isCompetitionComplete(matches, format) {
+    if (format === "exhibition" || !matches.length)
+        return false;
+    const hasResult = (match) => match.status === "FINISHED" && match.scoreA !== null && match.scoreB !== null;
+    if (format === "tournament") {
+        const final = matches.find((match) => match.title === "決勝");
+        const thirdPlace = matches.find((match) => match.title === "3位決定戦");
+        return !!final && !!thirdPlace && hasResult(final) && hasResult(thirdPlace);
+    }
+    return matches.every(hasResult);
+}
+function updateExhibitionTeams(sport) {
+    const competitions = new Map();
+    appState.schedule.forEach((match) => {
+        if (match.sport !== sport || match.format === "exhibition")
+            return;
+        const key = match.blockId ?? `${match.grade} - ${match.sport}`;
+        if (!competitions.has(key))
+            competitions.set(key, []);
+        competitions.get(key).push(match);
+    });
+    const completed = [...competitions.values()].filter((matches) => isCompetitionComplete(matches, matches[0].format));
+    const latest = completed[completed.length - 1];
+    let champion = null;
+    if (latest) {
+        if (latest[0].format === "tournament") {
+            champion = getWinner(latest.find((match) => match.title === "決勝"));
+        } else {
+            champion = calculateCompetitionStandings(latest, latest[0].format).find((standing) => standing.rank === 1)?.team ?? null;
+        }
+    }
+    appState.schedule.filter((match) => match.sport === sport && match.format === "exhibition" && match.status !== "FINISHED")
+        .forEach((match) => { match.teamA = champion ?? "優勝チーム"; });
 }
 function updateTournamentBracket(blockId) {
     if (!blockId)
@@ -898,12 +952,8 @@ function renderResultsTab() {
       `;
         });
         const standings = calculateCompetitionStandings(cat.matches, cat.format);
-        const competitionComplete = cat.format === "league"
-            ? cat.matches.every((match) => match.status === "FINISHED")
-            : cat.format !== "tournament"
-                || (cat.matches.some((match) => match.title === "決勝" && match.status === "FINISHED")
-                    && cat.matches.some((match) => match.title === "3位決定戦" && match.status === "FINISHED"));
-        const standingsHtml = `
+        const competitionComplete = isCompetitionComplete(cat.matches, cat.format);
+        const standingsHtml = cat.format === "exhibition" ? '<p class="py-3 text-center text-[11px] font-bold text-slate-400">エキシビションは得点集計対象外です。</p>' : `
       <div class="overflow-x-auto">
         <table class="w-full text-[11px] min-w-[420px]">
           <thead><tr class="text-left text-slate-400 border-b border-slate-200 dark:border-slate-800"><th class="py-1">順位</th><th>組</th><th>勝</th><th>分</th><th>敗</th><th>競技点</th></tr></thead>
@@ -922,7 +972,7 @@ function renderResultsTab() {
         </span>
       </div>
 
-      <div class="text-[10px] font-bold text-slate-400">${cat.format === "league" ? `勝利 3pt / 引き分け 1pt / 敗戦 0pt｜${competitionComplete ? "順位確定" : "全試合終了後に順位確定"}` : cat.format === "tournament" ? `決勝・3位決定戦 ${competitionComplete ? "終了｜順位確定" : "終了後に順位確定"}` : cat.format === "table_tennis_round_robin" ? `卓球総当たり｜${competitionComplete ? "順位確定" : "全試合終了後に順位確定"}` : "勝利 30pt"}</div>
+    <div class="text-[10px] font-bold text-slate-400">${cat.format === "exhibition" ? "得点集計対象外" : cat.format === "league" ? `勝利 3pt / 引き分け 1pt / 敗戦 0pt｜${competitionComplete ? "順位確定" : "全試合終了後に順位確定"}` : cat.format === "tournament" ? `決勝・3位決定戦 ${competitionComplete ? "終了｜順位確定" : "終了後に順位確定"}` : cat.format === "table_tennis_round_robin" ? `卓球総当たり｜${competitionComplete ? "順位確定" : "全試合終了後に順位確定"}` : "勝利 30pt"}</div>
 
       <div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 p-2.5">
         <div class="text-[10px] font-black text-slate-500 dark:text-slate-400 mb-1.5">ブロック順位と得点割</div>
@@ -938,6 +988,8 @@ function renderResultsTab() {
     });
 }
 function calculateCompetitionStandings(matches, format) {
+    if (format === "exhibition")
+        return [];
     if (format === "tournament")
         return calculateTournamentStandings(matches);
     const teams = Array.from(new Set(matches.flatMap((match) => [match.teamA, match.teamB]).filter(Boolean)));
@@ -972,7 +1024,7 @@ function calculateCompetitionStandings(matches, format) {
     const pointRule = matches.find((match) => match.pointRule)?.pointRule ?? [150, 100, 50, 0];
     return teams
         .sort((a, b) => stats[b].points - stats[a].points || (stats[b].scored - stats[b].conceded) - (stats[a].scored - stats[a].conceded) || stats[b].scored - stats[a].scored)
-        .map((team, index) => ({ ...stats[team], team, rank: index + 1, rankPoints: matches.every((match) => match.status === "FINISHED") ? pointRule[index] ?? 0 : 0 }));
+        .map((team, index) => ({ ...stats[team], team, rank: index + 1, rankPoints: isCompetitionComplete(matches, format) ? pointRule[index] ?? 0 : 0 }));
 }
 function calculateTournamentStandings(matches) {
     const pointRule = matches.find((match) => match.pointRule)?.pointRule ?? [150, 100, 50, 0];
@@ -1020,7 +1072,7 @@ function calculateTournamentStandings(matches) {
         team,
         ...stats[team],
         rank: index + 1,
-        rankPoints: index < 4 && final?.status === "FINISHED" && thirdPlace?.status === "FINISHED" ? pointRule[index] ?? 0 : 0
+        rankPoints: isCompetitionComplete(matches, "tournament") && index < 4 ? pointRule[index] ?? 0 : 0
     }));
 }
 function calculateScoresAndRanks() {
@@ -1043,7 +1095,9 @@ function calculateScoresAndRanks() {
     }
     const categories = {};
     appState.schedule.forEach((match) => {
-        const key = `${match.grade} - ${match.sport}`;
+        if (match.format === "exhibition")
+            return;
+        const key = match.blockId ?? `${match.grade} - ${match.sport}`;
         if (!categories[key])
             categories[key] = [];
         categories[key].push(match);
@@ -1334,7 +1388,8 @@ function createCompetitionBlock() {
     const blockId = `block_${Date.now()}`;
     const blockTitle = document.getElementById("addTitle")?.value.trim() || "第1試合";
     const pointRule = getAddPointRule();
-    const definitions = getFormatMatchDefinitions(format);
+    const scheduleFormat = sport === "卓球" && format === "tournament" ? "table_tennis_round_robin" : format;
+    const definitions = getFormatMatchDefinitions(scheduleFormat);
     definitions.forEach((definition, index) => {
         appState.schedule.push({
             id: `${blockId}_${index + 1}`,
@@ -1344,7 +1399,7 @@ function createCompetitionBlock() {
             sport,
             grade,
             title: definition[0],
-            format,
+            format: scheduleFormat,
             teamA: definition[1],
             teamB: definition[2],
             scoreA: null,
@@ -1358,11 +1413,18 @@ function createCompetitionBlock() {
             pointRule
         });
     });
+    appState.expandedGroups[blockId] = true;
     saveState();
+    populateBlockSelectors();
+    const blockSelect = document.getElementById("timeConfigBlockSelect");
+    if (blockSelect)
+        blockSelect.value = `${normalizeGradeLabel(grade)} | ${sport}`;
+    renderTimeConfigEditor();
     renderTimeline();
     renderCourtDelaySummary();
     renderResultsTab();
-    alert(`${grade} ${sport}の${format === "league" ? "総当たり" : "トーナメント"}ブロックを${definitions.length}試合作成しました。`);
+    calculateScoresAndRanks();
+    alert(`${grade} ${sport}の試合ブロックを${definitions.length}試合作成しました。`);
 }
 function openModal(matchId) {
     const m = appState.schedule.find((item) => item.id === matchId);
@@ -1420,6 +1482,7 @@ function saveModalData() {
     m.scoreA = scoreA === "" ? null : Math.max(0, parseInt(scoreA, 10) || 0);
     m.scoreB = scoreB === "" ? null : Math.max(0, parseInt(scoreB, 10) || 0);
     updateTournamentBracket(m.blockId);
+    updateExhibitionTeams(m.sport);
     m.referee = document.getElementById("inputReferee").value;
     m.staff = document.getElementById("inputStaff").value;
     m.pointRule = parsePointRule(document.getElementById("inputCompetitionPoints").value);
@@ -1537,11 +1600,39 @@ function importData(input) {
     };
     reader.readAsText(file);
 }
+function resetScoreLogs() {
+    if (!confirm("全試合の得点と進行状態を消去します。競技時間・対戦表は保持されます。"))
+        return;
+    appState.schedule.forEach((match) => {
+        match.scoreA = null;
+        match.scoreB = null;
+        match.status = "BEFORE";
+    });
+    const blockIds = new Set(appState.schedule.map((match) => match.blockId).filter(Boolean));
+    blockIds.forEach((blockId) => updateTournamentBracket(blockId));
+    [...new Set(appState.schedule.map((match) => match.sport))].forEach(updateExhibitionTeams);
+    saveState();
+    renderTimeline();
+    renderCourtDelaySummary();
+    renderResultsTab();
+    calculateScoresAndRanks();
+    renderTimeConfigEditor();
+    alert("得点ログを消去しました。");
+}
 function resetAllData() {
-    if (confirm("全てのデータを初期状態にリセットしますか？")) {
-        localStorage.clear();
-        location.reload();
-    }
+    if (!confirm("全てのデータを初期状態にリセットしますか？"))
+        return;
+    appState.schedule = cloneInitialSchedule();
+    appState.announcement = "";
+    appState.expandedGroups = {};
+    saveState();
+    renderTimeline();
+    renderCourtDelaySummary();
+    renderResultsTab();
+    calculateScoresAndRanks();
+    populateBlockSelectors();
+    renderTimeConfigEditor();
+    document.getElementById("announcementBar")?.classList.add("hidden");
 }
 window.toggleTheme = toggleTheme;
 window.toggleContrast = toggleContrast;
@@ -1568,6 +1659,7 @@ window.renderGantt = renderGantt;
 window.setTimelineViewMode = setTimelineViewMode;
 window.exportData = exportData;
 window.importData = importData;
+window.resetScoreLogs = resetScoreLogs;
 window.resetAllData = resetAllData;
 window.applyBulkOperations = applyBulkOperations;
 window.populateBlockSelectors = populateBlockSelectors;
