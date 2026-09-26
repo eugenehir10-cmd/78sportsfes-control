@@ -359,7 +359,7 @@ function subscribeToRemoteData() {
             // ignore
         }
     }
-    const primaryDoc = firebaseSync.db.collection("app_data").doc("ball_sports_data_v4");
+    const primaryDoc = firebaseSync.db.collection("app_data").doc("ball_sports_test2_main");
     firebaseSync.unsubscribe = primaryDoc.onSnapshot((docSnap) => {
         if (!docSnap.exists)
             return;
@@ -382,9 +382,9 @@ async function initFirebaseSync() {
         firebaseSync.online = true;
         updateSyncStatus("接続中", "sky");
         const documentCandidates = [
+            { collection: "app_data", doc: "ball_sports_test2_main" },
             { collection: "app_data", doc: "ball_sports_data_v4" },
             { collection: "sportsfes", doc: "main" },
-            { collection: "app_data", doc: "ball_sports_test2_main" },
             { collection: "app_data", doc: "sportsfes_main" },
             { collection: "app_data", doc: "main" }
         ];
@@ -405,6 +405,12 @@ async function initFirebaseSync() {
         if (!loaded) {
             updateSyncStatus("ローカルモード", "warning");
             console.log("[Firebase] リモートデータなし、ローカルデータを使用");
+            await syncStateToFirebase();
+        }
+        else {
+            const primarySnapshot = await firebaseSync.db.collection("app_data").doc("ball_sports_test2_main").get();
+            if (!primarySnapshot.exists)
+                await syncStateToFirebase();
         }
         subscribeToRemoteData();
     }
@@ -424,7 +430,7 @@ async function syncStateToFirebase() {
     }
     firebaseWriteInFlight = true;
     try {
-        const mainDoc = firebaseSync.db.collection("app_data").doc("ball_sports_data_v4");
+        const mainDoc = firebaseSync.db.collection("app_data").doc("ball_sports_test2_main");
         do {
             firebaseWritePending = false;
             const payload = {
