@@ -1,3 +1,5 @@
+export {};
+
 type MatchStatus = "BEFORE" | "IN_PROGRESS" | "FINISHED";
 type MatchFormat = "tournament" | "league" | "single" | "table_tennis_round_robin" | "exhibition";
 
@@ -25,8 +27,10 @@ type Match = {
 
 declare const firebase: any;
 
-interface Window {
-  firebase: any;
+declare global {
+  interface Window {
+    firebase: any;
+  }
 }
 
 type AppState = {
@@ -167,6 +171,7 @@ let appState: AppState = {
   isAdmin: false,
   announcement: loadPersistedAnnouncement()
 };
+(window as any).appState = appState;
 
 let firebaseSync: { app: any; db: any; initialized: boolean; online: boolean; unsubscribe: any } = {
   app: null,
@@ -175,6 +180,7 @@ let firebaseSync: { app: any; db: any; initialized: boolean; online: boolean; un
   online: false,
   unsubscribe: null
 };
+(window as any).firebaseSync = firebaseSync;
 
 function updateSyncStatus(label: string, tone: "success" | "warning" | "sky" = "sky"): void {
   const badge = document.getElementById("syncStatusBadge");

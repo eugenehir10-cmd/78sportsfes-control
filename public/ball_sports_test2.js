@@ -41,6 +41,18 @@ const INITIAL_SCHEDULE = [
     { id: "m24", court: "卓球場", sport: "卓球", grade: "中2", title: "第4試合", format: "league", teamA: "B", teamB: "D", scoreA: null, scoreB: null, start: "12:00", end: "12:55", referee: "鈴木", staff: "進行", status: "BEFORE", offsetMins: 0 }
 ];
 const LEAGUE_PAIRS = [["A", "B"], ["A", "C"], ["A", "D"], ["B", "C"], ["B", "D"], ["C", "D"]];
+const TOURNAMENT_PAIRS = [["準決勝1", "A", "B"], ["準決勝2", "C", "D"], ["3位決定戦", "敗者1", "敗者2"], ["決勝", "勝者1", "勝者2"]];
+function getFormatMatchDefinitions(format) {
+    if (format === "tournament")
+        return TOURNAMENT_PAIRS;
+    if (format === "single" || format === "exhibition")
+        return [["エキシビション", "優勝チーム", "教師"]];
+    if (format === "table_tennis_round_robin") {
+        return Array.from({ length: 3 }, (_, roundIndex) => LEAGUE_PAIRS.map((pair, pairIndex) => [`${roundIndex + 1}回戦_${pairIndex + 1}`, pair[0], pair[1]]))
+            .flat();
+    }
+    return LEAGUE_PAIRS.map((pair, index) => [`第${index + 1}試合`, pair[0], pair[1]]);
+}
 function parseTimeMinutes(value) {
     if (typeof value !== "string" || !value.includes(":"))
         return 0;
@@ -50,6 +62,25 @@ function parseTimeMinutes(value) {
     if (!Number.isFinite(hours) || !Number.isFinite(minutes))
         return 0;
     return hours * 60 + minutes;
+}
+function normalizeGradeLabel(value) {
+    const grade = String(value ?? "").trim();
+    if (!grade)
+        return "不明";
+    const normalized = grade.replace(/[^0-9A-Za-z一-龯]/g, "");
+    if (normalized === "中1" || normalized === "中学1")
+        return "中学1年";
+    if (normalized === "中2" || normalized === "中学2")
+        return "中学2年";
+    if (normalized === "中3" || normalized === "中学3")
+        return "中学3年";
+    if (normalized === "高1" || normalized === "高校1")
+        return "高校1年";
+    if (normalized === "高2" || normalized === "高校2")
+        return "高校2年";
+    if (normalized === "高3" || normalized === "高校3")
+        return "高校3年";
+    return grade;
 }
 function normalizeLegacyStatus(status) {
     const value = String(status ?? "").toLowerCase();
@@ -118,9 +149,7 @@ function normalizeCompetitionSchedule(sourceSchedule) {
         const startMinutes = parseTimeMinutes(startValue);
         const endMinutes = parseTimeMinutes(endValue);
         const duration = Math.max(10, Math.round(Math.max(endMinutes - startMinutes, 30)));
-        const definitions = canonical.format === "tournament"
-            ? [["準決勝1", "A", "B"], ["準決勝2", "C", "D"], ["3位決定戦", "準決勝1の敗者", "準決勝2の敗者"], ["決勝", "準決勝1の勝者", "準決勝2の勝者"]]
-            : LEAGUE_PAIRS.map((pair, index) => [`第${index + 1}試合`, pair[0], pair[1]]);
+        const definitions = getFormatMatchDefinitions(canonical.format);
         definitions.forEach((definition, index) => {
             const start = addMinutesToTime(startValue, index * (duration + 5));
             normalized.push({
@@ -181,6 +210,7 @@ let appState = {
     isAdmin: false,
     announcement: loadPersistedAnnouncement()
 };
+window.appState = appState;
 let firebaseSync = {
     app: null,
     db: null,
@@ -188,6 +218,7 @@ let firebaseSync = {
     online: false,
     unsubscribe: null
 };
+window.firebaseSync = firebaseSync;
 function updateSyncStatus(label, tone = "sky") {
     const badge = document.getElementById("syncStatusBadge");
     const text = document.getElementById("syncStatusText");
@@ -280,8 +311,18 @@ function applyRemoteDocumentData(data) {
             appState.schedule = INITIAL_SCHEDULE;
         return false;
     }
-    const needsNormalize = remoteSchedule.some((match) => !match.blockId);
-    appState.schedule = needsNormalize ? normalizeCompetitionSchedule(remoteSchedule) : remoteSchedule;
+    const normalizedRemoteSchedule = remoteSchedule
+        .map((match) => normalizeScheduleEntry(match))
+        .filter((match) => match && typeof match === "object");
+    const preparedSchedule = normalizedRemoteSchedule.length > 0 ? normalizedRemoteSchedule : remoteSchedule;
+    const needsNormalize = preparedSchedule.some((match) => !match.blockId || match.court === "上グラウンド" || match.court === "下グラウンド" || !["BEFORE", "IN_PROGRESS", "FINISHED"].includes(match.status ?? ""));
+    const nextSchedule = needsNormalize ? normalizeCompetitionSchedule(preparedSchedule) : preparedSchedule;
+    const currentSignature = JSON.stringify(appState.schedule ?? []);
+    const nextSignature = JSON.stringify(nextSchedule ?? []);
+    if (currentSignature === nextSignature) {
+        return true;
+    }
+    appState.schedule = nextSchedule;
     if (appState.schedule.length === 0)
         appState.schedule = INITIAL_SCHEDULE;
     appState.announcement = normalizeRemoteAnnouncement(data);
@@ -320,6 +361,8 @@ function subscribeToRemoteData() {
     });
 }
 async function initFirebaseSync() {
+    if (firebaseSync.initialized && firebaseSync.db)
+        return;
     if (!window.firebase || !window.firebase.apps)
         return;
     try {
@@ -388,6 +431,8 @@ document.addEventListener("DOMContentLoaded", () => {
     startClock();
     updateSyncStatus("待機中", "sky");
     initFirebaseSync();
+    populateBlockSelectors();
+    renderTimeConfigEditor();
     renderCourtDelaySummary();
     renderTimeline();
     renderResultsTab();
@@ -497,7 +542,7 @@ function renderCourtDelaySummary() {
             badgeColor = "bg-sky-50 dark:bg-sky-950/40 border-sky-300 dark:border-sky-500/40 text-sky-600 dark:text-sky-400 font-bold";
             delayText = `${maxOffset}分 前倒し`;
         }
-        const currentLabel = inProgress ? `${inProgress.grade} / ${inProgress.sport} / ${inProgress.title}` : nextMatch ? `${nextMatch.grade} / ${nextMatch.sport} / ${nextMatch.title}` : "試合なし";
+        const currentLabel = inProgress ? `${inProgress.grade} / ${inProgress.sport}` : nextMatch ? `${nextMatch.grade} / ${nextMatch.sport}` : "試合なし";
         summaryHtml += `
       <div class="stat-tile border rounded-2xl p-2.5 text-center shadow-sm ${badgeColor}">
         <div class="text-[10px] font-black tracking-[0.18em] uppercase opacity-80">${court}</div>
@@ -566,7 +611,7 @@ function renderTimeline() {
         Object.keys(groups).forEach((gKey) => {
             const matches = groups[gKey].sort((a, b) => a.start.localeCompare(b.start));
             const firstMatch = matches[0];
-            const groupLabel = `${firstMatch.grade} / ${firstMatch.sport} / ${firstMatch.blockTitle ?? firstMatch.title ?? "試合"}`;
+            const groupLabel = `${firstMatch.grade} / ${firstMatch.sport}`;
             const isExpanded = appState.expandedGroups[gKey] !== false;
             const finishedCount = matches.filter((m) => m.status === "FINISHED").length;
             const inProgressCount = matches.filter((m) => m.status === "IN_PROGRESS").length;
@@ -870,7 +915,7 @@ function renderResultsTab() {
       <div class="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-2.5">
         <div class="flex items-center gap-2">
           <span class="bg-gradient-to-r from-sky-500 to-indigo-600 text-white font-black text-xs px-2 py-0.5 rounded-full shadow-sm">${cat.grade}</span>
-          <h3 class="font-black text-xs text-slate-800 dark:text-slate-100">${cat.blockTitle}｜${cat.sport}</h3>
+          <h3 class="font-black text-xs text-slate-800 dark:text-slate-100">${cat.sport}</h3>
         </div>
         <span class="text-[10px] font-bold px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-full">
           ${cat.format === "league" ? "総当たり戦" : cat.format === "tournament" ? "トーナメント" : cat.format === "table_tennis_round_robin" ? "卓球総当たり" : cat.format === "exhibition" ? "エキシビション" : "単発形式"}
@@ -980,6 +1025,22 @@ function calculateTournamentStandings(matches) {
 }
 function calculateScoresAndRanks() {
     const totals = { A: 0, B: 0, C: 0, D: 0 };
+    const scoreDisplayA = document.getElementById("scoreDisplayA");
+    const scoreDisplayB = document.getElementById("scoreDisplayB");
+    const scoreDisplayC = document.getElementById("scoreDisplayC");
+    const scoreDisplayD = document.getElementById("scoreDisplayD");
+    if (!appState.schedule || appState.schedule.length === 0) {
+        const valueHtml = (value) => `${value} <span class="text-[10px] font-normal text-slate-400">pt</span>`;
+        if (scoreDisplayA)
+            scoreDisplayA.innerHTML = valueHtml(0);
+        if (scoreDisplayB)
+            scoreDisplayB.innerHTML = valueHtml(0);
+        if (scoreDisplayC)
+            scoreDisplayC.innerHTML = valueHtml(0);
+        if (scoreDisplayD)
+            scoreDisplayD.innerHTML = valueHtml(0);
+        return;
+    }
     const categories = {};
     appState.schedule.forEach((match) => {
         const key = `${match.grade} - ${match.sport}`;
@@ -993,18 +1054,188 @@ function calculateScoresAndRanks() {
                 totals[standing.team] += standing.rankPoints;
         });
     });
-    const scoreDisplayA = document.getElementById("scoreDisplayA");
-    const scoreDisplayB = document.getElementById("scoreDisplayB");
-    const scoreDisplayC = document.getElementById("scoreDisplayC");
-    const scoreDisplayD = document.getElementById("scoreDisplayD");
+    const valueHtml = (value) => `${value} <span class="text-[10px] font-normal text-slate-400">pt</span>`;
     if (scoreDisplayA)
-        scoreDisplayA.innerHTML = `${totals.A} <span class="text-[10px] font-normal text-slate-400">pt</span>`;
+        scoreDisplayA.innerHTML = valueHtml(totals.A);
     if (scoreDisplayB)
-        scoreDisplayB.innerHTML = `${totals.B} <span class="text-[10px] font-normal text-slate-400">pt</span>`;
+        scoreDisplayB.innerHTML = valueHtml(totals.B);
     if (scoreDisplayC)
-        scoreDisplayC.innerHTML = `${totals.C} <span class="text-[10px] font-normal text-slate-400">pt</span>`;
+        scoreDisplayC.innerHTML = valueHtml(totals.C);
     if (scoreDisplayD)
-        scoreDisplayD.innerHTML = `${totals.D} <span class="text-[10px] font-normal text-slate-400">pt</span>`;
+        scoreDisplayD.innerHTML = valueHtml(totals.D);
+}
+function getCompetitionBlocks() {
+    const blocks = new Map();
+    appState.schedule.forEach((match) => {
+        const grade = normalizeGradeLabel(match.grade);
+        const sport = String(match.sport ?? "").trim() || "球技";
+        const groupKey = `${grade} | ${sport}`;
+        if (!blocks.has(groupKey)) {
+            blocks.set(groupKey, {
+                key: groupKey,
+                label: `${grade} / ${sport}`,
+                grade,
+                sport,
+                matches: []
+            });
+        }
+        blocks.get(groupKey).matches.push(match);
+    });
+    return [...blocks.values()].sort((a, b) => a.label.localeCompare(b.label));
+}
+function populateBlockSelectors() {
+    const blockSelect = document.getElementById("timeConfigBlockSelect");
+    const sportSelect = document.getElementById("deleteSportSelect");
+    if (blockSelect) {
+        const blocks = getCompetitionBlocks();
+        const currentValue = blockSelect.value || blocks[0]?.key || "";
+        blockSelect.innerHTML = blocks.length
+            ? blocks.map((block) => `<option value="${block.key}">${block.label}</option>`).join("")
+            : '<option value="">対象なし</option>';
+        if (blocks.length > 0 && [...blockSelect.options].some((option) => option.value === currentValue)) {
+            blockSelect.value = currentValue;
+        }
+        else if (blocks.length > 0) {
+            blockSelect.value = blocks[0].key;
+        }
+    }
+    if (sportSelect) {
+        const sports = [...new Set(appState.schedule.map((match) => match.sport).filter(Boolean))].sort();
+        sportSelect.innerHTML = `<option value="ALL">全競技</option>${sports.map((sport) => `<option value="${sport}">${sport}</option>`).join("")}`;
+    }
+}
+function renderTimeConfigEditor() {
+    const blockSelect = document.getElementById("timeConfigBlockSelect");
+    const listContainer = document.getElementById("timeConfigList");
+    const summaryContainer = document.getElementById("teamScoreSummary");
+    if (!blockSelect || !listContainer || !summaryContainer)
+        return;
+    const blocks = getCompetitionBlocks();
+    const selectedKey = blockSelect.value || blocks[0]?.key || "";
+    const block = blocks.find((item) => item.key === selectedKey) || blocks[0];
+    if (!block) {
+        listContainer.innerHTML = '<div class="text-xs text-slate-400 font-bold py-3">編集対象の学年・球技グループがありません。</div>';
+        summaryContainer.innerHTML = "";
+        return;
+    }
+    const teamTotals = { A: 0, B: 0, C: 0, D: 0 };
+    block.matches.forEach((match) => {
+        const teams = [match.teamA, match.teamB];
+        teams.forEach((team) => {
+            if (team && teamTotals[team] !== undefined) {
+                const score = team === match.teamA ? (match.scoreA ?? 0) : (match.scoreB ?? 0);
+                teamTotals[team] += score;
+            }
+        });
+    });
+    const summaryText = ["A", "B", "C", "D"].map((team) => `<span class="px-2 py-1 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-[10px] font-black">${team}組: ${teamTotals[team]}点</span>`).join("");
+    summaryContainer.innerHTML = `<div class="flex flex-wrap gap-2">${summaryText}</div>`;
+    listContainer.innerHTML = `
+        <div class="mb-2 text-[10px] font-black text-slate-500 dark:text-slate-400">対象: ${block.label} / ${block.matches.length}件</div>
+        ${block.matches
+            .sort((a, b) => (a.start || "00:00").localeCompare(b.start || "00:00"))
+            .map((match) => `
+                <div class="time-setting-row" data-match-row="${match.id}">
+                    <div class="flex flex-col gap-1">
+                        <div class="font-black text-[11px] text-slate-700 dark:text-slate-200">${match.title || match.blockTitle || "試合"}</div>
+                        <div class="text-[10px] text-slate-500 dark:text-slate-400">${match.court} / ${normalizeGradeLabel(match.grade)} / ${match.sport} / ${match.teamA || "-"} vs ${match.teamB || "-"}</div>
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-black text-slate-500 dark:text-slate-400">開始</label>
+                        <input type="time" value="${match.start || "08:00"}" data-match-id="${match.id}" data-field="start" class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5 font-bold text-slate-800 dark:text-slate-100">
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-black text-slate-500 dark:text-slate-400">終了</label>
+                        <input type="time" value="${match.end || addMinutesToTime(match.start || "08:00", 30)}" data-match-id="${match.id}" data-field="end" class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5 font-bold text-slate-800 dark:text-slate-100">
+                    </div>
+                </div>
+            `)
+            .join("")}
+    `;
+}
+function saveTimeConfig() {
+    const rows = document.querySelectorAll("[data-match-row]");
+    if (!rows.length) {
+        alert("保存対象の試合がありません。");
+        return;
+    }
+    let updated = 0;
+    rows.forEach((row) => {
+        const matchId = row.getAttribute("data-match-row");
+        const match = appState.schedule.find((item) => item.id === matchId);
+        if (!match)
+            return;
+        const startInput = row.querySelector('[data-field="start"]');
+        const endInput = row.querySelector('[data-field="end"]');
+        if (startInput && typeof startInput.value === "string" && startInput.value)
+            match.start = startInput.value;
+        if (endInput && typeof endInput.value === "string" && endInput.value)
+            match.end = endInput.value;
+        updated += 1;
+    });
+    saveState();
+    renderTimeline();
+    renderCourtDelaySummary();
+    renderGantt();
+    alert(`${updated}件の試合時間を保存しました。`);
+}
+function deleteSelectedCompetition() {
+    const sport = document.getElementById("deleteSportSelect")?.value ?? "ALL";
+    const grade = document.getElementById("deleteGradeSelect")?.value ?? "ALL";
+    const court = document.getElementById("deleteCourtSelect")?.value ?? "ALL";
+    const passwordValue = document.getElementById("deleteConfirmationPassword")?.value ?? "";
+    if (passwordValue !== "admin123") {
+        alert("高度操作パスワードが一致しません。");
+        return;
+    }
+    const beforeCount = appState.schedule.length;
+    appState.schedule = appState.schedule.filter((match) => {
+        const sportMatch = sport === "ALL" || match.sport === sport;
+        const gradeMatch = grade === "ALL" || match.grade === grade;
+        const courtMatch = court === "ALL" || match.court === court;
+        return !(sportMatch && gradeMatch && courtMatch);
+    });
+    if (appState.schedule.length === beforeCount) {
+        alert("削除対象の試合がありません。");
+        return;
+    }
+    saveState();
+    renderTimeline();
+    renderCourtDelaySummary();
+    renderResultsTab();
+    calculateScoresAndRanks();
+    populateBlockSelectors();
+    renderTimeConfigEditor();
+    alert(`${beforeCount - appState.schedule.length}件の試合を削除しました。`);
+    const passwordInput = document.getElementById("deleteConfirmationPassword");
+    if (passwordInput)
+        passwordInput.value = "";
+}
+function exportResultsCsv() {
+    const rows = [["学年", "競技", "ブロック", "タイトル", "チームA", "点A", "チームB", "点B", "開始", "終了", "状態"]];
+    appState.schedule.forEach((match) => {
+        rows.push([
+            match.grade,
+            match.sport,
+            match.blockTitle || match.title,
+            match.title,
+            match.teamA,
+            match.scoreA ?? "",
+            match.teamB,
+            match.scoreB ?? "",
+            match.start,
+            match.end,
+            match.status
+        ]);
+    });
+    const csv = rows.map((row) => row.map((value) => `"${String(value).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `sportsfes-results-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
 }
 function applyBulkOperations() {
     const court = document.getElementById("bulkCourt")?.value ?? "ALL";
@@ -1103,15 +1334,7 @@ function createCompetitionBlock() {
     const blockId = `block_${Date.now()}`;
     const blockTitle = document.getElementById("addTitle")?.value.trim() || "第1試合";
     const pointRule = getAddPointRule();
-    const definitions = format === "league"
-        ? [
-            ["第1節", "A", "B"], ["第2節", "A", "C"], ["第3節", "A", "D"],
-            ["第4節", "B", "C"], ["第5節", "B", "D"], ["第6節", "C", "D"]
-        ]
-        : [
-            ["準決勝1", "A", "B"], ["準決勝2", "C", "D"],
-            ["3位決定戦", "敗者1", "敗者2"], ["決勝", "勝者1", "勝者2"]
-        ];
+    const definitions = getFormatMatchDefinitions(format);
     definitions.forEach((definition, index) => {
         appState.schedule.push({
             id: `${blockId}_${index + 1}`,
@@ -1347,3 +1570,8 @@ window.exportData = exportData;
 window.importData = importData;
 window.resetAllData = resetAllData;
 window.applyBulkOperations = applyBulkOperations;
+window.populateBlockSelectors = populateBlockSelectors;
+window.renderTimeConfigEditor = renderTimeConfigEditor;
+window.saveTimeConfig = saveTimeConfig;
+window.deleteSelectedCompetition = deleteSelectedCompetition;
+window.exportResultsCsv = exportResultsCsv;
