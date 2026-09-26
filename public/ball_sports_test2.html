@@ -25,8 +25,7 @@
             }
         }
     </script>
-    <!-- FontAwesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js" defer></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -142,14 +141,14 @@
                     <span class="text-slate-500 dark:text-slate-400"><i class="fa-solid fa-filter text-sky-500 mr-1"></i>コート:</span>
                     <div id="courtFilterGroup" class="flex flex-wrap items-center gap-1.5">
                         <label class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-slate-100 px-2 py-1 dark:border-slate-700 dark:bg-slate-950">
-                            <input type="checkbox" class="court-filter-checkbox" value="ALL" checked onchange="renderTimeline(); renderGantt();"> 全て
+                            <input type="checkbox" class="court-filter-checkbox" value="ALL" checked onchange="handleCourtFilterChange(this)"> 全て
                         </label>
-                        <label class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-slate-100 px-2 py-1 dark:border-slate-700 dark:bg-slate-950"><input type="checkbox" class="court-filter-checkbox" value="上グラ" checked onchange="renderTimeline(); renderGantt();"> 上グラ</label>
-                        <label class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-slate-100 px-2 py-1 dark:border-slate-700 dark:bg-slate-950"><input type="checkbox" class="court-filter-checkbox" value="下グラ" checked onchange="renderTimeline(); renderGantt();"> 下グラ</label>
-                        <label class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-slate-100 px-2 py-1 dark:border-slate-700 dark:bg-slate-950"><input type="checkbox" class="court-filter-checkbox" value="体育館" checked onchange="renderTimeline(); renderGantt();"> 体育館</label>
-                        <label class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-slate-100 px-2 py-1 dark:border-slate-700 dark:bg-slate-950"><input type="checkbox" class="court-filter-checkbox" value="ハード" checked onchange="renderTimeline(); renderGantt();"> ハード</label>
-                        <label class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-slate-100 px-2 py-1 dark:border-slate-700 dark:bg-slate-950"><input type="checkbox" class="court-filter-checkbox" value="オムニ" checked onchange="renderTimeline(); renderGantt();"> オムニ</label>
-                        <label class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-slate-100 px-2 py-1 dark:border-slate-700 dark:bg-slate-950"><input type="checkbox" class="court-filter-checkbox" value="卓球場" checked onchange="renderTimeline(); renderGantt();"> 卓球場</label>
+                        <label class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-slate-100 px-2 py-1 dark:border-slate-700 dark:bg-slate-950"><input type="checkbox" class="court-filter-checkbox" value="上グラ" checked onchange="handleCourtFilterChange(this)"> 上グラ</label>
+                        <label class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-slate-100 px-2 py-1 dark:border-slate-700 dark:bg-slate-950"><input type="checkbox" class="court-filter-checkbox" value="下グラ" checked onchange="handleCourtFilterChange(this)"> 下グラ</label>
+                        <label class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-slate-100 px-2 py-1 dark:border-slate-700 dark:bg-slate-950"><input type="checkbox" class="court-filter-checkbox" value="体育館" checked onchange="handleCourtFilterChange(this)"> 体育館</label>
+                        <label class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-slate-100 px-2 py-1 dark:border-slate-700 dark:bg-slate-950"><input type="checkbox" class="court-filter-checkbox" value="ハード" checked onchange="handleCourtFilterChange(this)"> ハード</label>
+                        <label class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-slate-100 px-2 py-1 dark:border-slate-700 dark:bg-slate-950"><input type="checkbox" class="court-filter-checkbox" value="オムニ" checked onchange="handleCourtFilterChange(this)"> オムニ</label>
+                        <label class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-slate-100 px-2 py-1 dark:border-slate-700 dark:bg-slate-950"><input type="checkbox" class="court-filter-checkbox" value="卓球場" checked onchange="handleCourtFilterChange(this)"> 卓球場</label>
                     </div>
 
                     <span class="text-slate-500 dark:text-slate-400 ml-2">ステータス:</span>
@@ -327,6 +326,11 @@
                 <a class="admin-match-link" href="./match-management.html">
                     <span class="admin-match-link-icon"><i class="fa-solid fa-calendar-plus"></i></span>
                     <span class="admin-match-link-copy"><strong>競技・試合の作成と時間設定</strong><small>専用の試合管理ページを開く</small></span>
+                    <i class="fa-solid fa-arrow-up-right-from-square admin-match-link-arrow"></i>
+                </a>
+                <a class="admin-match-link" href="./match-management.html#data-tools">
+                    <span class="admin-match-link-icon"><i class="fa-solid fa-database"></i></span>
+                    <span class="admin-match-link-copy"><strong>データ管理・リセット</strong><small>再認証が必要な専用ページを開く</small></span>
                     <i class="fa-solid fa-arrow-up-right-from-square admin-match-link-arrow"></i>
                 </a>
 
@@ -516,7 +520,18 @@
 
                 </div>
 
-                <div id="adminDataTools" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div id="adminDataTools" class="hidden space-y-3">
+                    <a href="./ball_sports_test2.html#match-tools" class="admin-back-link"><i class="fa-solid fa-arrow-left"></i> 試合管理へ戻る</a>
+                    <div id="adminDataAuthGate" class="bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-500/30 rounded-xl p-5 max-w-lg shadow-sm">
+                        <h3 class="text-sm font-black text-slate-800 dark:text-slate-100 flex items-center gap-2"><i class="fa-solid fa-lock"></i> データ操作の再認証</h3>
+                        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">管理者パスワードを再入力してください。</p>
+                        <div class="flex flex-wrap gap-2 mt-3">
+                            <input type="password" id="adminDataPassword" autocomplete="current-password" class="min-w-0 flex-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 py-2 text-sm" placeholder="管理者パスワード">
+                            <button type="button" onclick="authenticateDataTools()" class="admin-command-primary">確認</button>
+                        </div>
+                        <p id="adminDataAuthError" class="hidden mt-2 text-xs font-bold text-rose-500">パスワードが一致しません。</p>
+                    </div>
+                    <div id="adminDataControls" class="hidden grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-2 shadow-sm">
                         <h3 class="text-xs font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
                             <i class="fa-solid fa-database text-slate-400"></i> データ管理・リセット
@@ -534,6 +549,8 @@
                         <button onclick="resetScoreLogs()" class="w-full bg-rose-50 dark:bg-rose-950/30 hover:bg-rose-100 dark:hover:bg-rose-950/50 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-500/30 text-xs font-bold py-2 rounded-lg transition">
                             <i class="fa-solid fa-eraser mr-1"></i> 得点ログのみ消去 (時間・対戦表は保持)
                         </button>
+                    </div>
+                    <button type="button" onclick="lockDataTools()" class="admin-command-secondary self-start"><i class="fa-solid fa-lock"></i> データ管理をロック</button>
                     </div>
                 </div>
             </div>
@@ -563,11 +580,11 @@
 
                 <div class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-3 space-y-2">
                     <label class="font-bold text-slate-700 dark:text-slate-300 block">第〇試合の設定:</label>
-                    <input type="text" id="inputMatchTitle" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-2 font-bold text-slate-800 dark:text-slate-100" placeholder="試合名">
+                        <input type="text" id="inputMatchTitle" class="match-fixed-field w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-2 font-bold text-slate-800 dark:text-slate-100" placeholder="試合名" readonly aria-readonly="true">
                     <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-                        <input type="text" id="inputTeamA" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-2 text-center font-bold text-slate-800 dark:text-slate-100" placeholder="A組">
+                        <input type="text" id="inputTeamA" class="match-fixed-field w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-2 text-center font-bold text-slate-800 dark:text-slate-100" placeholder="A組" readonly aria-readonly="true">
                         <span class="font-black text-slate-400">VS</span>
-                        <input type="text" id="inputTeamB" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-2 text-center font-bold text-slate-800 dark:text-slate-100" placeholder="B組">
+                        <input type="text" id="inputTeamB" class="match-fixed-field w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-2 text-center font-bold text-slate-800 dark:text-slate-100" placeholder="B組" readonly aria-readonly="true">
                     </div>
                     <div class="grid grid-cols-2 gap-2">
                         <select id="inputModalScoreA" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-2 text-center font-mono font-bold text-sky-600 dark:text-sky-400">
@@ -696,27 +713,31 @@
                         <input type="number" id="inputDelayMinutes" value="0" class="w-20 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-center font-mono font-bold text-sky-600 dark:text-sky-400 outline-none">
                         <span class="font-bold text-slate-500">分</span>
                         <div class="flex items-center gap-1 ml-auto">
-                            <button type="button" onclick="setModalDelay(-1)" class="bg-sky-100 dark:bg-sky-950 text-sky-600 border border-sky-300 px-2 py-1 rounded font-bold">-1</button>
+                            <button type="button" onclick="adjustModalDelay(-1)" class="bg-sky-100 dark:bg-sky-950 text-sky-600 border border-sky-300 px-2 py-1 rounded font-bold">-1</button>
                             <button type="button" onclick="setModalDelay(0)" class="bg-slate-200 dark:bg-slate-800 text-slate-700 px-2 py-1 rounded font-bold">0</button>
-                            <button type="button" onclick="setModalDelay(1)" class="bg-rose-100 dark:bg-rose-950 text-rose-600 border border-rose-300 px-2 py-1 rounded font-bold">+1</button>
+                            <button type="button" onclick="adjustModalDelay(1)" class="bg-rose-100 dark:bg-rose-950 text-rose-600 border border-rose-300 px-2 py-1 rounded font-bold">+1</button>
                         </div>
                     </div>
                 </div>
 
                 <div class="space-y-1">
                     <label class="font-bold text-slate-700 dark:text-slate-300 block">競技の得点割（1位, 2位, 3位, 4位）:</label>
-                    <input type="text" id="inputCompetitionPoints" value="150,100,50,0" inputmode="numeric" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 font-mono font-bold text-slate-800 dark:text-slate-100" placeholder="例: 150,100,50,0">
+                    <input type="text" id="inputCompetitionPoints" value="150,100,50,0" class="match-fixed-field w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 font-mono font-bold text-slate-800 dark:text-slate-100" placeholder="例: 150,100,50,0" readonly aria-readonly="true">
                     <p class="text-[10px] text-slate-400">競技ブロックの順位確定時に組別総合点へ反映します。</p>
                 </div>
 
-                <div class="grid grid-cols-2 gap-2">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     <div>
-                        <label class="font-bold text-slate-600 dark:text-slate-300 block mb-0.5">主審・副審:</label>
-                        <input type="text" id="inputReferee" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 px-2.5 py-1 rounded-lg text-slate-800 dark:text-slate-200 outline-none">
+                        <label class="font-bold text-slate-600 dark:text-slate-300 block mb-0.5">競技担当:</label>
+                        <input type="text" id="inputCompetitionLead" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 px-2.5 py-2 rounded-lg text-slate-800 dark:text-slate-200 outline-none">
                     </div>
                     <div>
-                        <label class="font-bold text-slate-600 dark:text-slate-300 block mb-0.5">進行担当:</label>
-                        <input type="text" id="inputStaff" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 px-2.5 py-1 rounded-lg text-slate-800 dark:text-slate-200 outline-none">
+                        <label class="font-bold text-slate-600 dark:text-slate-300 block mb-0.5">審判:</label>
+                        <input type="text" id="inputReferee" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 px-2.5 py-2 rounded-lg text-slate-800 dark:text-slate-200 outline-none">
+                    </div>
+                    <div>
+                        <label class="font-bold text-slate-600 dark:text-slate-300 block mb-0.5">出席:</label>
+                        <input type="text" id="inputAttendance" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 px-2.5 py-2 rounded-lg text-slate-800 dark:text-slate-200 outline-none">
                     </div>
                 </div>
             </div>
@@ -727,6 +748,6 @@
         </div>
     </div>
 
-    <script src="./ball_sports_test2.js?v=20260926T8" defer></script>
+    <script src="./ball_sports_test2.js?v=20260927T2" defer></script>
 </body>
 </html>

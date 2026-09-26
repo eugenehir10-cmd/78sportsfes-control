@@ -125,6 +125,8 @@ function normalizeScheduleEntry(source) {
         scoreB: source.scoreB ?? null,
         referee: source.referee ?? "",
         staff: source.staff ?? "",
+        competitionLead: source.competitionLead ?? source.staff ?? "",
+        attendance: source.attendance ?? "",
         start: startValue,
         end: endValue,
         status: normalizeLegacyStatus(source.status),
@@ -209,8 +211,9 @@ function loadPersistedAnnouncement() {
 }
 let appState = {
     schedule: loadPersistedSchedule(),
-    timelineViewMode: "grouped",
+    timelineViewMode: "byCourt",
     expandedGroups: {},
+    expandedGanttGroupKey: "",
     selectedModalStatus: "BEFORE",
     isAdmin: false,
     announcement: loadPersistedAnnouncement()
@@ -237,6 +240,46 @@ function updateSyncStatus(label, tone = "sky") {
     if (dot) {
         dot.className = `inline-block h-2 w-2 rounded-full ${tone === "success" ? "bg-emerald-500" : tone === "warning" ? "bg-amber-500" : "bg-sky-500"}`;
     }
+}
+function initializeLucideIcons() {
+    if (!window.lucide)
+        return;
+    const iconMap = {
+        "fa-triangle-exclamation": "triangle-alert", "fa-xmark": "x", "fa-trophy": "trophy",
+        "fa-circle-half-stroke": "contrast", "fa-sun": "sun", "fa-moon": "moon",
+        "fa-clock-rotate-left": "history", "fa-chart-gantt": "chart-no-axes-gantt",
+        "fa-ranking-star": "trophy", "fa-gear": "settings-2", "fa-futbol": "goal",
+        "fa-filter": "list-filter", "fa-bolt": "zap", "fa-sitemap": "network",
+        "fa-file-csv": "file-spreadsheet", "fa-lock": "lock-keyhole", "fa-bullhorn": "megaphone",
+        "fa-tower-broadcast": "radio-tower", "fa-eraser": "eraser", "fa-calendar-plus": "calendar-plus-2",
+        "fa-arrow-up-right-from-square": "external-link", "fa-arrow-left": "arrow-left",
+        "fa-layer-group": "layers-2", "fa-plus-circle": "circle-plus", "fa-plus": "plus",
+        "fa-diagram-project": "workflow", "fa-clock": "clock-3", "fa-floppy-disk": "save",
+        "fa-trash": "trash-2", "fa-database": "database", "fa-download": "download",
+        "fa-upload": "upload", "fa-location-dot": "map-pin"
+    };
+    const refresh = () => {
+        document.querySelectorAll('i[class*="fa-"]').forEach((icon) => {
+            const legacyClass = [...icon.classList].find((className) => className.startsWith("fa-") && className !== "fa-solid");
+            if (!legacyClass)
+                return;
+            icon.dataset.lucide = iconMap[legacyClass] ?? (legacyClass.startsWith("fa-chevron-") ? legacyClass.replace("fa-", "") : "circle-help");
+            [...icon.classList].filter((className) => className.startsWith("fa-")).forEach((className) => icon.classList.remove(className));
+        });
+        window.lucide.createIcons();
+    };
+    refresh();
+    let refreshQueued = false;
+    new MutationObserver((mutations) => {
+        const hasIconPlaceholder = mutations.some((mutation) => [...mutation.addedNodes].some((node) => node instanceof Element && (node.matches('i[class*="fa-"], i[data-lucide]') || node.querySelector('i[class*="fa-"], i[data-lucide]'))));
+        if (!hasIconPlaceholder || refreshQueued)
+            return;
+        refreshQueued = true;
+        requestAnimationFrame(() => {
+            refreshQueued = false;
+            refresh();
+        });
+    }).observe(document.body, { childList: true, subtree: true });
 }
 function decodeStringifiedValue(value) {
     if (typeof value !== "string")
@@ -454,8 +497,12 @@ async function syncStateToFirebase() {
 }
 document.addEventListener("DOMContentLoaded", () => {
     startClock();
-    if (new URLSearchParams(window.location.search).get("view") === "match-tools" || window.location.hash === "#match-tools") {
+    initializeLucideIcons();
+    const dataToolsView = window.location.hash === "#data-tools";
+    if (new URLSearchParams(window.location.search).get("view") === "match-tools" || window.location.hash === "#match-tools" || dataToolsView) {
         document.body.classList.add("match-tools-view");
+        if (dataToolsView)
+            document.body.classList.add("data-tools-view");
         switchTab("admin");
     }
     updateSyncStatus("待機中", "sky");
@@ -553,13 +600,22 @@ function switchTab(tabName) {
         renderResultsTab();
 }
 function getSelectedCourts() {
+    return [...document.querySelectorAll(".court-filter-checkbox")]
+        .filter((box) => box.checked && box.value !== "ALL")
+        .map((box) => box.value);
+}
+function handleCourtFilterChange(changedBox) {
     const boxes = [...document.querySelectorAll(".court-filter-checkbox")];
-    if (!boxes.length)
-        return ["上グラ", "下グラ", "体育館", "ハード", "オムニ", "卓球場"];
-    const selected = boxes.filter((box) => box.checked && box.value !== "ALL").map((box) => box.value);
-    if (!selected.length)
-        return ["上グラ", "下グラ", "体育館", "ハード", "オムニ", "卓球場"];
-    return selected;
+    const allBox = boxes.find((box) => box.value === "ALL");
+    const courtBoxes = boxes.filter((box) => box.value !== "ALL");
+    if (changedBox.value === "ALL") {
+        courtBoxes.forEach((box) => { box.checked = changedBox.checked; });
+    }
+    else if (allBox) {
+        allBox.checked = courtBoxes.length > 0 && courtBoxes.every((box) => box.checked);
+    }
+    renderTimeline();
+    renderGantt();
 }
 function getSelectedGanttCourts() {
     return [...document.querySelectorAll(".gantt-court-checkbox")]
@@ -643,6 +699,10 @@ function renderTimeline() {
             return false;
         return true;
     });
+    if (selectedCourts.length === 0) {
+        container.innerHTML = '<div class="text-center py-8 text-xs text-slate-400 font-bold">表示するコートを選択してください</div>';
+        return;
+    }
     if (appState.timelineViewMode === "grouped") {
         const groups = {};
         filtered.forEach((m) => {
@@ -659,7 +719,7 @@ function renderTimeline() {
             const matches = groups[gKey].sort((a, b) => a.start.localeCompare(b.start));
             const firstMatch = matches[0];
             const groupLabel = `${firstMatch.grade} / ${firstMatch.sport}`;
-            const isExpanded = appState.expandedGroups[gKey] !== false;
+            const isExpanded = appState.expandedGroups[gKey] === true;
             const finishedCount = matches.filter((m) => m.status === "FINISHED").length;
             const inProgressCount = matches.filter((m) => m.status === "IN_PROGRESS").length;
             const groupCard = document.createElement("div");
@@ -686,7 +746,7 @@ function renderTimeline() {
         });
     }
     else {
-        const courts = getSelectedCourts();
+        const courts = selectedCourts;
         courts.forEach((court) => {
             const cMatches = filtered
                 .filter((m) => m.court === court)
@@ -716,7 +776,7 @@ function createMatchItemHtml(m) {
     if (m.status === "IN_PROGRESS")
         statusBadge = '<span class="bg-amber-500 text-slate-950 text-[10px] px-2 py-0.5 rounded font-black animate-pulse">進行中</span>';
     if (m.status === "FINISHED")
-        statusBadge = '<span class="bg-emerald-500 text-white text-[10px] px-2 py-0.5 rounded font-bold">✓ 終了</span>';
+        statusBadge = '<span class="bg-emerald-500 text-white text-[10px] px-2 py-0.5 rounded font-bold"><i data-lucide="check" class="w-3 h-3 inline"></i> 終了</span>';
     const scoreAVal = m.scoreA !== null ? String(m.scoreA) : "";
     const scoreBVal = m.scoreB !== null ? String(m.scoreB) : "";
     return `
@@ -737,16 +797,16 @@ function createMatchItemHtml(m) {
               [${adjStart} - ${adjEnd}]
             </span>
           </div>
-          <div class="flex items-center gap-0.5 border-l border-slate-200 dark:border-slate-800 pl-2">
-            <button onclick="applyCascadeOffset('${m.id}', -1)" class="action-btn bg-sky-50 dark:bg-sky-950 hover:bg-sky-100 border border-sky-300 dark:border-sky-500/30 text-sky-600 dark:text-sky-300 text-[10px] font-bold px-1.5 py-0.5 rounded">-1分</button>
-            <button onclick="applyCascadeOffset('${m.id}', 1)" class="action-btn bg-rose-50 dark:bg-rose-950 hover:bg-rose-100 border border-rose-300 dark:border-rose-500/30 text-rose-600 dark:text-rose-300 text-[10px] font-bold px-1.5 py-0.5 rounded">+1分</button>
-            <button onclick="openModal('${m.id}')" class="action-btn bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[10px] font-bold px-1.5 py-0.5 rounded ml-1"><i class="fa-solid fa-gear"></i></button>
+                    <div class="flex items-center gap-0.5 border-l border-slate-200 dark:border-slate-800 pl-2" onclick="event.stopPropagation()">
+                        <button onclick="event.stopPropagation(); applyCascadeOffset('${m.id}', -1)" class="action-btn bg-sky-50 dark:bg-sky-950 hover:bg-sky-100 border border-sky-300 dark:border-sky-500/30 text-sky-600 dark:text-sky-300 text-[10px] font-bold px-1.5 py-0.5 rounded" aria-label="この試合から1分前倒し">-1分</button>
+                        <button onclick="event.stopPropagation(); applyCascadeOffset('${m.id}', 1)" class="action-btn bg-rose-50 dark:bg-rose-950 hover:bg-rose-100 border border-rose-300 dark:border-rose-500/30 text-rose-600 dark:text-rose-300 text-[10px] font-bold px-1.5 py-0.5 rounded" aria-label="この試合から1分遅延">+1分</button>
+                        <button onclick="event.stopPropagation(); openModal('${m.id}')" class="action-btn bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[10px] font-bold px-1.5 py-0.5 rounded ml-1" aria-label="試合詳細を編集"><i data-lucide="settings-2" class="w-4 h-4"></i></button>
           </div>
         </div>
       </div>
 
       <div class="bg-slate-50/90 dark:bg-slate-950/80 p-2.5 rounded-xl flex flex-wrap justify-between items-center gap-2 border border-slate-200 dark:border-slate-800/80">
-        <div class="flex items-center gap-2 w-full sm:w-auto justify-center">
+        <div class="flex items-center gap-2 w-full sm:w-auto justify-center" onclick="event.stopPropagation()">
           <span class="font-black text-xs text-slate-700 dark:text-slate-200 min-w-[3rem] text-right">${m.teamA || "チームA"}</span>
           <input type="number" id="inputScoreA_${m.id}" value="${scoreAVal}" placeholder="0" min="0" max="50" class="score-input w-12 text-center bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg py-1 font-mono font-bold text-sm text-sky-600 dark:text-sky-400 outline-none focus:border-sky-500">
           <span class="font-black text-slate-400 text-xs">VS</span>
@@ -755,10 +815,10 @@ function createMatchItemHtml(m) {
         </div>
 
         <div class="flex items-center gap-1.5 w-full sm:w-auto justify-end">
-          <button onclick="quickSaveScore('${m.id}', 'IN_PROGRESS')" class="action-btn bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-[11px] px-2.5 py-1.5 rounded-lg transition shadow-sm">
+          <button onclick="event.stopPropagation(); quickSaveScore('${m.id}', 'IN_PROGRESS')" class="action-btn bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-[11px] px-2.5 py-1.5 rounded-lg transition shadow-sm">
             進行中にする
           </button>
-          <button onclick="quickSaveScore('${m.id}', 'FINISHED')" class="action-btn bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white font-black text-[11px] px-3 py-1.5 rounded-lg transition shadow-md">
+          <button onclick="event.stopPropagation(); quickSaveScore('${m.id}', 'FINISHED')" class="action-btn bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white font-black text-[11px] px-3 py-1.5 rounded-lg transition shadow-md">
             スコア決定 & 終了
           </button>
         </div>
@@ -767,7 +827,7 @@ function createMatchItemHtml(m) {
   `;
 }
 function toggleGroupExpand(gKey) {
-    appState.expandedGroups[gKey] = appState.expandedGroups[gKey] === true ? false : true;
+    appState.expandedGroups[gKey] = appState.expandedGroups[gKey] !== true;
     renderTimeline();
 }
 function quickSaveScore(matchId, newStatus) {
@@ -886,33 +946,45 @@ function renderGantt() {
         const matches = appState.schedule
             .filter((m) => m.court === court)
             .sort((a, b) => a.start.localeCompare(b.start));
-        const events = matches.map((match) => {
-            const adjustedStart = calcAdjustedTime(match.start, match.offsetMins);
-            const adjustedEnd = calcAdjustedTime(match.end, match.offsetMins);
-            const [startHour, startMinute] = adjustedStart.split(":").map(Number);
-            const [endHour, endMinute] = adjustedEnd.split(":").map(Number);
-            const startMinuteOfDay = startHour * 60 + startMinute;
-            const endMinuteOfDay = endHour * 60 + endMinute;
-            const visibleStart = Math.max(startH * 60, startMinuteOfDay);
-            const visibleEnd = Math.min(endH * 60, endMinuteOfDay);
-            if (visibleEnd <= visibleStart)
-                return "";
-            const left = (visibleStart - startH * 60) / totalMins * 100;
-            const width = Math.max((visibleEnd - visibleStart) / totalMins * 100, 1.4);
-            const statusClass = match.status === "IN_PROGRESS" ? "gantt-event-live" : match.status === "FINISHED" ? "gantt-event-finished" : "gantt-event-before";
-            const label = `${match.grade} ${match.sport} ${match.title}: ${match.teamA} 対 ${match.teamB}, ${adjustedStart}から${adjustedEnd}`;
-            return `
-        <button type="button" class="gantt-event ${statusClass}" style="left:${left}%;width:${width}%" title="${label}" aria-label="${label} 詳細を編集" onclick="openModal('${match.id}')">
-          <span class="gantt-event-primary">${match.grade} / ${match.sport}</span>
-          <span class="gantt-event-secondary">${match.title} · ${match.teamA} 対 ${match.teamB} · ${adjustedStart}–${adjustedEnd}</span>
-        </button>`;
-        }).join("");
+                const groups = new Map();
+                matches.forEach((match) => {
+                        const groupKey = `${court}|${match.grade}|${match.sport}`;
+                        if (!groups.has(groupKey))
+                                groups.set(groupKey, []);
+                        groups.get(groupKey).push(match);
+                });
+                const events = [...groups.entries()].map(([groupKey, groupMatches]) => {
+                        const ordered = [...groupMatches].sort((a, b) => a.start.localeCompare(b.start));
+                        const first = ordered[0];
+                        const last = ordered[ordered.length - 1];
+                        const adjustedStart = calcAdjustedTime(first.start, first.offsetMins);
+                        const adjustedEnd = calcAdjustedTime(last.end, last.offsetMins);
+                        const visibleStart = Math.max(startH * 60, parseTimeMinutes(adjustedStart));
+                        const visibleEnd = Math.min(endH * 60, parseTimeMinutes(adjustedEnd));
+                        if (visibleEnd <= visibleStart)
+                                return "";
+                        const left = (visibleStart - startH * 60) / totalMins * 100;
+                        const width = Math.max((visibleEnd - visibleStart) / totalMins * 100, 1.4);
+                        const key = encodeURIComponent(groupKey);
+                        const expanded = appState.expandedGanttGroupKey === groupKey;
+                        const statuses = new Set(ordered.map((match) => match.status));
+                        const statusClass = statuses.has("IN_PROGRESS") ? "gantt-event-live" : statuses.size === 1 && statuses.has("FINISHED") ? "gantt-event-finished" : "gantt-event-before";
+                        const details = expanded ? `<div class="gantt-group-details" aria-label="${first.grade} ${first.sport} の試合一覧">${ordered.map((match) => {
+                                const start = calcAdjustedTime(match.start, match.offsetMins);
+                                const end = calcAdjustedTime(match.end, match.offsetMins);
+                                const status = match.status === "FINISHED" ? "終了" : match.status === "IN_PROGRESS" ? "進行中" : "開始前";
+                                return `<button type="button" class="gantt-detail-match" onclick="openModal('${match.id}')"><span class="gantt-detail-time">${start}–${end}</span><strong>${match.title}</strong><span>${match.teamA} 対 ${match.teamB}</span><small>${status}</small></button>`;
+                        }).join("")}</div>` : "";
+                        return `<button type="button" class="gantt-event ${statusClass} ${expanded ? "is-expanded" : ""}" style="left:${left}%;width:${width}%" title="${first.grade} ${first.sport}・${ordered.length}試合" aria-expanded="${expanded}" onclick="toggleGanttGroup('${key}')"><span class="gantt-event-primary">${first.grade} / ${first.sport}</span><span class="gantt-event-secondary">${ordered.length}試合 · ${adjustedStart}–${adjustedEnd} · 詳細</span></button>${details}`;
+                }).join("");
         return `
       <div class="gantt-lane">
         <div class="gantt-lane-label"><span>${court}</span><small>${matches.length}試合</small></div>
-        <div class="gantt-lane-track">
-          ${Array.from({ length: endH - startH + 1 }, (_, index) => `<span class="gantt-gridline" style="left:${index / (endH - startH) * 100}%"></span>`).join("")}
-          ${events || '<span class="gantt-empty">試合なし</span>'}
+                <div class="gantt-lane-content">
+                    <div class="gantt-lane-track">
+                        ${Array.from({ length: endH - startH + 1 }, (_, index) => `<span class="gantt-gridline" style="left:${index / (endH - startH) * 100}%"></span>`).join("")}
+                        ${events || '<span class="gantt-empty">試合なし</span>'}
+                    </div>
         </div>
       </div>`;
     }).join("");
@@ -925,9 +997,14 @@ function renderGantt() {
     container.innerHTML = `
     <div class="gantt-board">
       <div class="gantt-ruler"><div class="gantt-ruler-label">会場 / 件数</div><div class="gantt-ruler-track">${ruler}</div></div>
-      <div class="gantt-lanes" id="ganttLanes">${lanes}<div id="ganttTimeBar" class="gantt-time-marker" aria-hidden="true"><span>現在 <b data-gantt-current-time></b></span></div></div>
+    <div class="gantt-lanes gantt-courts-${Math.min(courts.length, 6)}" id="ganttLanes">${lanes}<div id="ganttTimeBar" class="gantt-time-marker" aria-hidden="true"><span>現在 <b data-gantt-current-time></b></span></div></div>
     </div>`;
     updateGanttTimeBar(new Date());
+}
+function toggleGanttGroup(groupKey) {
+    const decodedKey = decodeURIComponent(groupKey);
+    appState.expandedGanttGroupKey = appState.expandedGanttGroupKey === decodedKey ? "" : decodedKey;
+    renderGantt();
 }
 function updateGanttTimeBar(now) {
     const bar = document.getElementById("ganttTimeBar");
@@ -1455,7 +1532,6 @@ function createCompetitionBlock() {
             pointRule
         });
     });
-    appState.expandedGroups[blockId] = true;
     saveState();
     populateBlockSelectors();
     const blockSelect = document.getElementById("timeConfigBlockSelect");
@@ -1483,8 +1559,9 @@ function openModal(matchId) {
     document.getElementById("inputModalScoreB").value = m.scoreB === null ? "" : String(m.scoreB);
     setModalStatus(m.status || "BEFORE");
     document.getElementById("inputDelayMinutes").value = String(m.offsetMins);
-    document.getElementById("inputReferee").value = m.referee;
-    document.getElementById("inputStaff").value = m.staff;
+    document.getElementById("inputCompetitionLead").value = m.competitionLead ?? m.staff ?? "";
+    document.getElementById("inputReferee").value = m.referee ?? "";
+    document.getElementById("inputAttendance").value = m.attendance ?? "";
     document.getElementById("inputCompetitionPoints").value = (m.pointRule ?? [150, 100, 50, 0]).join(",");
     document.getElementById("editModal")?.classList.remove("hidden");
 }
@@ -1508,6 +1585,11 @@ function setModalStatus(st) {
 function setModalDelay(val) {
     document.getElementById("inputDelayMinutes").value = String(val);
 }
+function adjustModalDelay(diff) {
+    const input = document.getElementById("inputDelayMinutes");
+    if (input)
+        input.value = String((parseInt(input.value, 10) || 0) + diff);
+}
 function saveModalData() {
     const matchId = document.getElementById("modalMatchId").value;
     const m = appState.schedule.find((item) => item.id === matchId);
@@ -1516,9 +1598,6 @@ function saveModalData() {
     const newOffset = parseInt(document.getElementById("inputDelayMinutes").value, 10) || 0;
     const diff = newOffset - m.offsetMins;
     m.status = appState.selectedModalStatus;
-    m.title = document.getElementById("inputMatchTitle").value.trim() || m.title;
-    m.teamA = document.getElementById("inputTeamA").value.trim() || m.teamA;
-    m.teamB = document.getElementById("inputTeamB").value.trim() || m.teamB;
     const scoreA = document.getElementById("inputModalScoreA").value;
     const scoreB = document.getElementById("inputModalScoreB").value;
     m.scoreA = scoreA === "" ? null : Math.max(0, parseInt(scoreA, 10) || 0);
@@ -1526,8 +1605,9 @@ function saveModalData() {
     updateTournamentBracket(m.blockId);
     updateExhibitionTeams(m.sport);
     m.referee = document.getElementById("inputReferee").value;
-    m.staff = document.getElementById("inputStaff").value;
-    m.pointRule = parsePointRule(document.getElementById("inputCompetitionPoints").value);
+    m.competitionLead = document.getElementById("inputCompetitionLead").value;
+    m.staff = m.competitionLead;
+    m.attendance = document.getElementById("inputAttendance").value;
     if (diff !== 0) {
         applyCascadeOffset(m.id, diff);
     }
@@ -1550,6 +1630,24 @@ function authenticateAdmin() {
     else {
         document.getElementById("authError")?.classList.remove("hidden");
     }
+}
+function authenticateDataTools() {
+    const password = document.getElementById("adminDataPassword")?.value ?? "";
+    if (password === "admin123") {
+        document.getElementById("adminDataAuthGate")?.classList.add("hidden");
+        document.getElementById("adminDataControls")?.classList.remove("hidden");
+        document.getElementById("adminDataAuthError")?.classList.add("hidden");
+        return;
+    }
+    document.getElementById("adminDataAuthError")?.classList.remove("hidden");
+}
+function lockDataTools() {
+    document.getElementById("adminDataControls")?.classList.add("hidden");
+    document.getElementById("adminDataAuthGate")?.classList.remove("hidden");
+    document.getElementById("adminDataAuthError")?.classList.add("hidden");
+    const password = document.getElementById("adminDataPassword");
+    if (password)
+        password.value = "";
 }
 function lockAdmin() {
     appState.isAdmin = false;
@@ -1683,13 +1781,18 @@ window.createNewMatch = createNewMatch;
 window.createCompetitionBlock = createCompetitionBlock;
 window.quickSaveScore = quickSaveScore;
 window.applyCascadeOffset = applyCascadeOffset;
+window.handleCourtFilterChange = handleCourtFilterChange;
 window.toggleGroupExpand = toggleGroupExpand;
+window.toggleGanttGroup = toggleGanttGroup;
 window.setModalStatus = setModalStatus;
 window.setModalDelay = setModalDelay;
+window.adjustModalDelay = adjustModalDelay;
 window.saveModalData = saveModalData;
 window.openModal = openModal;
 window.closeModal = closeModal;
 window.authenticateAdmin = authenticateAdmin;
+window.authenticateDataTools = authenticateDataTools;
+window.lockDataTools = lockDataTools;
 window.lockAdmin = lockAdmin;
 window.broadcastAnnouncement = broadcastAnnouncement;
 window.clearAnnouncement = clearAnnouncement;
