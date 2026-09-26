@@ -42,9 +42,6 @@
             <div class="overflow-hidden w-full relative h-5 flex items-center">
                 <p id="announcementText" class="animate-marquee text-xs font-bold tracking-wide"></p>
             </div>
-            <button onclick="dismissAnnouncement()" class="text-rose-200 hover:text-white ml-2 flex-shrink-0">
-                <i class="fa-solid fa-xmark"></i>
-            </button>
         </div>
     </div>
 
@@ -550,6 +547,15 @@
                             <i class="fa-solid fa-eraser mr-1"></i> 得点ログのみ消去 (時間・対戦表は保持)
                         </button>
                     </div>
+                    <section class="bg-white dark:bg-slate-900 border border-sky-300 dark:border-sky-800 rounded-xl p-4 space-y-3 shadow-sm">
+                        <div>
+                            <h3 class="text-sm font-black text-slate-800 dark:text-slate-100 flex items-center gap-2"><i data-lucide="archive" class="text-sky-500"></i> バックアップ</h3>
+                            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">現在の試合・得点・担当・テロップをFirestoreへ保存します。</p>
+                        </div>
+                        <button type="button" onclick="createBackup()" class="admin-command-primary admin-backup-action"><i data-lucide="archive-restore"></i> 今すぐバックアップ</button>
+                        <p id="dataBackupStatus" class="text-xs font-bold text-slate-500 dark:text-slate-400" aria-live="polite">バックアップはまだ作成されていません。</p>
+                        <div id="dataBackupList" class="space-y-2" aria-label="バックアップ履歴"></div>
+                    </section>
                     <button type="button" onclick="lockDataTools()" class="admin-command-secondary self-start"><i class="fa-solid fa-lock"></i> データ管理をロック</button>
                     </div>
                 </div>
@@ -748,6 +754,6 @@
         </div>
     </div>
 
-    <script src="./ball_sports_test2.js?v=20260927T2" defer></script>
+    <script src="./ball_sports_test2.js?v=20260927T5" defer></script>
 </body>
 </html>

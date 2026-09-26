@@ -641,6 +641,42 @@ html.dark #adminContent .text-slate-400 {
   background: #be123c;
 }
 
+.admin-command-primary.admin-backup-action,
+.admin-command-primary.admin-backup-action:hover {
+  color: #fff;
+  background: #0284c7;
+}
+
+.backup-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: 0.6rem;
+  background: var(--surface-2);
+}
+
+.backup-row > span {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.backup-row strong {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 0.78rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.backup-row small {
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+
 .admin-command-secondary {
   color: var(--text);
   border: 1px solid var(--line);

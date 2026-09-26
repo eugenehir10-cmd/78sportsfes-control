@@ -736,7 +736,7 @@ function renderTimeline() {
             ${inProgressCount > 0 ? `<span class="bg-amber-500 text-slate-950 font-black text-[10px] px-2 py-0.5 rounded-full animate-pulse">進行中 ${inProgressCount}</span>` : ""}
             <span class="text-[11px] font-bold text-slate-400">${finishedCount}/${matches.length} 完了</span>
             <span class="text-[10px] text-slate-400">タップで詳細</span>
-            <i class="fa-solid fa-chevron-${isExpanded ? "up" : "down"} text-slate-400 text-xs ml-1"></i>
+            <i data-lucide="${isExpanded ? "chevron-up" : "chevron-down"}" class="w-4 h-4 text-slate-400 ml-1"></i>
           </div>
         </div>
 
@@ -758,7 +758,7 @@ function renderTimeline() {
             courtSec.innerHTML = `
         <div class="court-lane-header text-sm font-black text-slate-700 dark:text-slate-200 flex items-center justify-between gap-1">
           <span>
-          <i class="fa-solid fa-location-dot text-sky-500"></i> ${court}
+          <i data-lucide="map-pin" class="w-4 h-4 text-sky-500"></i> ${court}
           </span>
           <span class="text-[10px] font-bold text-slate-400">${cMatches.length}試合</span>
         </div>
@@ -1637,6 +1637,7 @@ function authenticateDataTools() {
         document.getElementById("adminDataAuthGate")?.classList.add("hidden");
         document.getElementById("adminDataControls")?.classList.remove("hidden");
         document.getElementById("adminDataAuthError")?.classList.add("hidden");
+        loadBackupList();
         return;
     }
     document.getElementById("adminDataAuthError")?.classList.remove("hidden");
@@ -1677,7 +1678,108 @@ function showAnnouncement(txt) {
     document.getElementById("announcementBar")?.classList.remove("hidden");
 }
 function dismissAnnouncement() {
-    document.getElementById("announcementBar")?.classList.add("hidden");
+    if (appState.announcement)
+        showAnnouncement(appState.announcement);
+}
+function getBackupCollection() {
+    if (!firebaseSync.db || !firebaseSync.initialized)
+        return null;
+    return firebaseSync.db.collection("app_data").doc("ball_sports_test2_backups").collection("snapshots");
+}
+async function createBackup() {
+    const status = document.getElementById("dataBackupStatus");
+    const backups = getBackupCollection();
+    if (!backups) {
+        if (status)
+            status.textContent = "Firebase未接続です。JSON出力からバックアップしてください。";
+        return;
+    }
+    if (status)
+        status.textContent = "バックアップを作成しています...";
+    const createdAt = new Date().toISOString();
+    const backupId = createdAt.replace(/[:.]/g, "-");
+    try {
+        await backups.doc(backupId).set({
+            schedule: appState.schedule,
+            announcement: appState.announcement,
+            createdAt,
+            matchCount: appState.schedule.length,
+            schemaVersion: 1
+        });
+        if (status)
+            status.textContent = `${new Date(createdAt).toLocaleString("ja-JP")} に ${appState.schedule.length}試合をバックアップしました。`;
+        await loadBackupList();
+    }
+    catch (error) {
+        console.error("[バックアップ作成失敗]", error);
+        if (status)
+            status.textContent = "バックアップを作成できませんでした。JSON出力を利用してください。";
+    }
+}
+async function loadBackupList() {
+    const container = document.getElementById("dataBackupList");
+    const backups = getBackupCollection();
+    if (!container || !backups)
+        return;
+    try {
+        const snapshot = await backups.orderBy("createdAt", "desc").limit(10).get();
+        if (snapshot.empty) {
+            const status = document.getElementById("dataBackupStatus");
+            if (status)
+                status.textContent = "バックアップ履歴はありません。";
+            container.innerHTML = '<p class="text-xs text-slate-400">バックアップ履歴はありません。</p>';
+            return;
+        }
+        const latest = snapshot.docs[0].data();
+        const status = document.getElementById("dataBackupStatus");
+        if (status)
+            status.textContent = `${snapshot.size}件のバックアップがあります。最新: ${new Date(latest.createdAt).toLocaleString("ja-JP")}`;
+        container.innerHTML = snapshot.docs.map((doc) => {
+            const backup = doc.data();
+            const date = new Date(backup.createdAt).toLocaleString("ja-JP");
+            return `<div class="backup-row"><span><strong>${date}</strong><small>${Number(backup.matchCount) || 0}試合</small></span><button type="button" class="admin-command-secondary" onclick="restoreBackup('${doc.id}')"><i data-lucide="rotate-ccw"></i> 復元</button></div>`;
+        }).join("");
+    }
+    catch (error) {
+        console.error("[バックアップ一覧の取得失敗]", error);
+        container.innerHTML = '<p class="text-xs text-rose-500">バックアップ履歴を読み込めません。JSON出力をご利用ください。</p>';
+    }
+}
+async function restoreBackup(backupId) {
+    const status = document.getElementById("dataBackupStatus");
+    const backups = getBackupCollection();
+    if (!backups)
+        return;
+    if (!confirm("選択したバックアップで現在の試合データを置き換えます。続けますか？"))
+        return;
+    try {
+        const snapshot = await backups.doc(backupId).get();
+        if (!snapshot.exists)
+            throw new Error("backup not found");
+        const backup = snapshot.data();
+        if (!Array.isArray(backup.schedule) || !backup.schedule.every(isMatch))
+            throw new Error("invalid backup data");
+        appState.schedule = backup.schedule;
+        appState.announcement = typeof backup.announcement === "string" ? backup.announcement : "";
+        saveState();
+        renderCourtDelaySummary();
+        renderTimeline();
+        renderResultsTab();
+        calculateScoresAndRanks();
+        populateBlockSelectors();
+        renderTimeConfigEditor();
+        if (appState.announcement)
+            showAnnouncement(appState.announcement);
+        else
+            document.getElementById("announcementBar")?.classList.add("hidden");
+        if (status)
+            status.textContent = `${new Date(backup.createdAt).toLocaleString("ja-JP")} のバックアップから復元しました。`;
+    }
+    catch (error) {
+        console.error("[バックアップ復元失敗]", error);
+        if (status)
+            status.textContent = "復元できませんでした。選択したバックアップを確認してください。";
+    }
 }
 function exportData() {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appState, null, 2));
@@ -1797,6 +1899,9 @@ window.lockAdmin = lockAdmin;
 window.broadcastAnnouncement = broadcastAnnouncement;
 window.clearAnnouncement = clearAnnouncement;
 window.dismissAnnouncement = dismissAnnouncement;
+window.createBackup = createBackup;
+window.loadBackupList = loadBackupList;
+window.restoreBackup = restoreBackup;
 window.renderTimeline = renderTimeline;
 window.renderResultsTab = renderResultsTab;
 window.renderCourtDelaySummary = renderCourtDelaySummary;
