@@ -137,18 +137,236 @@ html.dark #adminContent .text-slate-400 {
 
 #ganttContainer {
   position: relative;
-  min-width: 760px;
+  min-width: 980px;
 }
 
-#ganttContainer .absolute {
-  font-size: 0.75rem;
+.gantt-court-filters label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 0.6rem;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 0.8rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.gantt-court-checkbox {
+  width: 1rem;
+  height: 1rem;
+  accent-color: #0284c7;
+}
+
+.gantt-board {
+  --gantt-label-width: 10rem;
+  position: relative;
+  min-width: 980px;
+}
+
+.gantt-ruler,
+.gantt-lane {
+  display: grid;
+  grid-template-columns: var(--gantt-label-width) minmax(0, 1fr);
+}
+
+.gantt-ruler {
+  border-bottom: 1px solid var(--line-strong);
+}
+
+.gantt-ruler-label {
+  display: flex;
+  align-items: end;
+  padding: 0 0.75rem 0.65rem 0.25rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 850;
+}
+
+.gantt-ruler-track {
+  position: relative;
+  height: 3.25rem;
+}
+
+.gantt-hour {
+  position: absolute;
+  bottom: 0.55rem;
+  transform: translateX(-50%);
+  color: var(--text);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 1rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.gantt-hour-first {
+  transform: none;
+}
+
+.gantt-hour-last {
+  transform: translateX(-100%);
+}
+
+.gantt-lanes {
+  position: relative;
+}
+
+.gantt-lane {
+  min-height: 6.5rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.gantt-lane-label {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.75rem;
+  color: var(--text);
+  font-size: 0.9rem;
   font-weight: 900;
 }
 
-#ganttTimeBar {
-  top: 2.5rem;
+.gantt-lane-label small {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 650;
+}
+
+.gantt-lane-track {
+  position: relative;
+  min-width: 0;
+  min-height: 6.5rem;
+  border-left: 1px solid var(--line);
+  background: var(--surface-2);
+}
+
+.gantt-gridline {
+  position: absolute;
+  z-index: 0;
+  top: 0;
   bottom: 0;
-  box-shadow: 0 0 0 1px rgba(244, 63, 94, 0.6);
+  width: 1px;
+  background: var(--line);
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.gantt-event {
+  position: absolute;
+  z-index: 1;
+  top: 0.75rem;
+  bottom: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.2rem;
+  overflow: hidden;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid rgba(255,255,255,0.45);
+  border-radius: 0.6rem;
+  color: #fff;
+  text-align: left;
+  box-shadow: 0 4px 12px rgba(15,23,42,0.18);
+  cursor: pointer;
+  transition: filter 0.15s ease, box-shadow 0.15s ease;
+}
+
+.gantt-event:hover,
+.gantt-event:focus-visible {
+  z-index: 3;
+  filter: brightness(1.08);
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px #0284c7, 0 6px 18px rgba(15,23,42,0.24);
+  outline: none;
+}
+
+.gantt-event-before {
+  background: #475569;
+}
+
+.gantt-event-live {
+  background: #f59e0b;
+  color: #111827;
+}
+
+.gantt-event-finished {
+  background: #059669;
+}
+
+.gantt-event-primary,
+.gantt-event-secondary {
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gantt-event-primary {
+  font-size: 0.86rem;
+  font-weight: 900;
+}
+
+.gantt-event-secondary {
+  font-size: 0.74rem;
+  font-weight: 700;
+  opacity: 0.94;
+}
+
+.gantt-empty,
+.gantt-no-courts {
+  position: absolute;
+  top: 50%;
+  left: 0.75rem;
+  transform: translateY(-50%);
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.gantt-no-courts {
+  position: static;
+  transform: none;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.gantt-time-marker {
+  position: absolute;
+  z-index: 5;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-left: 2px solid #f43f5e;
+  box-shadow: 0 0 0 1px rgba(244,63,94,0.18), 0 0 12px rgba(244,63,94,0.4);
+  pointer-events: none;
+}
+
+.gantt-time-marker > span {
+  position: absolute;
+  top: 0.35rem;
+  left: 0;
+  transform: translateX(-50%);
+  padding: 0.22rem 0.45rem;
+  border-radius: 0.35rem;
+  background: #e11d48;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 900;
+  white-space: nowrap;
+  box-shadow: 0 3px 10px rgba(190,18,60,0.3);
+}
+
+.gantt-time-marker.at-start > span {
+  transform: none;
+}
+
+.gantt-time-marker.at-end > span {
+  transform: translateX(-100%);
 }
 
 .gantt-event {
@@ -165,7 +383,7 @@ html.dark #adminContent .text-slate-400 {
   }
 
   #ganttContainer {
-    min-width: 830px;
+    min-width: 980px;
   }
 
   .tab-btn {
@@ -181,6 +399,264 @@ html.dark #adminContent .text-slate-400 {
   input,
   textarea {
     min-height: 2.9rem;
+  }
+}
+
+.admin-clock-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid rgba(56,189,248,0.28);
+  border-radius: 0.9rem;
+  color: #f8fafc;
+  background:
+    radial-gradient(ellipse at 90% 10%, rgba(34,211,238,0.16), transparent 48%),
+    linear-gradient(110deg, #101c2a, #111827 62%, #102329);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 12px 30px rgba(15,23,42,0.12);
+}
+
+.admin-panel-kicker {
+  color: #67e8f9;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.admin-panel-title {
+  margin-top: 0.25rem;
+  color: #cbd5e1;
+  font-size: 0.8rem;
+  font-weight: 750;
+}
+
+.admin-clock-display {
+  color: #fff;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 2rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  line-height: 1;
+  text-shadow: 0 0 26px rgba(103,232,249,0.24);
+}
+
+.admin-score-panel,
+.admin-announcement-panel {
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.85rem;
+  background: var(--surface-1);
+}
+
+.admin-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.8rem;
+}
+
+.admin-section-heading h3 {
+  margin-top: 0.15rem;
+  color: var(--text);
+  font-size: 0.95rem;
+  font-weight: 900;
+}
+
+.admin-live-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.admin-live-indicator span {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 0 3px rgba(34,197,94,0.14), 0 0 12px rgba(34,197,94,0.45);
+}
+
+.admin-score-tile {
+  min-width: 0;
+  padding: 0.85rem 1rem;
+  border: 1px solid color-mix(in srgb, var(--team-accent) 28%, var(--line));
+  border-radius: 0.7rem;
+  background: color-mix(in srgb, var(--team-accent) 7%, var(--surface-1));
+}
+
+.admin-score-tile span {
+  display: block;
+  color: var(--team-accent);
+  font-size: 0.75rem;
+  font-weight: 900;
+}
+
+.admin-score-tile strong {
+  display: block;
+  margin-top: 0.35rem;
+  color: var(--text);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 1.7rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 850;
+  line-height: 1.1;
+}
+
+.admin-score-tile small {
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 650;
+}
+
+.score-a { --team-accent: #fb7185; }
+.score-b { --team-accent: #38bdf8; }
+.score-c { --team-accent: #fbbf24; }
+.score-d { --team-accent: #34d399; }
+
+.admin-command-primary,
+.admin-command-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  padding: 0.55rem 0.9rem;
+  border-radius: 0.6rem;
+  font-size: 0.8rem;
+  font-weight: 850;
+}
+
+.admin-command-primary {
+  color: #fff;
+  background: #e11d48;
+}
+
+.admin-command-primary:hover {
+  background: #be123c;
+}
+
+.admin-command-secondary {
+  color: var(--text);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+}
+
+.admin-match-link {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.95rem 1rem;
+  border: 1px solid rgba(14,165,233,0.28);
+  border-radius: 0.8rem;
+  color: var(--text);
+  background: linear-gradient(100deg, rgba(14,165,233,0.08), var(--surface-1) 72%);
+  text-decoration: none;
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.admin-match-link:hover,
+.admin-match-link:focus-visible {
+  transform: translateY(-2px);
+  border-color: #0ea5e9;
+  box-shadow: 0 10px 24px rgba(14,165,233,0.12);
+  outline: none;
+}
+
+.admin-match-link-icon {
+  display: grid;
+  flex: 0 0 2.7rem;
+  aspect-ratio: 1;
+  place-items: center;
+  border: 1px solid rgba(14,165,233,0.22);
+  border-radius: 0.65rem;
+  color: #0284c7;
+  background: rgba(14,165,233,0.1);
+}
+
+.admin-match-link-copy {
+  display: grid;
+  min-width: 0;
+  gap: 0.15rem;
+}
+
+.admin-match-link-copy strong {
+  font-size: 0.88rem;
+  font-weight: 900;
+}
+
+.admin-match-link-copy small {
+  color: var(--muted);
+  font-size: 0.73rem;
+}
+
+.admin-match-link-arrow {
+  margin-left: auto;
+  color: #0284c7;
+}
+
+.admin-back-link {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 0.55rem;
+  color: var(--text);
+  background: var(--surface-1);
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+body.match-tools-view > header,
+body.match-tools-view main > section:not(#sec-admin),
+body.match-tools-view #courtDelaySummaryBar {
+  display: none !important;
+}
+
+body.match-tools-view main {
+  max-width: 78rem;
+  padding-top: 1rem;
+}
+
+body.match-tools-view #sec-admin {
+  display: block !important;
+}
+
+body.match-tools-view #adminDashboard,
+body.match-tools-view #adminDataTools {
+  display: none !important;
+}
+
+body.match-tools-view #adminMatchTools {
+  display: flex !important;
+  flex-direction: column;
+}
+
+@media (max-width: 640px) {
+  .admin-clock-panel {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .admin-score-tile {
+    padding: 0.75rem;
+  }
+
+  .admin-score-tile strong {
+    font-size: 1.45rem;
+  }
+
+  .admin-clock-display {
+    font-size: 1.75rem;
   }
 }
 

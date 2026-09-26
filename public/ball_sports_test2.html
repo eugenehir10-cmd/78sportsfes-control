@@ -182,29 +182,33 @@
         <!-- TAB 2: ガントチャート -->
         <section id="sec-gantt" class="hidden space-y-3">
             <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm">
-                <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-3 mb-3">
-                    <h2 class="text-xs font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
-                        <i class="fa-solid fa-chart-gantt text-sky-500"></i> 全コート進行状況視覚化ガントチャート (08:00 - 16:00)
-                    </h2>
-                    <div class="flex flex-wrap items-center gap-3">
-                        <select id="ganttCourtFilter" onchange="renderGantt()" class="bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 px-2.5 py-1.5 outline-none">
-                            <option value="ALL">全コート</option>
-                            <option value="上グラ">上グラ</option>
-                            <option value="下グラ">下グラ</option>
-                            <option value="体育館">体育館</option>
-                            <option value="ハード">ハード</option>
-                            <option value="オムニ">オムニ</option>
-                            <option value="卓球場">卓球場</option>
-                        </select>
-                        <div class="text-[10px] flex items-center gap-3">
-                            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-slate-400 inline-block"></span>開始前</span>
-                            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-amber-500 inline-block"></span>進行中</span>
-                            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-emerald-500 inline-block"></span>終了</span>
+                <div class="flex flex-col gap-3 mb-4">
+                    <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-3">
+                        <div>
+                            <h2 class="text-sm font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                                <i class="fa-solid fa-chart-gantt text-sky-500"></i> 会場タイムテーブル
+                            </h2>
+                            <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">各試合を選択すると詳細を編集できます。</p>
                         </div>
+                        <div class="gantt-legend text-xs flex flex-wrap items-center gap-3">
+                            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-slate-400 inline-block"></span>開始前</span>
+                            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-amber-500 inline-block"></span>進行中</span>
+                            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-emerald-500 inline-block"></span>終了</span>
+                            <span class="flex items-center gap-1.5"><span class="w-0.5 h-4 bg-rose-500 inline-block"></span>現在時刻</span>
+                        </div>
+                    </div>
+                    <div id="ganttCourtFilters" class="gantt-court-filters flex flex-wrap items-center gap-2" aria-label="ガントチャートの会場絞り込み">
+                        <span class="text-xs font-black text-slate-500 dark:text-slate-400 mr-1">表示する会場</span>
+                        <label><input type="checkbox" class="gantt-court-checkbox" value="上グラ" checked onchange="renderGantt()"> 上グラ</label>
+                        <label><input type="checkbox" class="gantt-court-checkbox" value="下グラ" checked onchange="renderGantt()"> 下グラ</label>
+                        <label><input type="checkbox" class="gantt-court-checkbox" value="体育館" checked onchange="renderGantt()"> 体育館</label>
+                        <label><input type="checkbox" class="gantt-court-checkbox" value="ハード" checked onchange="renderGantt()"> ハード</label>
+                        <label><input type="checkbox" class="gantt-court-checkbox" value="オムニ" checked onchange="renderGantt()"> オムニ</label>
+                        <label><input type="checkbox" class="gantt-court-checkbox" value="卓球場" checked onchange="renderGantt()"> 卓球場</label>
                     </div>
                 </div>
                 <div class="overflow-x-auto relative pt-2 pb-2">
-                    <div id="ganttContainer" class="min-w-[760px]">
+                    <div id="ganttContainer" class="min-w-[980px]">
                         <!-- Dynamic Gantt -->
                     </div>
                 </div>
@@ -264,12 +268,21 @@
                 <div class="bg-slate-900 text-white p-3 rounded-xl flex justify-between items-center shadow-md">
                     <div class="flex items-center space-x-2">
                         <span class="bg-amber-500 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded">ADMIN UNLOCKED</span>
-                        <h2 class="text-xs font-black">本部試合作成・全コート遅延一括管理</h2>
+                        <h2 class="text-xs font-black">体育祭運営ダッシュボード</h2>
                     </div>
                     <button onclick="lockAdmin()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 px-2.5 py-1 rounded text-xs font-bold transition">
                         <i class="fa-solid fa-lock mr-1"></i> ログアウト
                     </button>
                 </div>
+
+                <div id="adminDashboard" class="space-y-4">
+                    <div class="admin-clock-panel">
+                        <div>
+                            <div class="admin-panel-kicker">SPORTS FESTIVAL / CONTROL ROOM</div>
+                            <div class="admin-panel-title">現在時刻</div>
+                        </div>
+                        <div id="adminClockDisplay" class="admin-clock-display" aria-live="off">00:00:00</div>
+                    </div>
 
                 <!-- 1. 管理画面トップ：全コートの遅延状況一覧表示 -->
                 <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-3 shadow-sm">
@@ -281,6 +294,46 @@
                     </div>
                 </div>
 
+                <section class="admin-score-panel">
+                    <div class="admin-section-heading">
+                        <div>
+                            <div class="admin-panel-kicker">LIVE STANDINGS</div>
+                            <h3>各組合計得点</h3>
+                        </div>
+                        <span class="admin-live-indicator"><span></span> リアルタイム集計</span>
+                    </div>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-2.5">
+                        <div class="admin-score-tile score-a"><span>A組</span><strong id="scoreDisplayA">0 <small>pt</small></strong></div>
+                        <div class="admin-score-tile score-b"><span>B組</span><strong id="scoreDisplayB">0 <small>pt</small></strong></div>
+                        <div class="admin-score-tile score-c"><span>C組</span><strong id="scoreDisplayC">0 <small>pt</small></strong></div>
+                        <div class="admin-score-tile score-d"><span>D組</span><strong id="scoreDisplayD">0 <small>pt</small></strong></div>
+                    </div>
+                </section>
+
+                <section class="admin-announcement-panel">
+                    <div class="admin-section-heading">
+                        <div>
+                            <div class="admin-panel-kicker">PUBLIC ADDRESS</div>
+                            <h3><i class="fa-solid fa-bullhorn text-rose-500 mr-1.5"></i>テロップ配信</h3>
+                        </div>
+                    </div>
+                    <textarea id="announcementInput" rows="2" placeholder="全体テロップメッセージを入力..." class="w-full p-3 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-sm text-slate-800 dark:text-slate-100 rounded-lg outline-none font-bold"></textarea>
+                    <div class="flex flex-wrap gap-2 mt-2">
+                        <button onclick="broadcastAnnouncement()" class="admin-command-primary"><i class="fa-solid fa-tower-broadcast"></i> テロップ配信</button>
+                        <button onclick="clearAnnouncement()" class="admin-command-secondary"><i class="fa-solid fa-eraser"></i> 消去</button>
+                    </div>
+                </section>
+
+                <a class="admin-match-link" href="./match-management.html">
+                    <span class="admin-match-link-icon"><i class="fa-solid fa-calendar-plus"></i></span>
+                    <span class="admin-match-link-copy"><strong>競技・試合の作成と時間設定</strong><small>専用の試合管理ページを開く</small></span>
+                    <i class="fa-solid fa-arrow-up-right-from-square admin-match-link-arrow"></i>
+                </a>
+
+                </div>
+
+                <div id="adminMatchTools" class="hidden space-y-4">
+                    <a href="./ball_sports_test2.html" class="admin-back-link"><i class="fa-solid fa-arrow-left"></i> 進行本部ダッシュボードへ戻る</a>
                 <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-3 shadow-sm">
                     <div class="flex items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-2">
                         <h3 class="text-xs font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
@@ -461,24 +514,14 @@
                     </div>
                 </div>
 
-                <!-- 3. テロップ放送 & データ操作 -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-2 shadow-sm">
-                        <h3 class="text-xs font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
-                            <i class="fa-solid fa-bullhorn text-rose-500"></i> 緊急全体アナウンス配信
-                        </h3>
-                        <textarea id="announcementInput" rows="2" placeholder="全体テロップメッセージを入力..." class="w-full p-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-100 rounded-lg outline-none font-bold"></textarea>
-                        <div class="flex gap-2">
-                            <button onclick="broadcastAnnouncement()" class="flex-1 bg-rose-600 hover:bg-rose-500 text-white font-bold py-1.5 rounded text-xs transition">テロップ配信</button>
-                            <button onclick="clearAnnouncement()" class="bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold py-1.5 px-3 rounded text-xs">消去</button>
-                        </div>
-                    </div>
+                </div>
 
+                <div id="adminDataTools" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-2 shadow-sm">
                         <h3 class="text-xs font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
                             <i class="fa-solid fa-database text-slate-400"></i> データ管理・リセット
                         </h3>
-                        <div class="flex gap-2 pt-2">
+                        <div class="flex flex-wrap gap-2 pt-2">
                             <button onclick="exportData()" class="flex-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 text-xs font-bold py-2 rounded-lg transition">
                                 <i class="fa-solid fa-download text-sky-500 mr-1"></i> データ出力 (JSON)
                             </button>
@@ -486,42 +529,12 @@
                                 <i class="fa-solid fa-upload text-sky-500 mr-1"></i> データ取込
                             </button>
                             <input type="file" id="importDataInput" accept="application/json,.json" class="hidden" onchange="importData(this)">
-                            <button onclick="resetAllData()" class="bg-rose-100 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-500/30 text-xs font-bold py-2 px-3 rounded-lg transition">
-                                初期化リセット
-                            </button>
+                            <button onclick="resetAllData()" class="bg-rose-100 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-500/30 text-xs font-bold py-2 px-3 rounded-lg transition">初期化</button>
                         </div>
                         <button onclick="resetScoreLogs()" class="w-full bg-rose-50 dark:bg-rose-950/30 hover:bg-rose-100 dark:hover:bg-rose-950/50 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-500/30 text-xs font-bold py-2 rounded-lg transition">
                             <i class="fa-solid fa-eraser mr-1"></i> 得点ログのみ消去 (時間・対戦表は保持)
                         </button>
                     </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- サブセクション: 組別得点表 (二の次のため一番下にコンパクト配置) -->
-        <section class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 shadow-sm mt-6">
-            <div class="flex justify-between items-center mb-2">
-                <span class="text-[11px] font-black text-slate-400 flex items-center gap-1.5">
-                    <i class="fa-solid fa-chart-simple text-sky-500"></i> 組別総合点（自動集計）
-                </span>
-                <span class="text-[10px] text-slate-400">※試合結果入力に基づいてリアルタイム加算</span>
-            </div>
-            <div class="grid grid-cols-4 gap-2">
-                <div class="bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-500/20 rounded-lg p-2 text-center">
-                    <div class="text-[10px] font-black text-rose-600 dark:text-rose-400">A 組</div>
-                    <div class="text-lg font-black text-slate-800 dark:text-slate-100 font-mono" id="scoreDisplayA">0 <span class="text-[10px] font-normal text-slate-400">pt</span></div>
-                </div>
-                <div class="bg-sky-50 dark:bg-sky-950/20 border border-sky-200 dark:border-sky-500/20 rounded-lg p-2 text-center">
-                    <div class="text-[10px] font-black text-sky-600 dark:text-sky-400">B 組</div>
-                    <div class="text-lg font-black text-slate-800 dark:text-slate-100 font-mono" id="scoreDisplayB">0 <span class="text-[10px] font-normal text-slate-400">pt</span></div>
-                </div>
-                <div class="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-500/20 rounded-lg p-2 text-center">
-                    <div class="text-[10px] font-black text-amber-600 dark:text-amber-400">C 組</div>
-                    <div class="text-lg font-black text-slate-800 dark:text-slate-100 font-mono" id="scoreDisplayC">0 <span class="text-[10px] font-normal text-slate-400">pt</span></div>
-                </div>
-                <div class="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-500/20 rounded-lg p-2 text-center">
-                    <div class="text-[10px] font-black text-emerald-600 dark:text-emerald-400">D 組</div>
-                    <div class="text-lg font-black text-slate-800 dark:text-slate-100 font-mono" id="scoreDisplayD">0 <span class="text-[10px] font-normal text-slate-400">pt</span></div>
                 </div>
             </div>
         </section>
@@ -714,6 +727,6 @@
         </div>
     </div>
 
-    <script src="./ball_sports_test2.js?v=20260926T6" defer></script>
+    <script src="./ball_sports_test2.js?v=20260926T8" defer></script>
 </body>
 </html>

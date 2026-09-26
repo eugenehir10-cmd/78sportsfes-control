@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0f172a">
+  <title>試合管理 | 第78回体育祭</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      font-family: "Noto Sans JP", "Yu Gothic", sans-serif;
+      background: #f1f5f9;
+      color: #0f172a;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-width: 320px; min-height: 100vh; }
+    header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      min-height: 3.75rem;
+      padding: 0 1rem;
+      border-bottom: 1px solid #334155;
+      color: #f8fafc;
+      background: #0f172a;
+    }
+    a {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: #7dd3fc;
+      font-size: 0.875rem;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    a:hover { color: #bae6fd; }
+    h1 { margin: 0; font-size: 0.95rem; }
+    iframe {
+      display: block;
+      width: 100%;
+      height: calc(100vh - 3.75rem);
+      min-height: 34rem;
+      border: 0;
+      background: #f1f5f9;
+    }
+    @media (max-width: 520px) {
+      header { min-height: 3.5rem; gap: 0.65rem; padding: 0 0.75rem; }
+      h1 { font-size: 0.82rem; }
+      a { font-size: 0.78rem; }
+      iframe { height: calc(100dvh - 3.5rem); min-height: 32rem; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="./ball_sports_test2.html" aria-label="進行本部へ戻る">← 進行本部</a>
+    <h1>競技・試合管理</h1>
+  </header>
+  <iframe title="競技・試合の作成と時間設定" src="./ball_sports_test2.html#match-tools"></iframe>
+</body>
+</html>

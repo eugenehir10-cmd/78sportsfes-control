@@ -454,6 +454,10 @@ async function syncStateToFirebase() {
 }
 document.addEventListener("DOMContentLoaded", () => {
     startClock();
+    if (new URLSearchParams(window.location.search).get("view") === "match-tools" || window.location.hash === "#match-tools") {
+        document.body.classList.add("match-tools-view");
+        switchTab("admin");
+    }
     updateSyncStatus("待機中", "sky");
     initFirebaseSync();
     populateBlockSelectors();
@@ -490,16 +494,28 @@ function toggleContrast() {
 }
 function startClock() {
     const clockEl = document.getElementById("clockDisplay");
-    if (!clockEl)
+    const adminClockEl = document.getElementById("adminClockDisplay");
+    if (!clockEl && !adminClockEl)
         return;
+    let lastGanttTick = "";
+    let lastAdminTick = "";
     const update = () => {
         const now = new Date();
         const hrs = String(now.getHours()).padStart(2, "0");
         const mins = String(now.getMinutes()).padStart(2, "0");
         const secs = String(now.getSeconds()).padStart(2, "0");
         const ms = String(now.getMilliseconds()).padStart(3, "0");
-        clockEl.innerHTML = `${hrs}:${mins}:${secs}.<span class="text-[10px] text-sky-500">${ms}</span>`;
-        updateGanttTimeBar(now);
+        if (clockEl)
+            clockEl.innerHTML = `${hrs}:${mins}:${secs}.<span class="text-[10px] text-sky-500">${ms}</span>`;
+        const tick = `${hrs}:${mins}:${secs}`;
+        if (tick !== lastGanttTick) {
+            updateGanttTimeBar(now);
+            lastGanttTick = tick;
+        }
+        if (adminClockEl && tick !== lastAdminTick) {
+            adminClockEl.textContent = tick;
+            lastAdminTick = tick;
+        }
         requestAnimationFrame(update);
     };
     requestAnimationFrame(update);
@@ -526,6 +542,7 @@ function switchTab(tabName) {
     const target = document.getElementById(`sec-${tabName}`);
     if (target)
         target.classList.remove("hidden");
+    document.getElementById("courtDelaySummaryBar")?.classList.toggle("hidden", tabName === "admin");
     const activeBtn = document.getElementById(`tab-${tabName}`);
     if (activeBtn) {
         activeBtn.classList.add("border-sky-500", "text-sky-600", "dark:text-sky-400");
@@ -543,6 +560,11 @@ function getSelectedCourts() {
     if (!selected.length)
         return ["上グラ", "下グラ", "体育館", "ハード", "オムニ", "卓球場"];
     return selected;
+}
+function getSelectedGanttCourts() {
+    return [...document.querySelectorAll(".gantt-court-checkbox")]
+        .filter((checkbox) => checkbox.checked)
+        .map((checkbox) => checkbox.value);
 }
 function renderCourtDelaySummary() {
     const courts = ["上グラ", "下グラ", "体育館", "ハード", "オムニ", "卓球場"];
@@ -850,68 +872,82 @@ function applyCascadeOffset(targetMatchId, diffMins) {
 }
 function renderGantt() {
     const container = document.getElementById("ganttContainer");
-    const courts = getSelectedCourts();
+    const courts = getSelectedGanttCourts();
     const startH = 8;
     const endH = 16;
     const totalMins = (endH - startH) * 60;
-    let html = `<div class="relative border-b border-slate-200 dark:border-slate-800 pb-2 mb-3 flex text-[11px] font-mono font-black text-slate-500 pl-20">`;
-    for (let h = startH; h <= endH; h++) {
-        const leftP = ((h - startH) * 60 / totalMins) * 100;
-        html += `<div class="absolute" style="left: ${leftP}%">${String(h).padStart(2, "0")}:00</div>`;
-    }
-    html += `</div>`;
-    courts.forEach((court) => {
+    const ruler = Array.from({ length: endH - startH + 1 }, (_, index) => {
+        const hour = startH + index;
+        const position = index / (endH - startH) * 100;
+        const edgeClass = index === 0 ? "gantt-hour-first" : index === endH - startH ? "gantt-hour-last" : "";
+        return `<span class="gantt-hour ${edgeClass}" style="left:${position}%">${String(hour).padStart(2, "0")}:00</span>`;
+    }).join("");
+    const lanes = courts.map((court) => {
         const matches = appState.schedule
             .filter((m) => m.court === court)
             .sort((a, b) => a.start.localeCompare(b.start));
-        html += `
-      <div class="relative h-14 flex items-center border-b border-slate-100 dark:border-slate-800/60 pl-20 my-1">
-        <div class="absolute left-0 w-16 font-black text-xs text-slate-700 dark:text-slate-300">${court}</div>
-        <div class="relative w-full h-10 bg-slate-100 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden">
-    `;
-        matches.forEach((m) => {
-            const adjStart = calcAdjustedTime(m.start, m.offsetMins);
-            const adjEnd = calcAdjustedTime(m.end, m.offsetMins);
-            const [sH, sM] = adjStart.split(":").map(Number);
-            const [eH, eM] = adjEnd.split(":").map(Number);
-            const sMins = (sH - startH) * 60 + sM;
-            const eMins = (eH - startH) * 60 + eM;
-            const left = (sMins / totalMins) * 100;
-            const width = Math.max(((eMins - sMins) / totalMins) * 100, 2);
-            let bgClass = "bg-slate-500 text-white";
-            if (m.status === "IN_PROGRESS")
-                bgClass = "bg-amber-500 text-slate-950 font-black animate-pulse";
-            if (m.status === "FINISHED")
-                bgClass = "bg-emerald-500 text-white";
-            html += `
-        <div class="absolute top-1 bottom-1 rounded border border-white/30 px-1.5 text-[9px] font-bold flex items-center justify-between shadow cursor-pointer ${bgClass}"
-             style="left: ${left}%; width: ${width}%;" title="${m.grade} ${m.sport} ${m.title} (${adjStart}-${adjEnd})" onclick="openModal('${m.id}')">
-          <span class="truncate">${m.grade} / ${m.sport} / ${m.title}</span>
+        const events = matches.map((match) => {
+            const adjustedStart = calcAdjustedTime(match.start, match.offsetMins);
+            const adjustedEnd = calcAdjustedTime(match.end, match.offsetMins);
+            const [startHour, startMinute] = adjustedStart.split(":").map(Number);
+            const [endHour, endMinute] = adjustedEnd.split(":").map(Number);
+            const startMinuteOfDay = startHour * 60 + startMinute;
+            const endMinuteOfDay = endHour * 60 + endMinute;
+            const visibleStart = Math.max(startH * 60, startMinuteOfDay);
+            const visibleEnd = Math.min(endH * 60, endMinuteOfDay);
+            if (visibleEnd <= visibleStart)
+                return "";
+            const left = (visibleStart - startH * 60) / totalMins * 100;
+            const width = Math.max((visibleEnd - visibleStart) / totalMins * 100, 1.4);
+            const statusClass = match.status === "IN_PROGRESS" ? "gantt-event-live" : match.status === "FINISHED" ? "gantt-event-finished" : "gantt-event-before";
+            const label = `${match.grade} ${match.sport} ${match.title}: ${match.teamA} 対 ${match.teamB}, ${adjustedStart}から${adjustedEnd}`;
+            return `
+        <button type="button" class="gantt-event ${statusClass}" style="left:${left}%;width:${width}%" title="${label}" aria-label="${label} 詳細を編集" onclick="openModal('${match.id}')">
+          <span class="gantt-event-primary">${match.grade} / ${match.sport}</span>
+          <span class="gantt-event-secondary">${match.title} · ${match.teamA} 対 ${match.teamB} · ${adjustedStart}–${adjustedEnd}</span>
+        </button>`;
+        }).join("");
+        return `
+      <div class="gantt-lane">
+        <div class="gantt-lane-label"><span>${court}</span><small>${matches.length}試合</small></div>
+        <div class="gantt-lane-track">
+          ${Array.from({ length: endH - startH + 1 }, (_, index) => `<span class="gantt-gridline" style="left:${index / (endH - startH) * 100}%"></span>`).join("")}
+          ${events || '<span class="gantt-empty">試合なし</span>'}
         </div>
-      `;
-        });
-        html += `</div></div>`;
-    });
-    html += '<div id="ganttTimeBar" class="absolute top-8 bottom-0 w-0.5 bg-rose-500 z-20 pointer-events-none"><div class="bg-rose-500 text-white text-[8px] px-1 rounded -ml-3 -mt-3 font-mono font-bold">現在</div></div>';
-    if (container)
-        container.innerHTML = html;
+      </div>`;
+    }).join("");
+    if (!container)
+        return;
+    if (!courts.length) {
+        container.innerHTML = '<p class="gantt-no-courts">表示する会場を選択してください。</p>';
+        return;
+    }
+    container.innerHTML = `
+    <div class="gantt-board">
+      <div class="gantt-ruler"><div class="gantt-ruler-label">会場 / 件数</div><div class="gantt-ruler-track">${ruler}</div></div>
+      <div class="gantt-lanes" id="ganttLanes">${lanes}<div id="ganttTimeBar" class="gantt-time-marker" aria-hidden="true"><span>現在 <b data-gantt-current-time></b></span></div></div>
+    </div>`;
+    updateGanttTimeBar(new Date());
 }
 function updateGanttTimeBar(now) {
     const bar = document.getElementById("ganttTimeBar");
-    if (!bar)
+    const track = document.querySelector(".gantt-lane-track");
+    const lanes = document.getElementById("ganttLanes");
+    if (!bar || !track || !lanes)
         return;
     const startH = 8;
     const endH = 16;
     const totalMins = (endH - startH) * 60;
     const curMins = (now.getHours() - startH) * 60 + now.getMinutes() + now.getSeconds() / 60;
-    if (curMins >= 0 && curMins <= totalMins) {
-        const p = (curMins / totalMins) * 100;
-        bar.style.left = `calc(5rem + (100% - 5rem) * ${p / 100})`;
-        bar.style.display = "block";
-    }
-    else {
-        bar.style.display = "none";
-    }
+    const position = Math.max(0, Math.min(100, curMins / totalMins * 100));
+    const trackLeft = track.getBoundingClientRect().left - lanes.getBoundingClientRect().left;
+    bar.style.left = `${trackLeft + track.clientWidth * position / 100}px`;
+    bar.classList.toggle("at-start", position === 0);
+    bar.classList.toggle("at-end", position === 100);
+    bar.style.display = "block";
+    const timeLabel = bar.querySelector("[data-gantt-current-time]");
+    if (timeLabel)
+        timeLabel.textContent = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
 }
 function renderResultsTab() {
     const container = document.getElementById("resultsContentContainer");
