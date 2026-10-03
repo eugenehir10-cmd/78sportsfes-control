@@ -24,9 +24,10 @@ service cloud.firestore {
     match /student_directory/current {
       allow read: if studentDirectoryOperator();
       allow create, update: if studentDirectoryOperator()
-        && request.resource.data.keys().hasOnly(['rows', 'fields', 'updatedAt', 'updatedBy'])
+        && request.resource.data.keys().hasOnly(['rows', 'fields', 'attendanceSessions', 'updatedAt', 'updatedBy'])
         && request.resource.data.rows is list
         && request.resource.data.fields is list
+        && request.resource.data.attendanceSessions is list
         && request.resource.data.updatedBy == request.auth.token.email;
       allow delete: if false;
     }

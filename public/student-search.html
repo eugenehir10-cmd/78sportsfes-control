@@ -35,6 +35,16 @@
         <label class="button button-secondary file-button">Excel / CSVを更新<input id="importFile" type="file" accept=".xlsx,.xls,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></label>
       </div>
 
+      <section class="panel attendance-panel">
+        <div class="attendance-heading"><div><h2>出欠・欠席番号</h2><p class="muted">番号は改行またはカンマ区切りで入力できます。記録は共有名簿と一緒に保存されます。</p></div></div>
+        <div id="attendanceSessions" class="attendance-sessions"></div>
+        <form id="addAttendanceSessionForm" class="add-attendance-session-form">
+          <label>団体競技名<input id="attendanceSessionName" type="text" maxlength="60" required placeholder="例：大縄跳び"></label>
+          <button class="button button-secondary" type="submit">競技を追加</button>
+        </form>
+        <p id="attendanceStatus" class="message" role="status"></p>
+      </section>
+
       <section class="panel import-panel">
         <h2>名簿の更新</h2>
         <div id="importOptions" class="hidden import-options">

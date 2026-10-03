@@ -26,7 +26,12 @@
   const FREE_TEXT_FILTER_HINT = /4桁番号|四桁番号|学籍番号|生徒番号|個人番号|名字|姓|名前|氏名|メアド|メール|gmail|e-mail|^名$/i;
   const SPORT_HINT = /球技|競技|種目|sport/i;
   const ATTENDANCE_HALVES = "__attendance_number_halves__";
-  const state = { rows: [], fields: [], filters: {}, staged: null, selectedStudentIndices: new Set(), lockTimer: 0, db: null, auth: null, user: null, unsubscribe: null };
+  const DEFAULT_ATTENDANCE_SESSIONS = [
+    { id: "ball-day", name: "球技日", numbers: [] },
+    { id: "team-before-opening", name: "団体競技日・開会式前", numbers: [] },
+    { id: "team-after-opening", name: "団体競技日・開会式後", numbers: [] }
+  ];
+  const state = { rows: [], fields: [], attendanceSessions: DEFAULT_ATTENDANCE_SESSIONS.map((session) => ({ ...session })), filters: {}, staged: null, selectedStudentIndices: new Set(), lockTimer: 0, db: null, auth: null, user: null, unsubscribe: null };
   const $ = (id) => document.getElementById(id);
 
   const encoder = new TextEncoder();
@@ -38,6 +43,7 @@
         const payload = snapshot.exists ? snapshot.data() : {};
         state.rows = Array.isArray(payload.rows) ? payload.rows : [];
         state.fields = Array.isArray(payload.fields) ? payload.fields : [];
+        state.attendanceSessions = normalizeAttendanceSessions(payload.attendanceSessions);
         renderDirectory();
         if (initialSnapshot) resolve();
         initialSnapshot = false;
@@ -54,7 +60,7 @@
   }
 
   async function persist() {
-    const payload = { rows: state.rows, fields: state.fields };
+    const payload = { rows: state.rows, fields: state.fields, attendanceSessions: state.attendanceSessions };
     const bytes = encoder.encode(JSON.stringify(payload)).length;
     if (bytes > MAX_DIRECTORY_BYTES) throw new Error("名簿が大きすぎます。項目を整理してから再度お試しください。");
     await state.db.doc(DIRECTORY_DOC).set({
@@ -70,6 +76,7 @@
     state.unsubscribe = null;
     state.rows = [];
     state.fields = [];
+    state.attendanceSessions = DEFAULT_ATTENDANCE_SESSIONS.map((session) => ({ ...session }));
     state.staged = null;
     state.selectedStudentIndices.clear();
     $("directoryPanel").classList.add("hidden");
@@ -215,10 +222,99 @@
 
   function renderDirectory() {
     $("datasetSummary").textContent = state.rows.length ? `${state.rows.length.toLocaleString()}人 / ${state.fields.length}項目　（共有名簿）` : "名簿はまだありません。ExcelまたはCSVを選択して読み込んでください。";
+    renderAttendanceSessions();
     renderFilters();
     renderExportFields();
     renderAssignmentFields();
     renderResults();
+  }
+
+  function normalizeAttendanceSessions(sessions) {
+    const savedSessions = Array.isArray(sessions) ? sessions : [];
+    const savedById = new Map(savedSessions.map((session) => [session?.id, session]));
+    const fixedSessions = DEFAULT_ATTENDANCE_SESSIONS.map((defaults) => {
+      const saved = savedById.get(defaults.id);
+      return { ...defaults, numbers: Array.isArray(saved?.numbers) ? saved.numbers.map(String) : [] };
+    });
+    const customSessions = savedSessions.filter((session) => session?.id && !DEFAULT_ATTENDANCE_SESSIONS.some((item) => item.id === session.id))
+      .map((session) => ({ id: String(session.id), name: String(session.name || "競技"), numbers: Array.isArray(session.numbers) ? session.numbers.map(String) : [] }));
+    return [fixedSessions[0], fixedSessions[1], ...customSessions, fixedSessions[2]];
+  }
+
+  function renderAttendanceSessions() {
+    const container = $("attendanceSessions");
+    container.replaceChildren();
+    state.attendanceSessions.forEach((session) => {
+      const article = document.createElement("article");
+      article.className = "attendance-session";
+      const heading = document.createElement("h3");
+      heading.textContent = session.name;
+      const label = document.createElement("label");
+      label.className = "attendance-number-label";
+      label.textContent = "欠席者の番号";
+      const textarea = document.createElement("textarea");
+      textarea.rows = 3;
+      textarea.value = session.numbers.join(", ");
+      textarea.placeholder = "例：3, 12, 24";
+      textarea.setAttribute("aria-label", `${session.name} 欠席者の番号`);
+      const actions = document.createElement("div");
+      actions.className = "attendance-session-actions";
+      const saveButton = document.createElement("button");
+      saveButton.className = "button button-secondary";
+      saveButton.type = "button";
+      saveButton.textContent = "番号を保存";
+      saveButton.addEventListener("click", () => saveAttendanceNumbers(session.id, textarea.value));
+      actions.append(saveButton);
+      if (!DEFAULT_ATTENDANCE_SESSIONS.some((item) => item.id === session.id)) {
+        const removeButton = document.createElement("button");
+        removeButton.className = "button button-quiet";
+        removeButton.type = "button";
+        removeButton.textContent = "競技を削除";
+        removeButton.addEventListener("click", () => removeAttendanceSession(session.id));
+        actions.append(removeButton);
+      }
+      label.append(textarea);
+      article.append(heading, label, actions);
+      container.append(article);
+    });
+  }
+
+  function parseAttendanceNumbers(value) {
+    const tokens = value.normalize("NFKC").split(/[\s,、]+/).filter(Boolean);
+    if (tokens.some((token) => !/^\d+$/.test(token) || Number(token) < 1)) return null;
+    return [...new Set(tokens)];
+  }
+
+  async function saveAttendanceNumbers(sessionId, value) {
+    const numbers = parseAttendanceNumbers(value);
+    if (!numbers) return setMessage("attendanceStatus", "番号は1以上の数字で入力してください。", true);
+    const session = state.attendanceSessions.find((item) => item.id === sessionId);
+    if (!session) return;
+    const previousNumbers = session.numbers;
+    session.numbers = numbers;
+    try {
+      await persist();
+      setMessage("attendanceStatus", `「${session.name}」の欠席番号${numbers.length}件を保存しました。`);
+      resetLockTimer();
+    } catch (error) {
+      session.numbers = previousNumbers;
+      setMessage("attendanceStatus", `保存できませんでした: ${error.message}`, true);
+    }
+  }
+
+  async function removeAttendanceSession(sessionId) {
+    const index = state.attendanceSessions.findIndex((session) => session.id === sessionId);
+    if (index < 0) return;
+    const [removed] = state.attendanceSessions.splice(index, 1);
+    renderAttendanceSessions();
+    try {
+      await persist();
+      setMessage("attendanceStatus", `「${removed.name}」を削除しました。`);
+    } catch (error) {
+      state.attendanceSessions.splice(index, 0, removed);
+      renderAttendanceSessions();
+      setMessage("attendanceStatus", `削除を保存できませんでした: ${error.message}`, true);
+    }
   }
 
   function studentDisplayName(record) {
@@ -562,6 +658,25 @@
   $("viewMode").addEventListener("change", renderResults);
   $("viewMode").addEventListener("change", () => document.body.classList.toggle("wide-table-view", $("viewMode").value === "table"));
   $("studentPickerSearch").addEventListener("input", renderStudentCandidates);
+  $("addAttendanceSessionForm").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const name = $("attendanceSessionName").value.trim();
+    if (!name) return;
+    if (state.attendanceSessions.some((session) => session.name === name)) return setMessage("attendanceStatus", "同じ競技名がすでにあります。", true);
+    const session = { id: `event-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, name, numbers: [] };
+    state.attendanceSessions.splice(-1, 0, session);
+    renderAttendanceSessions();
+    try {
+      await persist();
+      $("attendanceSessionName").value = "";
+      setMessage("attendanceStatus", `「${name}」を追加しました。`);
+      resetLockTimer();
+    } catch (error) {
+      state.attendanceSessions = state.attendanceSessions.filter((item) => item.id !== session.id);
+      renderAttendanceSessions();
+      setMessage("attendanceStatus", `追加を保存できませんでした: ${error.message}`, true);
+    }
+  });
   $("assignmentField").addEventListener("change", renderAssignmentFields);
   $("assignValueButton").addEventListener("click", async () => {
     const indices = [...state.selectedStudentIndices].filter((index) => state.rows[index]), field = $("assignmentField").value, value = $("assignmentValue").value.trim();
