@@ -1,16 +1,15 @@
-Firestore rules are now maintained as one deployable ruleset at the repository
-root: `firestore.rules`. Do not paste this file into the Firebase Console.
+Firestore rules are maintained in the deployable ruleset at the repository
+root: `firestore.rules`. This file is a deployment note, not a rules fragment.
 
-Deployment configuration is in `firebase.json`. From the repository root,
-deploy the complete ruleset with:
+The rules protect `student_directory/current` behind verified operator
+accounts, retain the app's shared sports data, backup, scoreboard, and history
+operations, and deny unlisted top-level Firestore collections. Writes to
+`app_data` are limited to the document types used by the application.
+
+From the repository root, deploy the complete ruleset with:
 
     firebase deploy --only firestore:rules --project thsportsfes
 
-The ruleset limits `student_directory/current` to the verified account
-`jh62231310@s.musashi.ed.jp`. All other Firestore collections are publicly
-readable and writable without login.
-
-After deployment, verify the rules in the Firebase Console, then set
-`FIRESTORE_RULES_READY` to `true` in `public/student-search.js` and publish
-the updated page. The client flag is intentionally still `false` until the
-rules have actually been deployed and checked.
+Verify the deployed rules in the Firebase Console. Only then set
+`FIRESTORE_RULES_READY` to `true` in `public/student-search.js` and publish the
+updated page so the private directory can be unlocked.

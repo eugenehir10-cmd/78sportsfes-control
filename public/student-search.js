@@ -17,7 +17,7 @@
     "jh62230440@s.musashi.ed.jp", "jh62220030@s.musashi.ed.jp", "jh62231560@s.musashi.ed.jp",
     "jh62230600@s.musashi.ed.jp", "jh62220260@s.musashi.ed.jp"
   ]);
-  // Enable only after merging the matching rule into Firebase Console and checking for broad wildcard grants.
+  // Enable only after deploying firestore.rules and verifying the deployed access controls.
   const FIRESTORE_RULES_READY = true;
   const DIRECTORY_DOC = "student_directory/current";
   const MAX_DIRECTORY_BYTES = 850_000;

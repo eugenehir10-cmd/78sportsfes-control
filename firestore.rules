@@ -19,25 +19,108 @@ service cloud.firestore {
         ];
     }
 
-    // Student records contain personal information. Only the directory
-    // operator can read or replace the shared directory document.
+    function validSportsSchedule() {
+      return request.resource.data.keys().hasAll(['schedule', 'announcement', 'updatedAt'])
+        && request.resource.data.schedule is list
+        && request.resource.data.announcement is string
+        && request.resource.data.updatedAt is string;
+    }
+
+    function validSportsBackup() {
+      return request.resource.data.keys().hasAll([
+          'schedule', 'announcement', 'createdAt', 'matchCount', 'schemaVersion', 'automatic'
+        ])
+        && request.resource.data.schedule is list
+        && request.resource.data.announcement is string
+        && request.resource.data.createdAt is string
+        && request.resource.data.matchCount is int
+        && request.resource.data.schemaVersion is int
+        && request.resource.data.automatic is bool;
+    }
+
+    function validWrappedAppData() {
+      return request.resource.data.keys().hasAll(['data', 'updatedAt'])
+        && request.resource.data.keys().hasOnly(['data', 'updatedAt', 'device'])
+        && request.resource.data.data is map
+        && request.resource.data.updatedAt is timestamp
+        && (!('device' in request.resource.data.keys()) || request.resource.data.device is string);
+    }
+
+    function validAuthorizedUsers() {
+      return request.resource.data.keys().hasAll(['emails', 'updatedAt'])
+        && request.resource.data.keys().hasOnly(['emails', 'updatedAt', 'updatedBy'])
+        && request.resource.data.emails is list
+        && request.resource.data.updatedAt is timestamp
+        && (!('updatedBy' in request.resource.data.keys()) || request.resource.data.updatedBy is string);
+    }
+
+    function studentDirectoryAdmin() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email in ['jh62231310@s.musashi.ed.jp', 'eugene.hir.10@gmail.com'];
+    }
+
+    // Student records are private and may only be accessed by verified operators.
     match /student_directory/current {
       allow read: if studentDirectoryOperator();
       allow create, update: if studentDirectoryOperator()
+        && request.resource.data.keys().hasAll(['rows', 'fields', 'attendanceSessions', 'updatedAt', 'updatedBy'])
         && request.resource.data.keys().hasOnly(['rows', 'fields', 'attendanceSessions', 'updatedAt', 'updatedBy'])
         && request.resource.data.rows is list
         && request.resource.data.fields is list
         && request.resource.data.attendanceSessions is list
+        && request.resource.data.updatedAt is timestamp
         && request.resource.data.updatedBy == request.auth.token.email;
       allow delete: if false;
     }
 
-    // Everything outside the student directory is publicly accessible,
-    // including app data, backups, equipment, and history collections.
-    // Excluding the entire collection prevents this wildcard from exposing
-    // student_directory/current through Firestore's additive rule matching.
-    match /{collection}/{document=**} {
-      allow read, write: if collection != 'student_directory';
+    // Public sports schedule documents and read-only legacy migration sources.
+    match /app_data/{document} {
+      // The settings page watches the app_data collection for shared updates.
+      allow read: if true;
+      allow create, update: if document in ['ball_sports_test2_main', 'team_sports_main']
+        && validSportsSchedule();
+      allow create, update: if document in ['ball_sports_data_v4', 'team_events_data_v4', 'common_settings']
+        && validWrappedAppData();
+      allow create, update: if document == 'authorized_users'
+        && studentDirectoryAdmin()
+        && validAuthorizedUsers();
+      allow delete: if false;
+    }
+
+    match /app_data/{backupDocument}/snapshots/{snapshotId} {
+      allow read: if backupDocument in ['ball_sports_test2_backups', 'team_sports_backups'];
+      allow create, update: if backupDocument in ['ball_sports_test2_backups', 'team_sports_backups']
+        && validSportsBackup();
+      allow delete: if backupDocument in ['ball_sports_test2_backups', 'team_sports_backups'];
+    }
+
+    // Public scoreboard clients can read these published documents.
+    match /public_scoreboards/{scoreboardId} {
+      allow read: if scoreboardId in ['ball_day', 'team_day'];
+      allow create, update: if scoreboardId in ['ball_day', 'team_day']
+        && request.resource.data.payloadJson is string
+        && request.resource.data.updatedAt is string;
+      allow delete: if false;
+    }
+
+    // The history page reads and clears this public input log.
+    match /input_history/{entryId} {
+      allow read, delete: if true;
+      allow create: if request.resource.data.keys().hasAny(['timestamp'])
+        && (request.resource.data.timestamp is string || request.resource.data.timestamp is timestamp);
+      allow update: if false;
+    }
+
+    // Retained only as a read-only source for legacy schedule migration.
+    match /sportsfes/{document} {
+      allow read: if document == 'main';
+      allow write: if false;
+    }
+
+    // Deny every collection and document not listed above.
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }
