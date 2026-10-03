@@ -35,16 +35,6 @@
         <label class="button button-secondary file-button">Excel / CSVを更新<input id="importFile" type="file" accept=".xlsx,.xls,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></label>
       </div>
 
-      <section class="panel attendance-panel">
-        <div class="attendance-heading"><div><h2>出欠・欠席番号</h2><p class="muted">番号を入力し、表示された生徒を選択してください。記録は共有名簿と一緒に保存されます。</p></div></div>
-        <div id="attendanceSessions" class="attendance-sessions"></div>
-        <form id="addAttendanceSessionForm" class="add-attendance-session-form">
-          <label>団体競技名<input id="attendanceSessionName" type="text" maxlength="60" required placeholder="例：大縄跳び"></label>
-          <button class="button button-secondary" type="submit">競技を追加</button>
-        </form>
-        <p id="attendanceStatus" class="message" role="status"></p>
-      </section>
-
       <section class="panel import-panel">
         <h2>名簿の更新</h2>
         <div id="importOptions" class="hidden import-options">
@@ -70,6 +60,17 @@
         <p id="exportGroupHint" class="muted">条件を選ばない場合は1シート、複数条件を選ぶと値の組み合わせごとにシートを作成します。</p>
         <p id="resultCount" class="result-count"></p>
         <div id="results" class="results" aria-live="polite"></div>
+      </section>
+      <section class="panel attendance-panel">
+        <div class="attendance-heading"><div><h2>出欠</h2><p class="muted">上の検索・絞り込み結果から生徒を選びます。欠席にチェックがない生徒は出席扱いです。</p></div></div>
+        <label class="attendance-session-select">出欠を記録する区分<select id="attendanceSessionSelect"></select></label>
+        <p id="attendanceFilterSummary" class="muted" aria-live="polite"></p>
+        <div id="attendanceRecords" class="attendance-records" aria-live="polite"></div>
+        <form id="addAttendanceSessionForm" class="add-attendance-session-form">
+          <label>団体競技名<input id="attendanceSessionName" type="text" maxlength="60" required placeholder="例：大縄跳び"></label>
+          <button class="button button-secondary" type="submit">競技を追加</button>
+        </form>
+        <p id="attendanceStatus" class="message" role="status"></p>
       </section>
       <section class="panel field-editor-panel">
         <h2>項目を追加</h2>

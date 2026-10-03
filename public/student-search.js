@@ -31,7 +31,7 @@
     { id: "team-before-opening", name: "団体競技日・開会式前", numbers: [] },
     { id: "team-after-opening", name: "団体競技日・開会式後", numbers: [] }
   ];
-  const state = { rows: [], fields: [], attendanceSessions: DEFAULT_ATTENDANCE_SESSIONS.map((session) => ({ ...session })), filters: {}, staged: null, selectedStudentIndices: new Set(), lockTimer: 0, db: null, auth: null, user: null, unsubscribe: null };
+  const state = { rows: [], fields: [], attendanceSessions: DEFAULT_ATTENDANCE_SESSIONS.map((session) => ({ ...session })), activeAttendanceSessionId: "ball-day", filters: {}, staged: null, selectedStudentIndices: new Set(), lockTimer: 0, db: null, auth: null, user: null, unsubscribe: null };
   const $ = (id) => document.getElementById(id);
 
   const encoder = new TextEncoder();
@@ -250,46 +250,14 @@
   }
 
   function renderAttendanceSessions() {
-    const container = $("attendanceSessions");
-    container.replaceChildren();
-    state.attendanceSessions.forEach((session) => {
-      const article = document.createElement("article");
-      article.className = "attendance-session";
-      const heading = document.createElement("h3");
-      heading.textContent = session.name;
-      const label = document.createElement("label");
-      label.className = "attendance-number-label";
-      label.append(document.createTextNode("出席番号を入力して生徒を選択"));
-      const input = document.createElement("input");
-      input.type = "search";
-      input.inputMode = "numeric";
-      input.placeholder = "番号を入力";
-      input.setAttribute("aria-label", `${session.name} 出席番号で生徒を検索`);
-      const candidates = document.createElement("div");
-      candidates.className = "attendance-candidates";
-      candidates.setAttribute("role", "group");
-      candidates.setAttribute("aria-label", `${session.name} 生徒候補`);
-      input.addEventListener("input", () => renderAttendanceCandidates(session, input.value, candidates));
-      label.append(input);
-      const selected = document.createElement("div");
-      selected.className = "attendance-selected";
-      selected.setAttribute("aria-label", `${session.name} 欠席登録済みの生徒`);
-      renderAttendanceSelected(session, selected);
-      if (!DEFAULT_ATTENDANCE_SESSIONS.some((item) => item.id === session.id)) {
-        const actions = document.createElement("div");
-        actions.className = "attendance-session-actions";
-        const removeButton = document.createElement("button");
-        removeButton.className = "button button-quiet";
-        removeButton.type = "button";
-        removeButton.textContent = "競技を削除";
-        removeButton.addEventListener("click", () => removeAttendanceSession(session.id));
-        actions.append(removeButton);
-        article.append(heading, label, candidates, selected, actions);
-      } else {
-        article.append(heading, label, candidates, selected);
-      }
-      container.append(article);
-    });
+    const select = $("attendanceSessionSelect");
+    const previous = state.activeAttendanceSessionId;
+    select.replaceChildren(...state.attendanceSessions.map((session) => new Option(session.name, session.id)));
+    state.activeAttendanceSessionId = state.attendanceSessions.some((session) => session.id === previous)
+      ? previous
+      : state.attendanceSessions[0]?.id ?? "";
+    select.value = state.activeAttendanceSessionId;
+    renderAttendanceRecords();
   }
 
   function normalizedAttendanceNumber(value) {
@@ -305,92 +273,89 @@
     return JSON.stringify([String(record[numberField] ?? "").trim(), studentDisplayName(record), groupFields.map((field) => String(record[field] ?? "").trim())]);
   }
 
-  function renderAttendanceCandidates(session, value, container) {
-    container.replaceChildren();
-    const number = normalizedAttendanceNumber(value);
-    if (!number) return;
-    const numberField = attendanceNumberField();
-    if (!numberField) {
-      container.textContent = "名簿に出席番号の列がありません。";
-      return;
-    }
-    const matches = state.rows.filter((record) => normalizedAttendanceNumber(record[numberField]) === number);
-    if (!matches.length) {
-      container.textContent = "該当する番号の生徒がいません。";
-      return;
-    }
-    matches.forEach((record) => {
-      const button = document.createElement("button");
-      button.className = "attendance-candidate button button-quiet";
-      button.type = "button";
-      const details = state.fields.filter((field) => /学年|組|クラス/.test(field) && record[field])
-        .map((field) => `${field}: ${record[field]}`).join(" / ");
-      button.textContent = details ? `${studentDisplayName(record)}　${details}` : studentDisplayName(record);
-      button.addEventListener("click", () => addAttendanceStudent(session.id, record));
-      container.append(button);
-    });
+  function attendanceRecordNumber(record) {
+    const field = attendanceNumberField() ?? state.fields.find((item) => ID_HINT.test(item.trim()));
+    return String(record[field] ?? "").trim() || attendanceStudentKey(record);
   }
 
-  function renderAttendanceSelected(session, container) {
+  function renderAttendanceRecords() {
+    const container = $("attendanceRecords");
     container.replaceChildren();
-    if (!session.numbers.length) {
+    const session = state.attendanceSessions.find((item) => item.id === state.activeAttendanceSessionId);
+    const records = filteredRows();
+    $("attendanceFilterSummary").textContent = `${records.length.toLocaleString()}人が検索条件に一致しています。欠席にする生徒にチェックしてください。`;
+    if (!session || !records.length) {
       const empty = document.createElement("p");
       empty.className = "muted";
-      empty.textContent = "欠席登録はありません。";
+      empty.textContent = "検索条件に一致する生徒がいません。";
       container.append(empty);
       return;
     }
-    session.numbers.forEach((entry, index) => {
-      const item = document.createElement("div");
-      item.className = "attendance-selected-item";
-      const student = entry.key ? state.rows.find((record) => attendanceStudentKey(record) === entry.key) : null;
-      const label = document.createElement("span");
-      label.textContent = `${entry.number}番　${student ? studentDisplayName(student) : entry.name || "名簿未照合"}`;
-      const removeButton = document.createElement("button");
-      removeButton.className = "button button-quiet";
-      removeButton.type = "button";
-      removeButton.textContent = "解除";
-      removeButton.setAttribute("aria-label", `${label.textContent}の欠席登録を解除`);
-      removeButton.addEventListener("click", () => removeAttendanceStudent(session.id, index));
-      item.append(label, removeButton);
-      container.append(item);
+    records.slice(0, 300).forEach((record) => {
+      const row = document.createElement("div");
+      row.className = "attendance-record";
+      const identity = document.createElement("div");
+      identity.className = "attendance-record-identity";
+      const name = document.createElement("strong");
+      name.textContent = studentDisplayName(record);
+      const details = state.fields.filter((field) => /番号|学年|組|クラス|球技|競技|種目/i.test(field) && !SENSITIVE_HINT.test(field) && record[field])
+        .map((field) => `${field}: ${record[field]}`).join(" / ");
+      identity.append(name);
+      if (details) {
+        const detailText = document.createElement("span");
+        detailText.textContent = details;
+        identity.append(detailText);
+      }
+      const label = document.createElement("label");
+      label.className = "attendance-toggle";
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.checked = isAttendanceAbsent(session, record);
+      checkbox.setAttribute("aria-label", `${studentDisplayName(record)}を欠席にする`);
+      checkbox.addEventListener("change", () => setAttendanceStatus(session.id, record, checkbox.checked));
+      label.append(checkbox, document.createTextNode("欠席"));
+      row.append(identity, label);
+      container.append(row);
     });
+    if (records.length > 300) {
+      const note = document.createElement("p");
+      note.className = "muted";
+      note.textContent = "先頭300人を表示しています。検索条件を追加してください。";
+      container.append(note);
+    }
   }
 
-  async function addAttendanceStudent(sessionId, record) {
-    const session = state.attendanceSessions.find((item) => item.id === sessionId);
-    const numberField = attendanceNumberField();
-    if (!session || !numberField) return;
+  function isAttendanceAbsent(session, record) {
     const key = attendanceStudentKey(record);
-    if (session.numbers.some((entry) => entry.key === key)) return setMessage("attendanceStatus", "この生徒はすでに欠席登録されています。", true);
-    const previousNumbers = session.numbers;
-    session.numbers = [...session.numbers, { number: String(record[numberField]).trim(), key, name: studentDisplayName(record) }];
-    renderAttendanceSessions();
-    try {
-      await persist();
-      setMessage("attendanceStatus", `「${session.name}」に${studentDisplayName(record)}さんを登録しました。`);
-      resetLockTimer();
-    } catch (error) {
-      session.numbers = previousNumbers;
-      renderAttendanceSessions();
-      setMessage("attendanceStatus", `保存できませんでした: ${error.message}`, true);
-    }
+    const number = normalizedAttendanceNumber(attendanceRecordNumber(record));
+    return session.numbers.some((entry) => entry.key
+      ? entry.key === key
+      : Boolean(number) && normalizedAttendanceNumber(entry.number) === number);
   }
 
-  async function removeAttendanceStudent(sessionId, index) {
+  function setAttendanceStatus(sessionId, record, absent) {
     const session = state.attendanceSessions.find((item) => item.id === sessionId);
-    if (!session || !session.numbers[index]) return;
+    const recordNumber = attendanceRecordNumber(record);
+    if (!session || !recordNumber) return;
+    const key = attendanceStudentKey(record);
+    const wasAbsent = isAttendanceAbsent(session, record);
+    if (wasAbsent === absent) return;
     const previousNumbers = session.numbers;
-    session.numbers = session.numbers.filter((_, entryIndex) => entryIndex !== index);
-    renderAttendanceSessions();
-    try {
-      await persist();
-      setMessage("attendanceStatus", "欠席登録を解除しました。");
-    } catch (error) {
-      session.numbers = previousNumbers;
-      renderAttendanceSessions();
-      setMessage("attendanceStatus", `解除を保存できませんでした: ${error.message}`, true);
+    if (absent) {
+      session.numbers = [...session.numbers, { number: recordNumber, key, name: studentDisplayName(record) }];
+    } else {
+      const number = normalizedAttendanceNumber(recordNumber);
+      session.numbers = session.numbers.filter((entry) => entry.key ? entry.key !== key : normalizedAttendanceNumber(entry.number) !== number);
     }
+    renderAttendanceRecords();
+    persist().then(() => {
+      setMessage("attendanceStatus", `「${session.name}」の出欠を保存しました。`);
+      resetLockTimer();
+    }).catch((error) => {
+      session.numbers = previousNumbers;
+      renderAttendanceRecords();
+      setMessage("attendanceStatus", `保存できませんでした: ${error.message}`, true);
+    });
   }
 
   async function removeAttendanceSession(sessionId) {
@@ -473,7 +438,7 @@
       }
       input.dataset.field = field;
       input.value = state.filters[field] ?? "";
-      input.addEventListener("input", () => { state.filters[field] = input.value; renderResults(); renderExportGroupValues(); resetLockTimer(); });
+      input.addEventListener("input", () => { state.filters[field] = input.value; renderResults(); renderAttendanceRecords(); renderExportGroupValues(); resetLockTimer(); });
       label.append(input);
       container.append(label);
     });
@@ -743,7 +708,8 @@
   $("importMode").addEventListener("change", () => $("keyField").closest("label").classList.toggle("hidden", $("importMode").value !== "merge"));
   $("confirmImport").addEventListener("click", () => commitImport().catch((error) => setMessage("importStatus", error.message || "Firebaseへの保存に失敗しました。アクセスルールと接続を確認してください。", true)));
   $("cancelImport").addEventListener("click", () => { state.staged = null; $("importOptions").classList.add("hidden"); $("importFile").value = ""; });
-  $("query").addEventListener("input", () => { renderResults(); renderExportGroupValues(); resetLockTimer(); });
+  $("query").addEventListener("input", () => { renderResults(); renderAttendanceRecords(); renderExportGroupValues(); resetLockTimer(); });
+  $("attendanceSessionSelect").addEventListener("change", () => { state.activeAttendanceSessionId = $("attendanceSessionSelect").value; renderAttendanceRecords(); });
   $("exportGroupFields").addEventListener("change", renderExportGroupValues);
   $("exportButton").addEventListener("click", exportAttendanceWorkbook);
   $("viewMode").addEventListener("change", renderResults);

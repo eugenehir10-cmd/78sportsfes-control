@@ -38,16 +38,14 @@ input:focus, select:focus, textarea:focus { outline: 3px solid rgb(124 88 219 / 
 .attendance-heading { margin-bottom: 0.8rem; }
 .attendance-heading h2 { margin-bottom: 0.2rem; }
 .attendance-heading .muted { margin: 0; }
-.attendance-sessions { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 270px), 1fr)); gap: 0.65rem; }
-.attendance-session { min-width: 0; padding: 0.85rem; border: 1px solid var(--line); border-radius: 0.65rem; background: #fbfcfe; }
-.attendance-session h3 { margin: 0 0 0.55rem; font-size: 0.92rem; }
-.attendance-number-label, .add-attendance-session-form label { display: grid; gap: 0.3rem; color: #475569; font-size: 0.76rem; font-weight: 750; }
-.attendance-number-label input { width: 100%; }
-.attendance-candidates, .attendance-selected { display: grid; gap: 0.35rem; margin-top: 0.5rem; }
-.attendance-candidate { justify-content: flex-start; min-width: 0; text-align: left; }
-.attendance-selected-item { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; min-width: 0; padding: 0.4rem 0.5rem; border: 1px solid var(--line); border-radius: 0.5rem; background: #fff; font-size: 0.78rem; }
-.attendance-selected-item span { min-width: 0; overflow-wrap: anywhere; }
-.attendance-selected-item .button { min-height: 2rem; padding: 0.3rem 0.55rem; }
+.attendance-session-select { display: grid; grid-template-columns: minmax(0, 1fr) minmax(12rem, 22rem); align-items: center; gap: 0.8rem; max-width: 42rem; color: #475569; font-size: 0.8rem; font-weight: 750; }
+.attendance-records { display: grid; gap: 0.35rem; max-height: 28rem; margin-top: 0.5rem; overflow: auto; }
+.attendance-record { display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; min-width: 0; padding: 0.55rem 0.7rem; border: 1px solid var(--line); border-radius: 0.5rem; background: #fbfcfe; }
+.attendance-record-identity { display: grid; gap: 0.15rem; min-width: 0; font-size: 0.8rem; }
+.attendance-record-identity span { color: var(--muted); font-size: 0.72rem; overflow-wrap: anywhere; }
+.attendance-toggle { display: inline-flex; align-items: center; gap: 0.4rem; flex: 0 0 auto; color: #475569; font-size: 0.78rem; font-weight: 750; }
+.attendance-toggle input { width: 1.1rem; height: 1.1rem; min-height: 1.1rem; padding: 0; accent-color: #b42318; }
+.add-attendance-session-form label { display: grid; gap: 0.3rem; color: #475569; font-size: 0.76rem; font-weight: 750; }
 .attendance-session-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.5rem; }
 .add-attendance-session-form { display: flex; align-items: end; flex-wrap: wrap; gap: 0.6rem; margin-top: 0.8rem; padding-top: 0.8rem; border-top: 1px solid var(--line); }
 .add-attendance-session-form input { min-width: min(20rem, 75vw); }
