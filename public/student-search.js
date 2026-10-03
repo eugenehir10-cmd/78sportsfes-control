@@ -234,11 +234,19 @@
     const savedById = new Map(savedSessions.map((session) => [session?.id, session]));
     const fixedSessions = DEFAULT_ATTENDANCE_SESSIONS.map((defaults) => {
       const saved = savedById.get(defaults.id);
-      return { ...defaults, numbers: Array.isArray(saved?.numbers) ? saved.numbers.map(String) : [] };
+      return { ...defaults, numbers: normalizeAttendanceEntries(saved?.numbers) };
     });
     const customSessions = savedSessions.filter((session) => session?.id && !DEFAULT_ATTENDANCE_SESSIONS.some((item) => item.id === session.id))
-      .map((session) => ({ id: String(session.id), name: String(session.name || "競技"), numbers: Array.isArray(session.numbers) ? session.numbers.map(String) : [] }));
+      .map((session) => ({ id: String(session.id), name: String(session.name || "競技"), numbers: normalizeAttendanceEntries(session.numbers) }));
     return [fixedSessions[0], fixedSessions[1], ...customSessions, fixedSessions[2]];
+  }
+
+  function normalizeAttendanceEntries(entries) {
+    if (!Array.isArray(entries)) return [];
+    return entries.map((entry) => typeof entry === "string"
+      ? { number: entry, key: "", name: "" }
+      : { number: String(entry?.number ?? ""), key: String(entry?.key ?? ""), name: String(entry?.name ?? "") })
+      .filter((entry) => entry.number);
   }
 
   function renderAttendanceSessions() {
@@ -251,54 +259,137 @@
       heading.textContent = session.name;
       const label = document.createElement("label");
       label.className = "attendance-number-label";
-      label.textContent = "欠席者の番号";
-      const textarea = document.createElement("textarea");
-      textarea.rows = 3;
-      textarea.value = session.numbers.join(", ");
-      textarea.placeholder = "例：3, 12, 24";
-      textarea.setAttribute("aria-label", `${session.name} 欠席者の番号`);
-      const actions = document.createElement("div");
-      actions.className = "attendance-session-actions";
-      const saveButton = document.createElement("button");
-      saveButton.className = "button button-secondary";
-      saveButton.type = "button";
-      saveButton.textContent = "番号を保存";
-      saveButton.addEventListener("click", () => saveAttendanceNumbers(session.id, textarea.value));
-      actions.append(saveButton);
+      label.append(document.createTextNode("出席番号を入力して生徒を選択"));
+      const input = document.createElement("input");
+      input.type = "search";
+      input.inputMode = "numeric";
+      input.placeholder = "番号を入力";
+      input.setAttribute("aria-label", `${session.name} 出席番号で生徒を検索`);
+      const candidates = document.createElement("div");
+      candidates.className = "attendance-candidates";
+      candidates.setAttribute("role", "group");
+      candidates.setAttribute("aria-label", `${session.name} 生徒候補`);
+      input.addEventListener("input", () => renderAttendanceCandidates(session, input.value, candidates));
+      label.append(input);
+      const selected = document.createElement("div");
+      selected.className = "attendance-selected";
+      selected.setAttribute("aria-label", `${session.name} 欠席登録済みの生徒`);
+      renderAttendanceSelected(session, selected);
       if (!DEFAULT_ATTENDANCE_SESSIONS.some((item) => item.id === session.id)) {
+        const actions = document.createElement("div");
+        actions.className = "attendance-session-actions";
         const removeButton = document.createElement("button");
         removeButton.className = "button button-quiet";
         removeButton.type = "button";
         removeButton.textContent = "競技を削除";
         removeButton.addEventListener("click", () => removeAttendanceSession(session.id));
         actions.append(removeButton);
+        article.append(heading, label, candidates, selected, actions);
+      } else {
+        article.append(heading, label, candidates, selected);
       }
-      label.append(textarea);
-      article.append(heading, label, actions);
       container.append(article);
     });
   }
 
-  function parseAttendanceNumbers(value) {
-    const tokens = value.normalize("NFKC").split(/[\s,、]+/).filter(Boolean);
-    if (tokens.some((token) => !/^\d+$/.test(token) || Number(token) < 1)) return null;
-    return [...new Set(tokens)];
+  function normalizedAttendanceNumber(value) {
+    const digits = String(value ?? "").normalize("NFKC").match(/\d+/)?.[0];
+    return digits && Number(digits) > 0 ? String(Number(digits)) : "";
   }
 
-  async function saveAttendanceNumbers(sessionId, value) {
-    const numbers = parseAttendanceNumbers(value);
-    if (!numbers) return setMessage("attendanceStatus", "番号は1以上の数字で入力してください。", true);
+  function attendanceStudentKey(record) {
+    const idField = state.fields.find((field) => ID_HINT.test(field.trim()));
+    if (idField && String(record[idField] ?? "").trim()) return `${idField}:${String(record[idField]).trim()}`;
+    const numberField = attendanceNumberField();
+    const groupFields = state.fields.filter((field) => /学年|組|クラス/.test(field));
+    return JSON.stringify([String(record[numberField] ?? "").trim(), studentDisplayName(record), groupFields.map((field) => String(record[field] ?? "").trim())]);
+  }
+
+  function renderAttendanceCandidates(session, value, container) {
+    container.replaceChildren();
+    const number = normalizedAttendanceNumber(value);
+    if (!number) return;
+    const numberField = attendanceNumberField();
+    if (!numberField) {
+      container.textContent = "名簿に出席番号の列がありません。";
+      return;
+    }
+    const matches = state.rows.filter((record) => normalizedAttendanceNumber(record[numberField]) === number);
+    if (!matches.length) {
+      container.textContent = "該当する番号の生徒がいません。";
+      return;
+    }
+    matches.forEach((record) => {
+      const button = document.createElement("button");
+      button.className = "attendance-candidate button button-quiet";
+      button.type = "button";
+      const details = state.fields.filter((field) => /学年|組|クラス/.test(field) && record[field])
+        .map((field) => `${field}: ${record[field]}`).join(" / ");
+      button.textContent = details ? `${studentDisplayName(record)}　${details}` : studentDisplayName(record);
+      button.addEventListener("click", () => addAttendanceStudent(session.id, record));
+      container.append(button);
+    });
+  }
+
+  function renderAttendanceSelected(session, container) {
+    container.replaceChildren();
+    if (!session.numbers.length) {
+      const empty = document.createElement("p");
+      empty.className = "muted";
+      empty.textContent = "欠席登録はありません。";
+      container.append(empty);
+      return;
+    }
+    session.numbers.forEach((entry, index) => {
+      const item = document.createElement("div");
+      item.className = "attendance-selected-item";
+      const student = entry.key ? state.rows.find((record) => attendanceStudentKey(record) === entry.key) : null;
+      const label = document.createElement("span");
+      label.textContent = `${entry.number}番　${student ? studentDisplayName(student) : entry.name || "名簿未照合"}`;
+      const removeButton = document.createElement("button");
+      removeButton.className = "button button-quiet";
+      removeButton.type = "button";
+      removeButton.textContent = "解除";
+      removeButton.setAttribute("aria-label", `${label.textContent}の欠席登録を解除`);
+      removeButton.addEventListener("click", () => removeAttendanceStudent(session.id, index));
+      item.append(label, removeButton);
+      container.append(item);
+    });
+  }
+
+  async function addAttendanceStudent(sessionId, record) {
     const session = state.attendanceSessions.find((item) => item.id === sessionId);
-    if (!session) return;
+    const numberField = attendanceNumberField();
+    if (!session || !numberField) return;
+    const key = attendanceStudentKey(record);
+    if (session.numbers.some((entry) => entry.key === key)) return setMessage("attendanceStatus", "この生徒はすでに欠席登録されています。", true);
     const previousNumbers = session.numbers;
-    session.numbers = numbers;
+    session.numbers = [...session.numbers, { number: String(record[numberField]).trim(), key, name: studentDisplayName(record) }];
+    renderAttendanceSessions();
     try {
       await persist();
-      setMessage("attendanceStatus", `「${session.name}」の欠席番号${numbers.length}件を保存しました。`);
+      setMessage("attendanceStatus", `「${session.name}」に${studentDisplayName(record)}さんを登録しました。`);
       resetLockTimer();
     } catch (error) {
       session.numbers = previousNumbers;
+      renderAttendanceSessions();
       setMessage("attendanceStatus", `保存できませんでした: ${error.message}`, true);
+    }
+  }
+
+  async function removeAttendanceStudent(sessionId, index) {
+    const session = state.attendanceSessions.find((item) => item.id === sessionId);
+    if (!session || !session.numbers[index]) return;
+    const previousNumbers = session.numbers;
+    session.numbers = session.numbers.filter((_, entryIndex) => entryIndex !== index);
+    renderAttendanceSessions();
+    try {
+      await persist();
+      setMessage("attendanceStatus", "欠席登録を解除しました。");
+    } catch (error) {
+      session.numbers = previousNumbers;
+      renderAttendanceSessions();
+      setMessage("attendanceStatus", `解除を保存できませんでした: ${error.message}`, true);
     }
   }
 

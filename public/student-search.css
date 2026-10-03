@@ -42,7 +42,12 @@ input:focus, select:focus, textarea:focus { outline: 3px solid rgb(124 88 219 / 
 .attendance-session { min-width: 0; padding: 0.85rem; border: 1px solid var(--line); border-radius: 0.65rem; background: #fbfcfe; }
 .attendance-session h3 { margin: 0 0 0.55rem; font-size: 0.92rem; }
 .attendance-number-label, .add-attendance-session-form label { display: grid; gap: 0.3rem; color: #475569; font-size: 0.76rem; font-weight: 750; }
-.attendance-number-label textarea { width: 100%; min-height: 5rem; resize: vertical; font: inherit; }
+.attendance-number-label input { width: 100%; }
+.attendance-candidates, .attendance-selected { display: grid; gap: 0.35rem; margin-top: 0.5rem; }
+.attendance-candidate { justify-content: flex-start; min-width: 0; text-align: left; }
+.attendance-selected-item { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; min-width: 0; padding: 0.4rem 0.5rem; border: 1px solid var(--line); border-radius: 0.5rem; background: #fff; font-size: 0.78rem; }
+.attendance-selected-item span { min-width: 0; overflow-wrap: anywhere; }
+.attendance-selected-item .button { min-height: 2rem; padding: 0.3rem 0.55rem; }
 .attendance-session-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.5rem; }
 .add-attendance-session-form { display: flex; align-items: end; flex-wrap: wrap; gap: 0.6rem; margin-top: 0.8rem; padding-top: 0.8rem; border-top: 1px solid var(--line); }
 .add-attendance-session-form input { min-width: min(20rem, 75vw); }
