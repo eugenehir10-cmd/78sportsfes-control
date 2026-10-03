@@ -446,6 +446,17 @@
     return entry?.status === "late" ? "late" : entry ? "absent" : "present";
   }
 
+  function attendanceExportValue(session, record) {
+    const gradeField = attendanceGradeField();
+    const sportField = attendanceSportField();
+    const sport = String(record[sportField] ?? "").trim();
+    const scope = session.id === "ball-day" && sport ? sport : ATTENDANCE_ALL_GRADES_SCOPE;
+    const grades = session.grades[scope] ?? (scope !== ATTENDANCE_ALL_GRADES_SCOPE ? session.grades[ATTENDANCE_ALL_GRADES_SCOPE] : null);
+    if (Array.isArray(grades) && (!gradeField || !grades.includes(String(record[gradeField] ?? "").trim()))) return "対象外";
+    const status = attendanceStatus(session, record);
+    return status === "absent" ? "欠席" : status === "late" ? "遅刻" : "出席";
+  }
+
   function setAttendanceStatus(sessionId, record, status) {
     const session = state.attendanceSessions.find((item) => item.id === sessionId);
     const recordNumber = attendanceRecordNumber(record);
@@ -696,10 +707,10 @@
   function exportAttendanceWorkbook() {
     const records = filteredRows();
     const fields = [...$("exportFields").querySelectorAll('input[type="checkbox"]:checked')].map((input) => input.value);
-    const attendanceFields = $("includeAttendance").checked ? ["競技前", "競技後"] : [];
+    const attendanceSessions = $("includeAttendance").checked ? state.attendanceSessions : [];
     if (!records.length) return alert("出力する生徒がいません。");
-    if (!fields.length && !attendanceFields.length) return alert("出力する項目を選択してください。");
-    const headers = [...fields, ...attendanceFields];
+    if (!fields.length && !attendanceSessions.length) return alert("出力する項目を選択してください。");
+    const headers = [...fields, ...attendanceSessions.map((session) => session.name)];
     if (!window.XLSX) return alert("Excel出力ライブラリを読み込めませんでした。ページを再読み込みしてください。");
     const groupFields = [...$("exportGroupFields").querySelectorAll('input[type="checkbox"]:checked')].map((input) => input.value);
     const selectedValues = [...$("exportGroupValues").querySelectorAll('input[type="checkbox"]:checked')].map((input) => input.value);
@@ -737,7 +748,7 @@
         if (!usedNames.has(candidate)) { usedNames.add(candidate); return candidate; }
         return safeName(normalizedBase, index + 1);
       };
-      const sheet = XLSX.utils.aoa_to_sheet([headers, ...rows.map((record) => [...fields.map((field) => String(record[field] ?? "")), ...attendanceFields.map(() => "")])], { cellDates: false });
+      const sheet = XLSX.utils.aoa_to_sheet([headers, ...rows.map((record) => [...fields.map((field) => String(record[field] ?? "")), ...attendanceSessions.map((session) => attendanceExportValue(session, record))])], { cellDates: false });
       sheet["!cols"] = headers.map(() => ({ wch: 16 }));
       XLSX.utils.book_append_sheet(workbook, sheet, safeName(name));
     });
