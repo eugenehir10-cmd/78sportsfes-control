@@ -27,11 +27,11 @@
   const SPORT_HINT = /球技|競技|種目|sport/i;
   const ATTENDANCE_HALVES = "__attendance_number_halves__";
   const DEFAULT_ATTENDANCE_SESSIONS = [
-    { id: "ball-day", name: "球技日", numbers: [] },
-    { id: "team-before-opening", name: "団体競技日・開会式前", numbers: [] },
-    { id: "team-after-opening", name: "団体競技日・開会式後", numbers: [] }
+    { id: "ball-day", name: "球技日", grades: {}, numbers: [] },
+    { id: "team-before-opening", name: "団体競技日・開会式前", grades: {}, numbers: [] },
+    { id: "team-after-opening", name: "団体競技日・開会式後", grades: {}, numbers: [] }
   ];
-  const state = { rows: [], fields: [], attendanceSessions: DEFAULT_ATTENDANCE_SESSIONS.map((session) => ({ ...session })), activeAttendanceSessionId: "ball-day", filters: {}, staged: null, selectedStudentIndices: new Set(), lockTimer: 0, db: null, auth: null, user: null, unsubscribe: null };
+  const state = { rows: [], fields: [], attendanceSessions: DEFAULT_ATTENDANCE_SESSIONS.map((session) => ({ ...session })), activeAttendanceSessionId: "ball-day", attendanceLookup: "", attendanceSportFilter: "", filters: {}, staged: null, selectedStudentIndices: new Set(), lockTimer: 0, db: null, auth: null, user: null, unsubscribe: null };
   const $ = (id) => document.getElementById(id);
 
   const encoder = new TextEncoder();
@@ -79,6 +79,9 @@
     state.attendanceSessions = DEFAULT_ATTENDANCE_SESSIONS.map((session) => ({ ...session }));
     state.staged = null;
     state.selectedStudentIndices.clear();
+    state.attendanceLookup = "";
+    $("attendanceLookup").value = "";
+    state.attendanceSportFilter = "";
     $("directoryPanel").classList.add("hidden");
     $("lockButton").classList.add("hidden");
     $("unlockPanel").classList.remove("hidden");
@@ -234,10 +237,10 @@
     const savedById = new Map(savedSessions.map((session) => [session?.id, session]));
     const fixedSessions = DEFAULT_ATTENDANCE_SESSIONS.map((defaults) => {
       const saved = savedById.get(defaults.id);
-      return { ...defaults, numbers: normalizeAttendanceEntries(saved?.numbers) };
+      return { ...defaults, grades: saved?.grades && typeof saved.grades === "object" && !Array.isArray(saved.grades) ? saved.grades : {}, numbers: normalizeAttendanceEntries(saved?.numbers) };
     });
     const customSessions = savedSessions.filter((session) => session?.id && !DEFAULT_ATTENDANCE_SESSIONS.some((item) => item.id === session.id))
-      .map((session) => ({ id: String(session.id), name: String(session.name || "競技"), numbers: normalizeAttendanceEntries(session.numbers) }));
+      .map((session) => ({ id: String(session.id), name: String(session.name || "競技"), grades: session.grades && typeof session.grades === "object" && !Array.isArray(session.grades) ? session.grades : {}, numbers: normalizeAttendanceEntries(session.numbers) }));
     return [fixedSessions[0], fixedSessions[1], ...customSessions, fixedSessions[2]];
   }
 
@@ -257,7 +260,88 @@
       ? previous
       : state.attendanceSessions[0]?.id ?? "";
     select.value = state.activeAttendanceSessionId;
+    $("removeAttendanceSessionButton").classList.toggle("hidden", DEFAULT_ATTENDANCE_SESSIONS.some((session) => session.id === state.activeAttendanceSessionId));
+    renderAttendanceFilters();
+    renderAttendanceGrades();
     renderAttendanceRecords();
+  }
+
+  function attendanceSportField() {
+    return state.fields.find((field) => /球技/i.test(field)) ?? state.fields.find((field) => /競技|種目|sport/i.test(field));
+  }
+
+  function attendanceGradeField() {
+    return state.fields.find((field) => /学年|grade/i.test(field));
+  }
+
+  function renderAttendanceFilters() {
+    const select = $("attendanceSportFilter");
+    const field = attendanceSportField();
+    const values = field ? [...new Set(state.rows.map((record) => String(record[field] ?? "").trim()).filter(Boolean))]
+      .sort((a, b) => a.localeCompare(b, "ja")) : [];
+    select.replaceChildren(new Option(field ? "すべて" : "球技項目なし", ""), ...values.map((value) => new Option(value, value)));
+    select.disabled = !field;
+    state.attendanceSportFilter = values.includes(state.attendanceSportFilter) ? state.attendanceSportFilter : "";
+    select.value = state.attendanceSportFilter;
+    $("attendanceLookup").value = state.attendanceLookup;
+  }
+
+  function attendanceGradeScope(session) {
+    return session.id === "ball-day" && state.attendanceSportFilter ? state.attendanceSportFilter : "__all__";
+  }
+
+  function selectedAttendanceGrades(session) {
+    const scope = attendanceGradeScope(session);
+    return session.grades[scope] ?? (scope !== "__all__" ? session.grades.__all__ : null) ?? null;
+  }
+
+  function renderAttendanceGrades() {
+    const container = $("attendanceGrades");
+    container.replaceChildren();
+    const session = state.attendanceSessions.find((item) => item.id === state.activeAttendanceSessionId);
+    const field = attendanceGradeField();
+    const values = field ? [...new Set(state.rows.map((record) => String(record[field] ?? "").trim()).filter(Boolean))]
+      .sort((a, b) => a.localeCompare(b, "ja")) : [];
+    $("attendanceGradeLabel").textContent = session?.id === "ball-day" && state.attendanceSportFilter
+      ? `${state.attendanceSportFilter}に参加する学年`
+      : "この区分に参加する学年";
+    if (!session || !field || !values.length) {
+      const note = document.createElement("span");
+      note.className = "muted";
+      note.textContent = "名簿に学年項目がありません。";
+      container.append(note);
+      return;
+    }
+    const selected = selectedAttendanceGrades(session);
+    values.forEach((value) => {
+      const label = document.createElement("label");
+      label.className = "check-label";
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.value = value;
+      checkbox.checked = !selected || selected.includes(value);
+      checkbox.addEventListener("change", () => updateAttendanceGrades(session, container));
+      label.append(checkbox, document.createTextNode(value));
+      container.append(label);
+    });
+  }
+
+  async function updateAttendanceGrades(session, container) {
+    if (!session) return;
+    const scope = attendanceGradeScope(session);
+    const previousGrades = session.grades;
+    session.grades = { ...session.grades, [scope]: [...container.querySelectorAll('input[type="checkbox"]:checked')].map((checkbox) => checkbox.value) };
+    renderAttendanceRecords();
+    try {
+      await persist();
+      setMessage("attendanceStatus", `「${session.name}」の参加学年を保存しました。`);
+      resetLockTimer();
+    } catch (error) {
+      session.grades = previousGrades;
+      renderAttendanceGrades();
+      renderAttendanceRecords();
+      setMessage("attendanceStatus", `保存できませんでした: ${error.message}`, true);
+    }
   }
 
   function normalizedAttendanceNumber(value) {
@@ -282,7 +366,16 @@
     const container = $("attendanceRecords");
     container.replaceChildren();
     const session = state.attendanceSessions.find((item) => item.id === state.activeAttendanceSessionId);
-    const records = filteredRows();
+    const lookup = state.attendanceLookup.normalize("NFKC").toLocaleLowerCase("ja").split(/\s+/).filter(Boolean);
+    const sportField = attendanceSportField();
+    const gradeField = attendanceGradeField();
+    const grades = session ? selectedAttendanceGrades(session) : null;
+    const records = filteredRows().filter((record) => {
+      if (state.attendanceSportFilter && String(record[sportField] ?? "").trim() !== state.attendanceSportFilter) return false;
+      if (grades && (!gradeField || !grades.includes(String(record[gradeField] ?? "").trim()))) return false;
+      const content = state.fields.filter((field) => !SENSITIVE_HINT.test(field)).map((field) => record[field] ?? "").join(" ").normalize("NFKC").toLocaleLowerCase("ja");
+      return lookup.every((token) => content.includes(token));
+    });
     $("attendanceFilterSummary").textContent = `${records.length.toLocaleString()}人が検索条件に一致しています。欠席にする生徒にチェックしてください。`;
     if (!session || !records.length) {
       const empty = document.createElement("p");
@@ -709,7 +802,10 @@
   $("confirmImport").addEventListener("click", () => commitImport().catch((error) => setMessage("importStatus", error.message || "Firebaseへの保存に失敗しました。アクセスルールと接続を確認してください。", true)));
   $("cancelImport").addEventListener("click", () => { state.staged = null; $("importOptions").classList.add("hidden"); $("importFile").value = ""; });
   $("query").addEventListener("input", () => { renderResults(); renderAttendanceRecords(); renderExportGroupValues(); resetLockTimer(); });
-  $("attendanceSessionSelect").addEventListener("change", () => { state.activeAttendanceSessionId = $("attendanceSessionSelect").value; renderAttendanceRecords(); });
+  $("attendanceSessionSelect").addEventListener("change", () => { state.activeAttendanceSessionId = $("attendanceSessionSelect").value; renderAttendanceGrades(); renderAttendanceRecords(); });
+  $("removeAttendanceSessionButton").addEventListener("click", () => removeAttendanceSession(state.activeAttendanceSessionId));
+  $("attendanceLookup").addEventListener("input", () => { state.attendanceLookup = $("attendanceLookup").value; renderAttendanceRecords(); resetLockTimer(); });
+  $("attendanceSportFilter").addEventListener("change", () => { state.attendanceSportFilter = $("attendanceSportFilter").value; renderAttendanceGrades(); renderAttendanceRecords(); resetLockTimer(); });
   $("exportGroupFields").addEventListener("change", renderExportGroupValues);
   $("exportButton").addEventListener("click", exportAttendanceWorkbook);
   $("viewMode").addEventListener("change", renderResults);
@@ -720,7 +816,7 @@
     const name = $("attendanceSessionName").value.trim();
     if (!name) return;
     if (state.attendanceSessions.some((session) => session.name === name)) return setMessage("attendanceStatus", "同じ競技名がすでにあります。", true);
-    const session = { id: `event-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, name, numbers: [] };
+    const session = { id: `event-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, name, grades: {}, numbers: [] };
     state.attendanceSessions.splice(-1, 0, session);
     renderAttendanceSessions();
     try {
