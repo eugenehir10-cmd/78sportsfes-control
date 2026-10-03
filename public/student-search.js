@@ -237,11 +237,17 @@
     const savedById = new Map(savedSessions.map((session) => [session?.id, session]));
     const fixedSessions = DEFAULT_ATTENDANCE_SESSIONS.map((defaults) => {
       const saved = savedById.get(defaults.id);
-      return { ...defaults, grades: saved?.grades && typeof saved.grades === "object" && !Array.isArray(saved.grades) ? saved.grades : {}, numbers: normalizeAttendanceEntries(saved?.numbers) };
+      return { ...defaults, grades: normalizeAttendanceGrades(saved?.grades), numbers: normalizeAttendanceEntries(saved?.numbers) };
     });
     const customSessions = savedSessions.filter((session) => session?.id && !DEFAULT_ATTENDANCE_SESSIONS.some((item) => item.id === session.id))
-      .map((session) => ({ id: String(session.id), name: String(session.name || "競技"), grades: session.grades && typeof session.grades === "object" && !Array.isArray(session.grades) ? session.grades : {}, numbers: normalizeAttendanceEntries(session.numbers) }));
+      .map((session) => ({ id: String(session.id), name: String(session.name || "競技"), grades: normalizeAttendanceGrades(session.grades), numbers: normalizeAttendanceEntries(session.numbers) }));
     return [fixedSessions[0], fixedSessions[1], ...customSessions, fixedSessions[2]];
+  }
+
+  function normalizeAttendanceGrades(grades) {
+    if (!grades || typeof grades !== "object" || Array.isArray(grades)) return {};
+    return Object.fromEntries(Object.entries(grades).filter(([, values]) => Array.isArray(values))
+      .map(([scope, values]) => [scope, values.map(String)]));
   }
 
   function normalizeAttendanceEntries(entries) {
@@ -292,7 +298,13 @@
 
   function selectedAttendanceGrades(session) {
     const scope = attendanceGradeScope(session);
-    return session.grades[scope] ?? (scope !== "__all__" ? session.grades.__all__ : null) ?? null;
+    const selected = session.grades[scope] ?? (scope !== "__all__" ? session.grades.__all__ : null);
+    return Array.isArray(selected) ? selected : null;
+  }
+
+  function attendanceSaveError(error) {
+    if (error?.code === "permission-denied") return "Firestoreの書き込みが拒否されました。最新のfirestore.rulesをFirebaseへデプロイしてください。";
+    return error?.message || "保存に失敗しました。接続を確認してください。";
   }
 
   function renderAttendanceGrades() {
@@ -340,7 +352,7 @@
       session.grades = previousGrades;
       renderAttendanceGrades();
       renderAttendanceRecords();
-      setMessage("attendanceStatus", `保存できませんでした: ${error.message}`, true);
+      setMessage("attendanceStatus", `保存できませんでした: ${attendanceSaveError(error)}`, true);
     }
   }
 
