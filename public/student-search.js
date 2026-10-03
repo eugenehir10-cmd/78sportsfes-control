@@ -254,8 +254,8 @@
   function normalizeAttendanceEntries(entries) {
     if (!Array.isArray(entries)) return [];
     return entries.map((entry) => typeof entry === "string"
-      ? { number: entry, key: "", name: "" }
-      : { number: String(entry?.number ?? ""), key: String(entry?.key ?? ""), name: String(entry?.name ?? "") })
+      ? { number: entry, key: "", name: "", status: "absent" }
+      : { number: String(entry?.number ?? ""), key: String(entry?.key ?? ""), name: String(entry?.name ?? ""), status: entry?.status === "late" ? "late" : "absent" })
       .filter((entry) => entry.number);
   }
 
@@ -412,15 +412,21 @@
         detailText.textContent = details;
         identity.append(detailText);
       }
-      const label = document.createElement("label");
-      label.className = "attendance-toggle";
-      const checkbox = document.createElement("input");
-      checkbox.type = "checkbox";
-      checkbox.checked = isAttendanceAbsent(session, record);
-      checkbox.setAttribute("aria-label", `${studentDisplayName(record)}を欠席にする`);
-      checkbox.addEventListener("change", () => setAttendanceStatus(session.id, record, checkbox.checked));
-      label.append(checkbox, document.createTextNode("欠席"));
-      row.append(identity, label);
+      const statusControls = document.createElement("div");
+      statusControls.className = "attendance-status-controls";
+      const currentStatus = attendanceStatus(session, record);
+      [["absent", "欠席"], ["late", "遅刻"]].forEach(([status, text]) => {
+        const label = document.createElement("label");
+        label.className = `attendance-toggle attendance-toggle-${status}`;
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = currentStatus === status;
+        checkbox.setAttribute("aria-label", `${studentDisplayName(record)}を${text}にする`);
+        checkbox.addEventListener("change", () => setAttendanceStatus(session.id, record, checkbox.checked ? status : "present"));
+        label.append(checkbox, document.createTextNode(text));
+        statusControls.append(label);
+      });
+      row.append(identity, statusControls);
       container.append(row);
     });
     if (records.length > 300) {
@@ -431,31 +437,31 @@
     }
   }
 
-  function isAttendanceAbsent(session, record) {
+  function attendanceStatus(session, record) {
     const key = attendanceStudentKey(record);
     const number = normalizedAttendanceNumber(attendanceRecordNumber(record));
-    return session.numbers.some((entry) => entry.key
-      ? entry.key === key
-      : Boolean(number) && normalizedAttendanceNumber(entry.number) === number);
+    const entry = session.numbers.find((item) => item.key
+      ? item.key === key
+      : Boolean(number) && normalizedAttendanceNumber(item.number) === number);
+    return entry?.status === "late" ? "late" : entry ? "absent" : "present";
   }
 
-  function setAttendanceStatus(sessionId, record, absent) {
+  function setAttendanceStatus(sessionId, record, status) {
     const session = state.attendanceSessions.find((item) => item.id === sessionId);
     const recordNumber = attendanceRecordNumber(record);
     if (!session || !recordNumber) return;
     const key = attendanceStudentKey(record);
-    const wasAbsent = isAttendanceAbsent(session, record);
-    if (wasAbsent === absent) return;
+    const previousStatus = attendanceStatus(session, record);
+    if (previousStatus === status) return;
     const previousNumbers = session.numbers;
-    if (absent) {
-      session.numbers = [...session.numbers, { number: recordNumber, key, name: studentDisplayName(record) }];
-    } else {
-      const number = normalizedAttendanceNumber(recordNumber);
-      session.numbers = session.numbers.filter((entry) => entry.key ? entry.key !== key : normalizedAttendanceNumber(entry.number) !== number);
-    }
+    const number = normalizedAttendanceNumber(recordNumber);
+    session.numbers = session.numbers.filter((entry) => entry.key
+      ? entry.key !== key
+      : !number || normalizedAttendanceNumber(entry.number) !== number);
+    if (status !== "present") session.numbers.push({ number: recordNumber, key, name: studentDisplayName(record), status });
     renderAttendanceRecords();
     persist().then(() => {
-      setMessage("attendanceStatus", `「${session.name}」の出欠を保存しました。`);
+      setMessage("attendanceStatus", `「${session.name}」の${studentDisplayName(record)}を${status === "absent" ? "欠席" : status === "late" ? "遅刻" : "出席"}として保存しました。`);
       resetLockTimer();
     }).catch((error) => {
       session.numbers = previousNumbers;
