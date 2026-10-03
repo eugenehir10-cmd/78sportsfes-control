@@ -26,6 +26,7 @@
   const FREE_TEXT_FILTER_HINT = /4桁番号|四桁番号|学籍番号|生徒番号|個人番号|名字|姓|名前|氏名|メアド|メール|gmail|e-mail|^名$/i;
   const SPORT_HINT = /球技|競技|種目|sport/i;
   const ATTENDANCE_HALVES = "__attendance_number_halves__";
+  const ATTENDANCE_ALL_GRADES_SCOPE = "all";
   const DEFAULT_ATTENDANCE_SESSIONS = [
     { id: "ball-day", name: "球技日", grades: {}, numbers: [] },
     { id: "team-before-opening", name: "団体競技日・開会式前", grades: {}, numbers: [] },
@@ -247,7 +248,7 @@
   function normalizeAttendanceGrades(grades) {
     if (!grades || typeof grades !== "object" || Array.isArray(grades)) return {};
     return Object.fromEntries(Object.entries(grades).filter(([, values]) => Array.isArray(values))
-      .map(([scope, values]) => [scope, values.map(String)]));
+      .map(([scope, values]) => [scope === "__all__" ? ATTENDANCE_ALL_GRADES_SCOPE : scope, values.map(String)]));
   }
 
   function normalizeAttendanceEntries(entries) {
@@ -293,12 +294,12 @@
   }
 
   function attendanceGradeScope(session) {
-    return session.id === "ball-day" && state.attendanceSportFilter ? state.attendanceSportFilter : "__all__";
+    return session.id === "ball-day" && state.attendanceSportFilter ? state.attendanceSportFilter : ATTENDANCE_ALL_GRADES_SCOPE;
   }
 
   function selectedAttendanceGrades(session) {
     const scope = attendanceGradeScope(session);
-    const selected = session.grades[scope] ?? (scope !== "__all__" ? session.grades.__all__ : null);
+    const selected = session.grades[scope] ?? (scope !== ATTENDANCE_ALL_GRADES_SCOPE ? session.grades[ATTENDANCE_ALL_GRADES_SCOPE] : null);
     return Array.isArray(selected) ? selected : null;
   }
 
