@@ -6,6 +6,7 @@
   <title>備品貸出管理 - 台数指定版</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
   <style>
     .sync-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
@@ -15,9 +16,19 @@
     .tab-content.active { display: block; }
     .check-item { transition: background 0.2s; }
     .check-item:hover { background: #f3f4f6; }
+    .auth-gate { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; padding: 24px; background: #f9fafb; }
+    .auth-gate[hidden] { display: none; }
   </style>
 </head>
 <body class="bg-gray-50 text-gray-800 max-w-5xl mx-auto p-4 md:p-6">
+  <div id="authGate" class="auth-gate">
+    <div class="w-full max-w-md rounded-lg bg-white p-6 shadow">
+      <h1 class="mb-2 text-xl font-bold">Googleアカウントでログイン</h1>
+      <p class="mb-4 text-sm text-gray-600">許可された運用者アカウントで備品貸出管理を利用できます。</p>
+      <button id="googleLoginButton" class="w-full rounded-lg bg-blue-600 px-4 py-3 font-medium text-white">Googleでログイン</button>
+      <p id="authMessage" class="mt-3 text-sm text-red-600" role="status"></p>
+    </div>
+  </div>
   <header class="mb-8 mt-4">
     <div class="flex justify-between items-center mb-2">
       <h1 class="text-2xl font-bold">📻 備品貸出管理</h1>
@@ -132,8 +143,7 @@
   <section id="settings" class="tab-content">
     <h2 class="text-xl font-semibold mb-4">⚙️ 設定</h2>
     <div id="passwordArea">
-      <input type="password" id="passwordInput" placeholder="パスワード" class="border rounded px-3 py-2 mb-3 w-full">
-      <button id="authBtn" class="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800">認証</button>
+      <button id="authBtn" class="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800">ログアウト</button>
     </div>
     <div id="settingsContent" class="hidden space-y-6">
       <div class="p-4 bg-green-50 rounded-lg border border-green-200">
@@ -184,10 +194,18 @@
       appId: "1:96596815858:web:5f85526bf785ccc5d8056b",
       measurementId: "G-TCPMRTY3P1"
     };
-    const PASSWORD = 'admin123';
+    const AUTHORIZED_EMAILS = new Set([
+      'jh62220120@s.musashi.ed.jp', 'jh62220340@s.musashi.ed.jp', 'jh62220140@s.musashi.ed.jp',
+      'jh62231310@s.musashi.ed.jp', 'jh62230450@s.musashi.ed.jp', 'jh62220250@s.musashi.ed.jp',
+      'jh62230440@s.musashi.ed.jp', 'jh62220030@s.musashi.ed.jp', 'jh62231560@s.musashi.ed.jp',
+      'jh62230600@s.musashi.ed.jp', 'jh62220260@s.musashi.ed.jp'
+    ]);
 
     let db = null;
+    let auth = null;
+    let dataListenersStarted = false;
     let items = [];
+    let dataUnsubscribers = [];
     let history = [];
     let categories = [];
     let users = [];
@@ -214,36 +232,80 @@
       document.getElementById('syncText').textContent = text || (online ? '✅ オンライン' : '❌ オフライン');
     }
 
+    function stopDataListeners() {
+      dataUnsubscribers.forEach(unsubscribe => unsubscribe());
+      dataUnsubscribers = [];
+      dataListenersStarted = false;
+      items = []; history = []; categories = []; users = [];
+      renderAll();
+      renderHistory();
+    }
+
     // ==========================================
     // Firebase 初期化
     // ==========================================
     async function initFirebase() {
       try {
-        const app = firebase.initializeApp(FIREBASE_CONFIG);
+        const app = firebase.apps.length ? firebase.app() : firebase.initializeApp(FIREBASE_CONFIG);
+        auth = firebase.auth(app);
         db = firebase.firestore(app);
 
-        db.collection('equipment').onSnapshot(snap => {
-          items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-          renderAll();
-          setSync(true, '✅ 接続完了');
-        }, err => {
-          showPopup('データ取得失敗: ' + err.message, 'error');
-          setSync(false, '権限エラー');
-        });
-
-        db.collection('history').orderBy('timestamp', 'desc').limit(100).onSnapshot(snap => {
-          history = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-          renderHistory();
-        }, err => console.error('履歴取得エラー:', err));
-
-        db.collection('settings').doc('master').onSnapshot(snap => {
-          if (snap.exists) {
-            const d = snap.data();
-            categories = d.categories || [];
-            users = d.users || [];
+        document.getElementById('googleLoginButton').addEventListener('click', async () => {
+          try {
+            await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
+          } catch (error) {
+            document.getElementById('authMessage').textContent = error.code === 'auth/popup-blocked'
+              ? 'ポップアップを許可して再度お試しください。'
+              : 'Googleログインに失敗しました。';
           }
-          renderAll();
-        }, err => console.error('設定取得エラー:', err));
+        });
+        document.getElementById('authBtn').addEventListener('click', () => auth.signOut());
+        auth.onAuthStateChanged(async user => {
+          const gate = document.getElementById('authGate');
+          const message = document.getElementById('authMessage');
+          const allowed = user?.emailVerified && AUTHORIZED_EMAILS.has(user.email?.toLowerCase());
+          if (!allowed) {
+            gate.hidden = false;
+            if (dataListenersStarted) stopDataListeners();
+            document.getElementById('settingsContent').classList.add('hidden');
+            document.getElementById('passwordArea').classList.remove('hidden');
+            if (user) {
+              message.textContent = '許可された学校Googleアカウントでログインしてください。';
+              await auth.signOut();
+            }
+            setSync(false, 'ログインしてください');
+            return;
+          }
+          gate.hidden = true;
+          message.textContent = '';
+          document.getElementById('passwordArea').classList.remove('hidden');
+          document.getElementById('settingsContent').classList.remove('hidden');
+          if (dataListenersStarted) return;
+          dataListenersStarted = true;
+
+          dataUnsubscribers.push(db.collection('equipment').onSnapshot(snap => {
+            items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            renderAll();
+            setSync(true, '✅ 接続完了');
+          }, err => {
+            showPopup('データ取得失敗: ' + err.message, 'error');
+            setSync(false, '権限エラー');
+          }));
+
+          dataUnsubscribers.push(db.collection('history').orderBy('timestamp', 'desc').limit(100).onSnapshot(snap => {
+            history = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            renderHistory();
+          }, err => console.error('履歴取得エラー:', err)));
+
+          dataUnsubscribers.push(db.collection('settings').doc('master').onSnapshot(snap => {
+            if (snap.exists) {
+              const d = snap.data();
+              categories = d.categories || [];
+              users = d.users || [];
+            }
+            renderAll();
+          }, err => console.error('設定取得エラー:', err)));
+        });
 
       } catch (e) {
         showPopup('Firebase接続失敗: ' + e.message, 'error');
@@ -518,16 +580,6 @@
       showPopup(`✅ ${ids.length}台 返却完了`);
       e.target.reset();
       renderReturnCheckList();
-    });
-
-    document.getElementById('authBtn').addEventListener('click', () => {
-      if (document.getElementById('passwordInput').value === PASSWORD) {
-        document.getElementById('passwordArea').classList.add('hidden');
-        document.getElementById('settingsContent').classList.remove('hidden');
-        showPopup('✅ 設定を開きました');
-      } else {
-        showPopup('パスワードが違います', 'warning');
-      }
     });
 
     document.getElementById('addCategory').addEventListener('click', async () => {

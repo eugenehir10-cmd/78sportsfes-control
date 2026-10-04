@@ -74,6 +74,19 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Equipment lending data is available only to verified operators.
+    match /equipment/{equipmentId} {
+      allow read, write: if studentDirectoryOperator();
+    }
+
+    match /history/{entryId} {
+      allow read, write: if studentDirectoryOperator();
+    }
+
+    match /settings/master {
+      allow read, write: if studentDirectoryOperator();
+    }
+
     // Public sports schedule documents and read-only legacy migration sources.
     match /app_data/{document} {
       // The settings page watches the app_data collection for shared updates.
