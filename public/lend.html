@@ -173,6 +173,18 @@
   <section id="history" class="tab-content">
     <h2 class="text-lg font-semibold mb-3">📜 操作履歴</h2>
     <p class="text-xs text-gray-500 mb-3">過去の履歴は100件ずつ追加できます。</p>
+    <div class="mb-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+      <select id="historyTypeFilter" class="rounded-lg border px-3 py-2.5" aria-label="操作で絞り込み">
+        <option value="">すべての操作</option><option value="貸出">貸出</option><option value="返却">返却</option>
+      </select>
+      <select id="historyCategoryFilter" class="rounded-lg border px-3 py-2.5" aria-label="品目種別で絞り込み"><option value="">すべての品目</option></select>
+      <select id="historyUserFilter" class="rounded-lg border px-3 py-2.5" aria-label="利用者で絞り込み"><option value="">すべての利用者</option></select>
+      <input id="historyItemFilter" class="rounded-lg border px-3 py-2.5" type="search" placeholder="品番で検索" aria-label="品番で絞り込み">
+    </div>
+    <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+      <p id="historyFilterSummary" class="text-sm text-gray-500" aria-live="polite"></p>
+      <button id="exportHistoryButton" class="rounded-lg bg-gray-800 px-4 py-2.5 text-sm font-medium text-white" type="button">表示中をCSV出力</button>
+    </div>
     <div id="historyList" class="space-y-3"></div>
     <button id="loadMoreHistory" class="mt-3 w-full rounded-lg border bg-white px-4 py-2.5 text-sm font-medium" type="button">過去の履歴を読み込む</button>
   </section>
@@ -324,9 +336,63 @@
       return Number.isFinite(parsed) ? parsed : 0;
     }
 
+    function renderHistoryFilters() {
+      const category = document.getElementById('historyCategoryFilter');
+      const user = document.getElementById('historyUserFilter');
+      const updateOptions = (select, label, values) => {
+        const previous = select.value;
+        const options = [...new Set(values.filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ja'));
+        if (previous && !options.includes(previous)) options.push(previous);
+        select.replaceChildren(new Option(label, ''), ...options.map(value => new Option(value, value)));
+        select.value = previous;
+      };
+      updateOptions(category, 'すべての品目', history.map(entry => entry.category));
+      updateOptions(user, 'すべての利用者', history.map(entry => entry.user));
+    }
+
+    function filteredHistory() {
+      const type = document.getElementById('historyTypeFilter').value;
+      const category = document.getElementById('historyCategoryFilter').value;
+      const user = document.getElementById('historyUserFilter').value;
+      const item = document.getElementById('historyItemFilter').value.trim().normalize('NFKC').toLocaleLowerCase('ja');
+      return history.filter(entry => {
+        if (type && entry.type !== type) return false;
+        if (category && entry.category !== category) return false;
+        if (user && entry.user !== user) return false;
+        const ids = (entry.ids || []).join(' ').normalize('NFKC').toLocaleLowerCase('ja');
+        return !item || ids.includes(item);
+      });
+    }
+
+    function csvCell(value) {
+      let text = String(value ?? '');
+      if (/^[\s]*[=+\-@]/.test(text)) text = `'${text}`;
+      return `"${text.replace(/"/g, '""')}"`;
+    }
+
+    function exportHistoryCsv() {
+      const entries = filteredHistory();
+      if (!entries.length) return showPopup('CSV出力する履歴がありません', 'warning');
+      const rows = [['日時', '操作', '品目種別', '利用者', '配置/行き先', '台数', '品番', '電池', '備考'], ...entries.map(entry => {
+        const timestamp = entry.timestamp?.toDate ? entry.timestamp.toDate() : entry.timestamp;
+        const date = timestamp instanceof Date && !Number.isNaN(timestamp.getTime())
+          ? timestamp.toLocaleString('ja-JP')
+          : entry.time || String(timestamp || '');
+        return [date, entry.type, entry.category, entry.user, entry.place, entry.count, (entry.ids || []).join(', '), entry.battery, entry.note];
+      })];
+      const csv = `\uFEFF${rows.map(row => row.map(csvCell).join(',')).join('\r\n')}`;
+      const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `備品貸出履歴_${new Date().toISOString().slice(0, 10)}.csv`;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
     function renderHistoryPages() {
       const entries = new Map([...historyLatest, ...historyOlder].map(entry => [entry.id, entry]));
       history = [...entries.values()].sort((a, b) => historyTimestampValue(b.timestamp) - historyTimestampValue(a.timestamp));
+      renderHistoryFilters();
       renderHistory();
       document.getElementById('loadMoreHistory').classList.toggle('hidden', !historyCursor || !historyHasMore);
     }
@@ -339,6 +405,11 @@
       button.disabled = false;
       button.textContent = '過去の履歴を読み込む';
       button.classList.add('hidden');
+      document.getElementById('historyTypeFilter').value = '';
+      document.getElementById('historyCategoryFilter').value = '';
+      document.getElementById('historyUserFilter').value = '';
+      document.getElementById('historyItemFilter').value = '';
+      renderHistoryFilters();
       renderHistory();
     }
 
@@ -728,12 +799,17 @@
     function renderHistory() {
       const cont = document.getElementById('historyList');
       if (!cont) return;
-      if (!history.length) {
-        cont.innerHTML = '<p class="text-gray-400 text-center p-4">まだ操作履歴がありません</p>';
+      const entries = filteredHistory();
+      document.getElementById('historyFilterSummary').textContent = `${entries.length}件を表示 / 読込済み ${history.length}件`;
+      document.getElementById('exportHistoryButton').disabled = !entries.length;
+      if (!entries.length) {
+        cont.innerHTML = history.length
+          ? '<p class="text-gray-400 text-center p-4">条件に一致する履歴がありません</p>'
+          : '<p class="text-gray-400 text-center p-4">まだ操作履歴がありません</p>';
         return;
       }
       const icon = { '貸出': '📤', '返却': '📥' };
-      cont.innerHTML = history.map(h => `
+      cont.innerHTML = entries.map(h => `
         <div class="bg-white p-3 rounded-lg shadow border-l-4 ${h.type==='貸出'?'border-blue-500':'border-green-500'}">
           <div class="flex justify-between items-start gap-2 mb-1">
             <div class="min-w-0"><span class="font-medium">${icon[h.type]} ${h.type}</span><span class="text-xs text-gray-500 ml-1">${h.time}</span></div>
@@ -1022,6 +1098,11 @@
 
     // ===== 初期化 =====
     document.getElementById('loadMoreHistory').addEventListener('click', loadMoreHistory);
+    ['historyTypeFilter', 'historyCategoryFilter', 'historyUserFilter'].forEach(id => {
+      document.getElementById(id).addEventListener('change', renderHistory);
+    });
+    document.getElementById('historyItemFilter').addEventListener('input', renderHistory);
+    document.getElementById('exportHistoryButton').addEventListener('click', exportHistoryCsv);
     document.addEventListener('DOMContentLoaded', initFirebase);
   </script>
 </body>
