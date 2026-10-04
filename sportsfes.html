@@ -133,10 +133,11 @@
   <section id="history" class="tab-content">
     <h2 class="text-xl font-semibold mb-4">📜 操作履歴</h2>
     <div class="flex justify-between items-center mb-3">
-      <p class="text-sm text-gray-500">最新100件を表示</p>
+      <p class="text-sm text-gray-500">過去の履歴は100件ずつ追加できます。</p>
       <button id="clearHistory" class="text-red-500 text-sm hover:text-red-700">履歴をクリア</button>
     </div>
     <div id="historyList" class="space-y-2"></div>
+    <button id="loadMoreHistory" class="mt-3 w-full rounded-lg border bg-white px-4 py-2.5 text-sm font-medium" type="button">過去の履歴を読み込む</button>
   </section>
 
   <!-- ===== 設定 ===== -->
@@ -206,7 +207,15 @@
     let dataListenersStarted = false;
     let items = [];
     let dataUnsubscribers = [];
+    const HISTORY_PAGE_SIZE = 100;
     let history = [];
+    let historyLatest = [];
+    let historyOlder = [];
+    let historyCursor = null;
+    let historyLatestCursor = null;
+    let historyHasMore = true;
+    let historyLoading = false;
+    let historyGeneration = 0;
     let categories = [];
     let users = [];
 
@@ -236,9 +245,71 @@
       dataUnsubscribers.forEach(unsubscribe => unsubscribe());
       dataUnsubscribers = [];
       dataListenersStarted = false;
-      items = []; history = []; categories = []; users = [];
+      items = []; categories = []; users = [];
+      clearHistoryPages();
       renderAll();
+    }
+
+    function historyTimestampValue(value) {
+      if (value && typeof value.toMillis === 'function') return value.toMillis();
+      const parsed = value instanceof Date ? value.getTime() : Date.parse(value);
+      return Number.isFinite(parsed) ? parsed : 0;
+    }
+
+    function renderHistoryPages() {
+      const entries = new Map([...historyLatest, ...historyOlder].map(entry => [entry.id, entry]));
+      history = [...entries.values()].sort((a, b) => historyTimestampValue(b.timestamp) - historyTimestampValue(a.timestamp));
       renderHistory();
+      document.getElementById('loadMoreHistory').classList.toggle('hidden', !historyCursor || !historyHasMore);
+    }
+
+    function clearHistoryPages() {
+      historyGeneration++;
+      history = []; historyLatest = []; historyOlder = [];
+      historyCursor = null; historyLatestCursor = null; historyHasMore = true; historyLoading = false;
+      const button = document.getElementById('loadMoreHistory');
+      button.disabled = false;
+      button.textContent = '過去の履歴を読み込む';
+      button.classList.add('hidden');
+      renderHistory();
+    }
+
+    function resetOlderHistoryPage() {
+      historyGeneration++;
+      historyOlder = [];
+      historyCursor = historyLatestCursor;
+      historyHasMore = true;
+      historyLoading = false;
+      renderHistoryPages();
+    }
+
+    async function loadMoreHistory() {
+      if (!historyCursor || !historyHasMore || historyLoading) return;
+      historyLoading = true;
+      const generation = historyGeneration;
+      const button = document.getElementById('loadMoreHistory');
+      button.disabled = true;
+      button.textContent = '読み込み中...';
+      try {
+        const snapshot = await db.collection('history').orderBy('timestamp', 'desc')
+          .startAfter(historyCursor).limit(HISTORY_PAGE_SIZE).get();
+        if (generation !== historyGeneration) return;
+        historyOlder.push(...snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        if (snapshot.docs.length) historyCursor = snapshot.docs[snapshot.docs.length - 1];
+        if (snapshot.docs.length < HISTORY_PAGE_SIZE) historyHasMore = false;
+        renderHistoryPages();
+      } catch (error) {
+        if (generation !== historyGeneration) return;
+        console.error('過去の履歴読込失敗:', error);
+        showPopup('過去の履歴を読み込めませんでした', 'error');
+      } finally {
+        if (generation === historyGeneration) {
+          historyLoading = false;
+          button.disabled = false;
+          button.textContent = '過去の履歴を読み込む';
+          button.classList.toggle('hidden', !historyCursor || !historyHasMore);
+        }
+      }
     }
 
     // ==========================================
@@ -292,9 +363,12 @@
             setSync(false, '権限エラー');
           }));
 
-          dataUnsubscribers.push(db.collection('history').orderBy('timestamp', 'desc').limit(100).onSnapshot(snap => {
-            history = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-            renderHistory();
+          dataUnsubscribers.push(db.collection('history').orderBy('timestamp', 'desc').limit(HISTORY_PAGE_SIZE).onSnapshot(snap => {
+            historyLatest = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            historyLatestCursor = snap.docs[snap.docs.length - 1] || null;
+            if (!historyCursor) historyCursor = historyLatestCursor;
+            if (snap.docs.length < HISTORY_PAGE_SIZE) historyHasMore = false;
+            renderHistoryPages();
           }, err => console.error('履歴取得エラー:', err)));
 
           dataUnsubscribers.push(db.collection('settings').doc('master').onSnapshot(snap => {
@@ -621,9 +695,11 @@
       const batch = db.batch();
       snap.docs.forEach(d => batch.delete(d.ref));
       await batch.commit();
+      clearHistoryPages();
       showPopup('✅ 履歴を削除しました');
     });
 
+    document.getElementById('loadMoreHistory').addEventListener('click', loadMoreHistory);
     initFirebase();
   </script>
 </body>
