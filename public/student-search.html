@@ -101,7 +101,15 @@
         <p id="editStatus" class="message" role="status"></p>
       </section>
       <p class="footer-note">名簿項目と保存済みの出欠状況をExcelへ出力できます。全セルに罫線を付け、メールアドレス等は初期状態で出力しません。</p>
-      <section class="panel export-fields-panel"><h2>出欠Excelの出力項目</h2><div id="exportFields" class="field-choices"></div><label class="check-label"><input id="includeAttendance" type="checkbox" checked> 各区分の出席・欠席・遅刻を追加する</label></section>
+      <section class="panel export-fields-panel">
+        <h2>出欠Excelの出力項目</h2>
+        <p class="export-group-label">日単位</p>
+        <div id="attendanceDayExportFields" class="field-choices"></div>
+        <p class="export-group-label">団体競技日の詳細</p>
+        <div id="teamAttendanceExportFields" class="field-choices"></div>
+        <p class="export-group-label">名簿項目</p>
+        <div id="exportFields" class="field-choices"></div>
+      </section>
     </section>
   </main>
 </body>

@@ -267,10 +267,37 @@
       ? previous
       : state.attendanceSessions[0]?.id ?? "";
     select.value = state.activeAttendanceSessionId;
+    renderAttendanceExportOptions();
     $("removeAttendanceSessionButton").classList.toggle("hidden", DEFAULT_ATTENDANCE_SESSIONS.some((session) => session.id === state.activeAttendanceSessionId));
     renderAttendanceFilters();
     renderAttendanceGrades();
     renderAttendanceRecords();
+  }
+
+  function renderAttendanceExportOptions() {
+    const dayContainer = $("attendanceDayExportFields");
+    const detailContainer = $("teamAttendanceExportFields");
+    const renderOptions = (container, options) => {
+      const previous = new Map([...container.querySelectorAll('input[type="checkbox"]')]
+        .map((input) => [input.value, input.checked]));
+      container.replaceChildren(...options.map(({ value, label }) => {
+        const wrapper = document.createElement("label");
+        wrapper.className = "check-label";
+        const input = document.createElement("input");
+        input.type = "checkbox";
+        input.value = value;
+        input.checked = previous.has(value) ? previous.get(value) : true;
+        wrapper.append(input, document.createTextNode(label));
+        return wrapper;
+      }));
+    };
+    renderOptions(dayContainer, [
+      { value: "attendance:ball-day", label: "球技日" },
+      { value: "attendance:team-day", label: "団体競技日（集計）" }
+    ]);
+    renderOptions(detailContainer, state.attendanceSessions
+      .filter((session) => session.id !== "ball-day")
+      .map((session) => ({ value: `detail:${session.id}`, label: session.name })));
   }
 
   function attendanceSportField() {
@@ -455,6 +482,20 @@
     if (Array.isArray(grades) && (!gradeField || !grades.includes(String(record[gradeField] ?? "").trim()))) return "対象外";
     const status = attendanceStatus(session, record);
     return status === "absent" ? "欠席" : status === "late" ? "遅刻" : "出席";
+  }
+
+  function teamDayAttendanceExportValue(record) {
+    const statuses = state.attendanceSessions
+      .filter((session) => session.id !== "ball-day")
+      .map((session) => attendanceExportValue(session, record))
+      .filter((status) => status !== "対象外");
+    if (!statuses.length) return "対象外";
+    const absentCount = statuses.filter((status) => status === "欠席").length;
+    const lateCount = statuses.filter((status) => status === "遅刻").length;
+    if (absentCount === statuses.length) return "団体競技日欠席";
+    if (absentCount > 0 || lateCount >= 2) return "欠課";
+    if (lateCount === 1) return "遅刻";
+    return "出席";
   }
 
   function setAttendanceStatus(sessionId, record, status) {
@@ -707,10 +748,23 @@
   function exportAttendanceWorkbook() {
     const records = filteredRows();
     const fields = [...$("exportFields").querySelectorAll('input[type="checkbox"]:checked')].map((input) => input.value);
-    const attendanceSessions = $("includeAttendance").checked ? state.attendanceSessions : [];
+    const selectedAttendance = new Set([
+      ...$("attendanceDayExportFields").querySelectorAll('input[type="checkbox"]:checked'),
+      ...$("teamAttendanceExportFields").querySelectorAll('input[type="checkbox"]:checked')
+    ].map((input) => input.value));
+    const attendanceColumns = [];
+    const ballDay = state.attendanceSessions.find((session) => session.id === "ball-day");
+    if (ballDay && selectedAttendance.has("attendance:ball-day")) {
+      attendanceColumns.push({ name: "球技日", value: (record) => attendanceExportValue(ballDay, record) });
+    }
+    if (selectedAttendance.has("attendance:team-day")) {
+      attendanceColumns.push({ name: "団体競技日", value: teamDayAttendanceExportValue });
+    }
+    state.attendanceSessions.filter((session) => session.id !== "ball-day" && selectedAttendance.has(`detail:${session.id}`))
+      .forEach((session) => attendanceColumns.push({ name: session.name, value: (record) => attendanceExportValue(session, record) }));
     if (!records.length) return alert("出力する生徒がいません。");
-    if (!fields.length && !attendanceSessions.length) return alert("出力する項目を選択してください。");
-    const headers = [...fields, ...attendanceSessions.map((session) => session.name)];
+    if (!fields.length && !attendanceColumns.length) return alert("出力する項目を選択してください。");
+    const headers = [...fields, ...attendanceColumns.map((column) => column.name)];
     if (!window.XLSX) return alert("Excel出力ライブラリを読み込めませんでした。ページを再読み込みしてください。");
     const groupFields = [...$("exportGroupFields").querySelectorAll('input[type="checkbox"]:checked')].map((input) => input.value);
     const selectedValues = [...$("exportGroupValues").querySelectorAll('input[type="checkbox"]:checked')].map((input) => input.value);
@@ -748,7 +802,7 @@
         if (!usedNames.has(candidate)) { usedNames.add(candidate); return candidate; }
         return safeName(normalizedBase, index + 1);
       };
-      const sheet = XLSX.utils.aoa_to_sheet([headers, ...rows.map((record) => [...fields.map((field) => String(record[field] ?? "")), ...attendanceSessions.map((session) => attendanceExportValue(session, record))])], { cellDates: false });
+      const sheet = XLSX.utils.aoa_to_sheet([headers, ...rows.map((record) => [...fields.map((field) => String(record[field] ?? "")), ...attendanceColumns.map((column) => column.value(record))])], { cellDates: false });
       sheet["!cols"] = headers.map(() => ({ wch: 16 }));
       XLSX.utils.book_append_sheet(workbook, sheet, safeName(name));
     });
