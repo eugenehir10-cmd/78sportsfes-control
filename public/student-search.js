@@ -30,7 +30,7 @@
   const DEFAULT_ATTENDANCE_SESSIONS = [
     { id: "ball-day", name: "球技日", grades: {}, numbers: [] },
     { id: "team-before-opening", name: "団体競技日・開会式前", grades: {}, numbers: [] },
-    { id: "team-after-opening", name: "団体競技日・開会式後", grades: {}, numbers: [] }
+    { id: "team-after-opening", name: "団体競技日・閉会式後", grades: {}, numbers: [] }
   ];
   const state = { rows: [], fields: [], attendanceSessions: DEFAULT_ATTENDANCE_SESSIONS.map((session) => ({ ...session })), activeAttendanceSessionId: "ball-day", attendanceLookup: "", attendanceSportFilter: "", filters: {}, staged: null, selectedStudentIndices: new Set(), lockTimer: 0, db: null, auth: null, user: null, unsubscribe: null };
   const $ = (id) => document.getElementById(id);
@@ -416,7 +416,9 @@
       const content = state.fields.filter((field) => !SENSITIVE_HINT.test(field)).map((field) => record[field] ?? "").join(" ").normalize("NFKC").toLocaleLowerCase("ja");
       return lookup.every((token) => content.includes(token));
     });
-    $("attendanceFilterSummary").textContent = `${records.length.toLocaleString()}人が検索条件に一致しています。欠席にする生徒にチェックしてください。`;
+    $("attendanceFilterSummary").textContent = session?.id === "ball-day"
+      ? `${records.length.toLocaleString()}人が検索条件に一致しています。欠席・遅刻する生徒にチェックしてください。`
+      : `${records.length.toLocaleString()}人が検索条件に一致しています。○を出席、×を欠席として選択してください。`;
     if (!session || !records.length) {
       const empty = document.createElement("p");
       empty.className = "muted";
@@ -424,7 +426,7 @@
       container.append(empty);
       return;
     }
-    records.slice(0, 300).forEach((record) => {
+    records.slice(0, 300).forEach((record, index) => {
       const row = document.createElement("div");
       row.className = "attendance-record";
       const identity = document.createElement("div");
@@ -439,20 +441,41 @@
         detailText.textContent = details;
         identity.append(detailText);
       }
+      if (session.id !== "ball-day") {
+        const summary = document.createElement("span");
+        summary.className = "attendance-team-summary";
+        summary.textContent = `団体競技日：${teamDayAttendanceStatus(record)}`;
+        identity.append(summary);
+      }
       const statusControls = document.createElement("div");
       statusControls.className = "attendance-status-controls";
       const currentStatus = attendanceStatus(session, record);
-      [["absent", "欠席"], ["late", "遅刻"]].forEach(([status, text]) => {
-        const label = document.createElement("label");
-        label.className = `attendance-toggle attendance-toggle-${status}`;
-        const checkbox = document.createElement("input");
-        checkbox.type = "checkbox";
-        checkbox.checked = currentStatus === status;
-        checkbox.setAttribute("aria-label", `${studentDisplayName(record)}を${text}にする`);
-        checkbox.addEventListener("change", () => setAttendanceStatus(session.id, record, checkbox.checked ? status : "present"));
-        label.append(checkbox, document.createTextNode(text));
-        statusControls.append(label);
-      });
+      if (session.id === "ball-day") {
+        [["absent", "欠席"], ["late", "遅刻"]].forEach(([status, text]) => {
+          const label = document.createElement("label");
+          label.className = `attendance-toggle attendance-toggle-${status}`;
+          const checkbox = document.createElement("input");
+          checkbox.type = "checkbox";
+          checkbox.checked = currentStatus === status;
+          checkbox.setAttribute("aria-label", `${studentDisplayName(record)}を${text}にする`);
+          checkbox.addEventListener("change", () => setAttendanceStatus(session.id, record, checkbox.checked ? status : "present"));
+          label.append(checkbox, document.createTextNode(text));
+          statusControls.append(label);
+        });
+      } else {
+        [["present", "○ 出席"], ["absent", "× 欠席"]].forEach(([status, text]) => {
+          const label = document.createElement("label");
+          label.className = `attendance-toggle attendance-toggle-${status}`;
+          const radio = document.createElement("input");
+          radio.type = "radio";
+          radio.name = `attendance-${session.id}-${index}`;
+          radio.checked = status === "present" ? currentStatus === "present" : currentStatus !== "present";
+          radio.setAttribute("aria-label", `${studentDisplayName(record)}を${text}として記録`);
+          radio.addEventListener("change", () => setAttendanceStatus(session.id, record, status));
+          label.append(radio, document.createTextNode(text));
+          statusControls.append(label);
+        });
+      }
       row.append(identity, statusControls);
       container.append(row);
     });
@@ -473,29 +496,39 @@
     return entry?.status === "late" ? "late" : entry ? "absent" : "present";
   }
 
-  function attendanceExportValue(session, record) {
+  function attendanceSessionAppliesToRecord(session, record) {
     const gradeField = attendanceGradeField();
     const sportField = attendanceSportField();
     const sport = String(record[sportField] ?? "").trim();
     const scope = session.id === "ball-day" && sport ? sport : ATTENDANCE_ALL_GRADES_SCOPE;
     const grades = session.grades[scope] ?? (scope !== ATTENDANCE_ALL_GRADES_SCOPE ? session.grades[ATTENDANCE_ALL_GRADES_SCOPE] : null);
-    if (Array.isArray(grades) && (!gradeField || !grades.includes(String(record[gradeField] ?? "").trim()))) return "対象外";
+    return !Array.isArray(grades) || Boolean(gradeField && grades.includes(String(record[gradeField] ?? "").trim()));
+  }
+
+  function attendanceExportValue(session, record) {
+    if (!attendanceSessionAppliesToRecord(session, record)) return "対象外";
     const status = attendanceStatus(session, record);
+    if (session.id !== "ball-day") return status === "present" ? "○" : "×";
     return status === "absent" ? "欠席" : status === "late" ? "遅刻" : "出席";
   }
 
-  function teamDayAttendanceExportValue(record) {
-    const statuses = state.attendanceSessions
-      .filter((session) => session.id !== "ball-day")
-      .map((session) => attendanceExportValue(session, record))
-      .filter((status) => status !== "対象外");
+  function teamDayAttendanceStatus(record) {
+    const ballDay = state.attendanceSessions.find((session) => session.id === "ball-day");
+    const sessions = state.attendanceSessions.filter((session) => session.id !== "ball-day");
+    if (ballDay) sessions.push(ballDay);
+    const statuses = sessions
+      .filter((session) => attendanceSessionAppliesToRecord(session, record))
+      .map((session) => attendanceStatus(session, record));
     if (!statuses.length) return "対象外";
-    const absentCount = statuses.filter((status) => status === "欠席").length;
-    const lateCount = statuses.filter((status) => status === "遅刻").length;
-    if (absentCount === statuses.length) return "団体競技日欠席";
-    if (absentCount > 0 || lateCount >= 2) return "欠課";
-    if (lateCount === 1) return "遅刻";
+    const absentCount = statuses.filter((status) => status !== "present").length;
+    if (absentCount === statuses.length) return "欠席";
+    if (absentCount >= 2) return "欠課";
+    if (absentCount === 1) return "遅刻";
     return "出席";
+  }
+
+  function teamDayAttendanceExportValue(record) {
+    return teamDayAttendanceStatus(record);
   }
 
   function setAttendanceStatus(sessionId, record, status) {

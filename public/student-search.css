@@ -54,6 +54,9 @@ input:focus, select:focus, textarea:focus { outline: 3px solid rgb(124 88 219 / 
 .attendance-toggle { display: inline-flex; align-items: center; gap: 0.4rem; flex: 0 0 auto; color: #475569; font-size: 0.78rem; font-weight: 750; }
 .attendance-toggle input { width: 1.1rem; height: 1.1rem; min-height: 1.1rem; padding: 0; accent-color: #b42318; }
 .attendance-toggle-late input { accent-color: #d97706; }
+.attendance-toggle-present input { accent-color: #15803d; }
+.attendance-toggle-absent input { accent-color: #b42318; }
+.attendance-team-summary { width: fit-content; padding: 0.12rem 0.4rem; border-radius: 0.35rem; background: #eef2ff; color: #3730a3 !important; font-weight: 800; }
 .add-attendance-session-form label { display: grid; gap: 0.3rem; color: #475569; font-size: 0.76rem; font-weight: 750; }
 .attendance-session-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.5rem; }
 .add-attendance-session-form { display: flex; align-items: end; flex-wrap: wrap; gap: 0.6rem; margin-top: 0.8rem; padding-top: 0.8rem; border-top: 1px solid var(--line); }
