@@ -513,10 +513,8 @@
   }
 
   function teamDayAttendanceStatus(record) {
-    const ballDay = state.attendanceSessions.find((session) => session.id === "ball-day");
-    const sessions = state.attendanceSessions.filter((session) => session.id !== "ball-day");
-    if (ballDay) sessions.push(ballDay);
-    const statuses = sessions
+    const statuses = state.attendanceSessions
+      .filter((session) => session.id !== "ball-day")
       .filter((session) => attendanceSessionAppliesToRecord(session, record))
       .map((session) => attendanceStatus(session, record));
     if (!statuses.length) return "対象外";
