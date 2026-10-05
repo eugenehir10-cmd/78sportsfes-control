@@ -50,13 +50,15 @@ input:focus, select:focus, textarea:focus { outline: 3px solid rgb(124 88 219 / 
 .attendance-record { display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; min-width: 0; padding: 0.55rem 0.7rem; border: 1px solid var(--line); border-radius: 0.5rem; background: #fbfcfe; }
 .attendance-record-identity { display: grid; gap: 0.15rem; min-width: 0; font-size: 0.8rem; }
 .attendance-record-identity span { color: var(--muted); font-size: 0.72rem; overflow-wrap: anywhere; }
-.attendance-status-controls { display: flex; align-items: center; gap: 0.75rem; flex: 0 0 auto; }
+.attendance-status-controls { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 0.5rem 0.75rem; flex: 0 1 auto; }
 .attendance-toggle { display: inline-flex; align-items: center; gap: 0.4rem; flex: 0 0 auto; color: #475569; font-size: 0.78rem; font-weight: 750; }
 .attendance-toggle input { width: 1.1rem; height: 1.1rem; min-height: 1.1rem; padding: 0; accent-color: #b42318; }
 .attendance-toggle-late input { accent-color: #d97706; }
 .attendance-toggle-present input { accent-color: #15803d; }
 .attendance-toggle-absent input { accent-color: #b42318; }
 .attendance-team-summary { width: fit-content; padding: 0.12rem 0.4rem; border-radius: 0.35rem; background: #eef2ff; color: #3730a3 !important; font-weight: 800; }
+.attendance-day-present-button { min-height: 2rem; padding: 0.3rem 0.55rem; border: 1px solid #86efac; border-radius: 0.45rem; background: #f0fdf4; color: #166534; font: inherit; font-size: 0.7rem; font-weight: 800; cursor: pointer; }
+.attendance-day-present-button:hover { background: #dcfce7; }
 .add-attendance-session-form label { display: grid; gap: 0.3rem; color: #475569; font-size: 0.76rem; font-weight: 750; }
 .attendance-session-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.5rem; }
 .add-attendance-session-form { display: flex; align-items: end; flex-wrap: wrap; gap: 0.6rem; margin-top: 0.8rem; padding-top: 0.8rem; border-top: 1px solid var(--line); }

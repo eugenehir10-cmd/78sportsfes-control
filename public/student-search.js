@@ -476,6 +476,13 @@
           statusControls.append(label);
         });
       }
+      const presentAllButton = document.createElement("button");
+      presentAllButton.type = "button";
+      presentAllButton.className = "attendance-day-present-button";
+      presentAllButton.textContent = "当日をすべて出席";
+      presentAllButton.setAttribute("aria-label", `${studentDisplayName(record)}の当日すべての出欠を出席にする`);
+      presentAllButton.addEventListener("click", () => setAttendancePresentForDay(record));
+      statusControls.append(presentAllButton);
       row.append(identity, statusControls);
       container.append(row);
     });
@@ -494,6 +501,44 @@
       ? item.key === key
       : Boolean(number) && normalizedAttendanceNumber(item.number) === number);
     return entry?.status === "late" ? "late" : entry ? "absent" : "present";
+  }
+
+  function attendanceSessionsForDay(sessionId) {
+    return state.attendanceSessions.filter((session) => sessionId === "ball-day"
+      ? session.id === "ball-day"
+      : session.id !== "ball-day");
+  }
+
+  async function setAttendancePresentForDay(record) {
+    const sessions = attendanceSessionsForDay(state.activeAttendanceSessionId);
+    if (!sessions.length) return;
+    const key = attendanceStudentKey(record);
+    const recordNumber = attendanceRecordNumber(record);
+    const number = normalizedAttendanceNumber(recordNumber);
+    const previousNumbers = sessions.map((session) => session.numbers);
+    let changed = false;
+    sessions.forEach((session) => {
+      const nextNumbers = session.numbers.filter((entry) => entry.key
+        ? entry.key !== key
+        : !number || normalizedAttendanceNumber(entry.number) !== number);
+      if (nextNumbers.length !== session.numbers.length) changed = true;
+      session.numbers = nextNumbers;
+    });
+    if (!changed) {
+      setMessage("attendanceStatus", `「${studentDisplayName(record)}」はすでに当日すべて出席です。`);
+      return;
+    }
+    renderAttendanceRecords();
+    try {
+      await persist();
+      const dayName = state.activeAttendanceSessionId === "ball-day" ? "球技日" : "団体競技日";
+      setMessage("attendanceStatus", `「${studentDisplayName(record)}」の${dayName}をすべて出席にしました。`);
+      resetLockTimer();
+    } catch (error) {
+      sessions.forEach((session, index) => { session.numbers = previousNumbers[index]; });
+      renderAttendanceRecords();
+      setMessage("attendanceStatus", `一括出席を保存できませんでした: ${error.message}`, true);
+    }
   }
 
   function attendanceSessionAppliesToRecord(session, record) {
