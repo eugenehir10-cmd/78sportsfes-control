@@ -32,7 +32,7 @@
     { id: "team-before-opening", name: "団体競技日・開会式前", grades: {}, numbers: [] },
     { id: "team-after-opening", name: "団体競技日・閉会式後", grades: {}, numbers: [] }
   ];
-  const state = { rows: [], fields: [], attendanceSessions: DEFAULT_ATTENDANCE_SESSIONS.map((session) => ({ ...session })), activeAttendanceSessionId: "ball-day", attendanceLookup: "", attendanceSportFilter: "", filters: {}, staged: null, selectedStudentIndices: new Set(), lockTimer: 0, db: null, auth: null, user: null, unsubscribe: null };
+  const state = { rows: [], fields: [], attendanceSessions: DEFAULT_ATTENDANCE_SESSIONS.map((session) => ({ ...session })), activeAttendanceSessionId: "ball-day", attendanceLookup: "", attendanceSportFilter: "", filters: {}, staged: null, selectedStudentIndices: new Set(), selectedAttendanceKeys: new Set(), lockTimer: 0, db: null, auth: null, user: null, unsubscribe: null };
   const $ = (id) => document.getElementById(id);
 
   const encoder = new TextEncoder();
@@ -80,6 +80,8 @@
     state.attendanceSessions = DEFAULT_ATTENDANCE_SESSIONS.map((session) => ({ ...session }));
     state.staged = null;
     state.selectedStudentIndices.clear();
+    state.selectedAttendanceKeys.clear();
+    $("attendanceBulkSearch").value = "";
     state.attendanceLookup = "";
     $("attendanceLookup").value = "";
     state.attendanceSportFilter = "";
@@ -230,6 +232,7 @@
     renderFilters();
     renderExportFields();
     renderAssignmentFields();
+    renderAttendanceBulkCandidates();
     renderResults();
   }
 
@@ -476,13 +479,6 @@
           statusControls.append(label);
         });
       }
-      const presentAllButton = document.createElement("button");
-      presentAllButton.type = "button";
-      presentAllButton.className = "attendance-day-present-button";
-      presentAllButton.textContent = "当日をすべて出席";
-      presentAllButton.setAttribute("aria-label", `${studentDisplayName(record)}の当日すべての出欠を出席にする`);
-      presentAllButton.addEventListener("click", () => setAttendancePresentForDay(record));
-      statusControls.append(presentAllButton);
       row.append(identity, statusControls);
       container.append(row);
     });
@@ -503,36 +499,90 @@
     return entry?.status === "late" ? "late" : entry ? "absent" : "present";
   }
 
+  function renderAttendanceBulkCandidates() {
+    const container = $("attendanceBulkCandidates");
+    const query = $("attendanceBulkSearch").value.trim().normalize("NFKC").toLocaleLowerCase("ja");
+    const tokens = query.split(/\s+/).filter(Boolean);
+    const selection = state.selectedAttendanceKeys;
+    $("attendanceBulkSelected").textContent = selection.size
+      ? `${selection.size}人を選択中。検索語を変えて追加選択できます。`
+      : "候補にチェックを付けて複数人を選択できます。";
+    $("attendanceBulkPresentButton").disabled = selection.size === 0;
+    container.replaceChildren();
+    if (!tokens.length) return;
+    const matches = state.rows.map((record) => ({ record, key: attendanceStudentKey(record) })).filter(({ record }) => {
+      const content = state.fields.filter((field) => !SENSITIVE_HINT.test(field))
+        .map((field) => record[field] ?? "").join(" ").normalize("NFKC").toLocaleLowerCase("ja");
+      return tokens.every((token) => content.includes(token));
+    }).slice(0, 20);
+    if (!matches.length) {
+      const empty = document.createElement("span");
+      empty.className = "muted";
+      empty.textContent = "一致する生徒がいません。";
+      container.append(empty);
+      return;
+    }
+    matches.forEach(({ record, key }) => {
+      const label = document.createElement("label");
+      label.className = "student-candidate";
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.checked = selection.has(key);
+      const details = state.fields.filter((field) => /番号|学年|組|クラス|球技|競技|種目/i.test(field) && !SENSITIVE_HINT.test(field) && record[field])
+        .map((field) => `${field}: ${record[field]}`).join(" / ");
+      const name = document.createElement("span");
+      name.textContent = details ? `${studentDisplayName(record)}　${details}` : studentDisplayName(record);
+      if (checkbox.checked) label.classList.add("selected");
+      checkbox.addEventListener("change", () => {
+        if (checkbox.checked) selection.add(key);
+        else selection.delete(key);
+        label.classList.toggle("selected", checkbox.checked);
+        $("attendanceBulkSelected").textContent = selection.size
+          ? `${selection.size}人を選択中。検索語を変えて追加選択できます。`
+          : "候補にチェックを付けて複数人を選択できます。";
+        $("attendanceBulkPresentButton").disabled = selection.size === 0;
+      });
+      label.append(checkbox, name);
+      container.append(label);
+    });
+  }
+
   function attendanceSessionsForDay(sessionId) {
     return state.attendanceSessions.filter((session) => sessionId === "ball-day"
       ? session.id === "ball-day"
       : session.id !== "ball-day");
   }
 
-  async function setAttendancePresentForDay(record) {
+  async function setAttendancePresentForSelected() {
+    const recordsByKey = new Map(state.rows.map((record) => [attendanceStudentKey(record), record]));
+    const records = [...state.selectedAttendanceKeys].map((key) => recordsByKey.get(key)).filter(Boolean);
+    if (!records.length) return;
     const sessions = attendanceSessionsForDay(state.activeAttendanceSessionId);
     if (!sessions.length) return;
-    const key = attendanceStudentKey(record);
-    const recordNumber = attendanceRecordNumber(record);
-    const number = normalizedAttendanceNumber(recordNumber);
     const previousNumbers = sessions.map((session) => session.numbers);
-    let changed = false;
-    sessions.forEach((session) => {
-      const nextNumbers = session.numbers.filter((entry) => entry.key
-        ? entry.key !== key
-        : !number || normalizedAttendanceNumber(entry.number) !== number);
-      if (nextNumbers.length !== session.numbers.length) changed = true;
-      session.numbers = nextNumbers;
+    const changedKeys = new Set();
+    records.forEach((record) => {
+      const key = attendanceStudentKey(record);
+      const number = normalizedAttendanceNumber(attendanceRecordNumber(record));
+      sessions.forEach((session) => {
+        const nextNumbers = session.numbers.filter((entry) => entry.key
+          ? entry.key !== key
+          : !number || normalizedAttendanceNumber(entry.number) !== number);
+        if (nextNumbers.length !== session.numbers.length) changedKeys.add(key);
+        session.numbers = nextNumbers;
+      });
     });
-    if (!changed) {
-      setMessage("attendanceStatus", `「${studentDisplayName(record)}」はすでに当日すべて出席です。`);
+    if (!changedKeys.size) {
+      setMessage("attendanceStatus", "選択した生徒はすでに当日すべて出席です。");
       return;
     }
     renderAttendanceRecords();
     try {
       await persist();
       const dayName = state.activeAttendanceSessionId === "ball-day" ? "球技日" : "団体競技日";
-      setMessage("attendanceStatus", `「${studentDisplayName(record)}」の${dayName}をすべて出席にしました。`);
+      state.selectedAttendanceKeys.clear();
+      renderAttendanceBulkCandidates();
+      setMessage("attendanceStatus", `選択した${records.length}人の${dayName}をすべて出席にしました。`);
       resetLockTimer();
     } catch (error) {
       sessions.forEach((session, index) => { session.numbers = previousNumbers[index]; });
@@ -965,6 +1015,8 @@
   $("attendanceSessionSelect").addEventListener("change", () => { state.activeAttendanceSessionId = $("attendanceSessionSelect").value; renderAttendanceGrades(); renderAttendanceRecords(); });
   $("removeAttendanceSessionButton").addEventListener("click", () => removeAttendanceSession(state.activeAttendanceSessionId));
   $("attendanceLookup").addEventListener("input", () => { state.attendanceLookup = $("attendanceLookup").value; renderAttendanceRecords(); resetLockTimer(); });
+  $("attendanceBulkSearch").addEventListener("input", renderAttendanceBulkCandidates);
+  $("attendanceBulkPresentButton").addEventListener("click", setAttendancePresentForSelected);
   $("attendanceSportFilter").addEventListener("change", () => { state.attendanceSportFilter = $("attendanceSportFilter").value; renderAttendanceGrades(); renderAttendanceRecords(); resetLockTimer(); });
   $("exportGroupFields").addEventListener("change", renderExportGroupValues);
   $("exportButton").addEventListener("click", exportAttendanceWorkbook);

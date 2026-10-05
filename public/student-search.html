@@ -71,6 +71,13 @@
           <label>氏名・四桁番号で検索<input id="attendanceLookup" type="search" placeholder="例：1101、名字、名前"></label>
           <label>球技で絞り込む<select id="attendanceSportFilter"><option value="">すべて</option></select></label>
         </div>
+        <div class="attendance-bulk-present">
+          <h3>生徒を選んで一括出席</h3>
+          <label>氏名・番号などで検索<input id="attendanceBulkSearch" type="search" autocomplete="off" placeholder="名字・名前・番号など"></label>
+          <div id="attendanceBulkCandidates" class="student-candidates" role="group" aria-label="一括出席する生徒候補"></div>
+          <p id="attendanceBulkSelected" class="muted" aria-live="polite">検索して候補にチェックを付けてください。</p>
+          <button id="attendanceBulkPresentButton" class="button button-secondary" type="button" disabled>選択した生徒を当日すべて出席にする</button>
+        </div>
         <div class="attendance-grade-settings">
           <p id="attendanceGradeLabel" class="export-group-label">この区分に参加する学年</p>
           <div id="attendanceGrades" class="attendance-grades" role="group" aria-labelledby="attendanceGradeLabel"></div>
